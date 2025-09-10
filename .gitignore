@@ -1,0 +1,48 @@
+# Python bytecode and caches
+__pycache__/
+*.py[cod]
+*.pyo
+.Python
+.pytest_cache/
+.mypy_cache/
+.coverage*
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# OS artifacts
+.DS_Store
+Thumbs.db
+
+# Editor/IDE settings
+.vscode/
+.idea/
+
+# Local environment and secrets
+.env
+.env*/
+Source/.env/
+Source/.env/env_data.txt
+
+# Local user data (dumps/backups)
+Source/saves/
+
+# Dev/debug artifacts
+debug/
+tmpServerFiles/
+
+# Build/Dist (if locally produced)
+build/
+dist/
+*.spec
+
+# Logs
+*.log
+debug/logs/
+
+# Misc
+*.tmp
+*.bak
+

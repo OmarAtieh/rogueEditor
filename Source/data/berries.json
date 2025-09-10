@@ -1,0 +1,28 @@
+{
+  "name_to_id": {
+    "sitrus": 0,
+    "lum": 1,
+    "enigma": 2,
+    "liechi": 3,
+    "ganlon": 4,
+    "petaya": 5,
+    "apicot": 6,
+    "salac": 7,
+    "lansat": 8,
+    "starf": 9,
+    "leppa": 10
+  },
+  "id_to_name": {
+    "0": "SITRUS",
+    "1": "LUM",
+    "2": "ENIGMA",
+    "3": "LIECHI",
+    "4": "GANLON",
+    "5": "PETAYA",
+    "6": "APICOT",
+    "7": "SALAC",
+    "8": "LANSAT",
+    "9": "STARF",
+    "10": "LEPPA"
+  }
+}

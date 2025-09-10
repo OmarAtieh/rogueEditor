@@ -1,0 +1,32 @@
+{
+  "hardy": { "up": "attack", "down": "attack" },
+  "docile": { "up": "defense", "down": "defense" },
+  "serious": { "up": "speed", "down": "speed" },
+  "bashful": { "up": "sp_attack", "down": "sp_attack" },
+  "quirky": { "up": "sp_defense", "down": "sp_defense" },
+
+  "lonely": { "up": "attack", "down": "defense" },
+  "brave": { "up": "attack", "down": "speed" },
+  "adamant": { "up": "attack", "down": "sp_attack" },
+  "naughty": { "up": "attack", "down": "sp_defense" },
+
+  "bold": { "up": "defense", "down": "attack" },
+  "relaxed": { "up": "defense", "down": "speed" },
+  "impish": { "up": "defense", "down": "sp_attack" },
+  "lax": { "up": "defense", "down": "sp_defense" },
+
+  "timid": { "up": "speed", "down": "attack" },
+  "hasty": { "up": "speed", "down": "defense" },
+  "jolly": { "up": "speed", "down": "sp_attack" },
+  "naive": { "up": "speed", "down": "sp_defense" },
+
+  "modest": { "up": "sp_attack", "down": "attack" },
+  "mild": { "up": "sp_attack", "down": "defense" },
+  "quiet": { "up": "sp_attack", "down": "speed" },
+  "rash": { "up": "sp_attack", "down": "sp_defense" },
+
+  "calm": { "up": "sp_defense", "down": "attack" },
+  "gentle": { "up": "sp_defense", "down": "defense" },
+  "sassy": { "up": "sp_defense", "down": "speed" },
+  "careful": { "up": "sp_defense", "down": "sp_attack" }
+}

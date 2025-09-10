@@ -1,0 +1,26 @@
+{
+  "name_to_id": {
+    "none": 0,
+    "sunny": 1,
+    "rain": 2,
+    "sandstorm": 3,
+    "hail": 4,
+    "snow": 5,
+    "fog": 6,
+    "heavy_rain": 7,
+    "harsh_sun": 8,
+    "strong_winds": 9
+  },
+  "id_to_name": {
+    "0": "NONE",
+    "1": "SUNNY",
+    "2": "RAIN",
+    "3": "SANDSTORM",
+    "4": "HAIL",
+    "5": "SNOW",
+    "6": "FOG",
+    "7": "HEAVY_RAIN",
+    "8": "HARSH_SUN",
+    "9": "STRONG_WINDS"
+  }
+}

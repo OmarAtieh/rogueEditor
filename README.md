@@ -1,94 +1,77 @@
 # rogueEditor
 
-**rogueEditor** is a simple Pokerogue.net save editor written in Python.
+Pokerogue.net save editor for trainers and run data, with both CLI and GUI.
 
-![cmd](https://i.imgur.com/jhZwPAf.png)
-![dex](https://i.imgur.com/UeS96O9.png)
+Repository: https://github.com/OmarAtieh/rogueEditor
+
+Discord: Oviren
+
+## Features
+
+- GUI and CLI modes
+  - GUI: Non-blocking, scrollable UI with autocomplete pickers and save vs upload separation.
+  - CLI: Structured menu with safety confirmations and per-user paths.
+- Per-user saves and backups
+  - Saves stored under `Source/saves/<username>/` (trainer.json, slot N.json).
+  - Timestamped backups and a restore dialog (restore all/trainer/slot, delete backups with warnings).
+- System/Session aware API
+  - Uses `/savedata/system/*` and `/savedata/session/*` with `clientSessionId`.
+  - UI shows slots summary; server indexing is 0-based (UI uses 1–5).
+- Team editor
+  - Level, IVs (two-column layout with clamped 0–31), moves (name/id), ability (name/id), nature (name/id), held item (id or name if catalog available).
+  - Add a new Pokémon to the party.
+- Starters
+  - abilityAttr/passiveAttr presets, valueReduction, candies increment, gacha deltas.
+- Modifiers / Items
+  - Manager dialog for player and Pokémon modifiers; add/remove and upload.
+  - Quick item templates (WIDE_LENS, FOCUS_BAND, BERRY, etc.) and BASE_STAT_BOOSTER with stat selection.
+- Data catalogs
+  - Clean JSON catalogs in `Source/data/` (moves, abilities, ability_attr, natures, weather, stats, modifiers, berries, items if available).
+  - Builder tool to parse tmpServerFiles once; runtime uses only `Source/data`.
 
 ## Requirements
 
-- Python 3.10.x
-- Requests library
+- Python 3.10+
+- `requests`
 
-## Running the program without Python
+Install dependencies:
 
-- Download rogueEditor.zip from the "Compiled" folder or [here](https://github.com/OnyxdevSoftware/rogueEditor/raw/main/Compiled/rogueEditor.zip)
-- Unzip/extract it into your desired location (It's recommended to create a new folder)
-- Run the program with "rogueEditor.exe"
+```
+pip install requests
+```
 
-## Running the program in the browser
-Want to run the program in the browser without downloading anything?
-- Register an account at https://replit.com
-- Navigate to https://replit.com/@OnyxdevSoftware/rogueEditor
-- Click fork and run
-- This requires no setup or programming skills.
+## Run
 
-## Warning
+CLI (default):
 
-Some antivirus software may give false positives when running this program.
-Feel free to decompile it and look at its content.
-- Compiled with PyInstaller 
+```
+python Source/cli.py
+```
 
-## Usage
-(Refresh your pokerogue.net page after any modifications!)
+GUI:
 
-Hatch all eggs
-- This will make all your eggs hatch after you defeat 1 Pokemon.
+```
+python Source/cli.py --gui
+```
 
-Dump trainer data to json file
-- This will download your trainer data and generate a file called trainer.json (This file contains data such as stats, gacha tickets, etc) -> Edit the file with notepad or notepad ++
+Non-interactive smoke (requires `.env/env_data.txt` or prompt input):
 
-Dump save data (slot 1-5) to json file
-- This will download your session data from one of your saves (slot 1-5) (This file contains data such as money, wave, your pokemons level and stats, etc) -> Edit the file with notepad or notepad ++
+```
+python Source/cli.py --noninteractive
+```
 
-Update trainer data from dumped json file
-- This will reupload the trainer.json file to pokerouge.net's servers
+## Usage Tips
 
-Update save data (slot 1-5) from dumped json file
-- This will reupload the slot(number).json file to pokerouge.net's servers
+- First run: Build catalogs (CLI Tools ? 20) to generate `Source/data` from `tmpServerFiles/GameData` (optional; recommended before deleting tmpServerFiles).
+- clientSessionId: Generated or persisted per user automatically; can be provided via `--csid`.
+- Backups: Backup/Restore prominently available near login in GUI; latest backup shown. Restore supports ALL, Trainer only, or specific slot.
+- Save vs Upload: Most editors save to local JSON first, then prompt to upload to the server.
 
-Add/Modify a starter Pokemon (Pokemon name or Pokedex Id)
-- This allows you to unlock and/or modify a Pokemon by its name or id (Shiny, Nature, Individual ivs, Eggmoves, Candies, etc)
+## Notes
 
-Modify the amount of egg gacha tickets you have
-- This allows you to set the amount of egg gacha tickets you have of every tier
+- This project is a significant rework and differs from the original repo. It follows a modular structure under `Source/rogueeditor/` for long-term maintainability.
+- Use responsibly. Always back up your data before making changes.
 
-Unlock all starters with perfect ivs and all shiny variants
-- This will unlock every single Pokemon in the Pokedex with Perfect IVs, All natures, All shiny variants, Random amount of eggmoves and lots of candies
+## Changelog
 
-Display all starter Pokemon names with their Ids
-- This simply shows you all the available Pokemon in the game with their names and id (Useful when you want to modify specific Pokemon)
-  
-## Q & A
-
-Will I get banned for using this?
-- Unlikely, but use common sense.
-  
-Why did nothing happen after my modifications?
-- Refresh pokerogue.net in your browser.
-
-Why does the program say that my login information is incorrect when it's not?
-- You may be temporarily flagged by Cloudflare. (Changing connection/ip will fix this)
-- Pokerogue may be down or lagging (This causes the program to timeout)
-
-Can i bypass the Cloudflare issues by running the program via the replit.com fork?
-- Yes.
-
-How can i use this on the local version of Pokerogue?
-- You can modify the API endpoints in the source to point towards localhost:8000.
-
-## Discord
-
-Would you like to contact me?
-- Add me on Discord: **onyxdev**
-
-## Final Words
-
-- I take no responsibility for your actions when using this script.
-This is a proof of concept / educational project.
-- Yes, the code is lazy. 
-Feel free to improve it.
-
-<!-- Metadata: keywords -->
-<meta name="description" content="rogueEditor is a simple Pokerogue.net save editor written in Python.">
-<meta name="keywords" content="pokerogue, pokerogue save editor, pokerogue hacks, pokerogue hack, pokerogue cheats, pokerogue cheat, pokerogue trainer, pokerogue cheat table, rogueEditor, free, gacha, ticket, tickets, egg, eggs, shiny, save, edit, pokemon, unlimited, hack, hacks, cheat, cheats, trainer, table, pokedex, dex, wave, money, level, levels, iv, ivs, stat, stats, item, items, api, mod, mods, tool, tools">
+See `CHANGELOG.md` for recent changes and roadmap.
