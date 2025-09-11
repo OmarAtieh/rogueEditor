@@ -1,4 +1,4 @@
-﻿from __future__ import annotations
+﻿﻿from __future__ import annotations
 
 import os
 import sys
@@ -87,6 +87,14 @@ class App(ttk.Frame):
         # Global style + compact mode state
         self.style = ttk.Style(self)
         self.compact_mode = tk.BooleanVar(value=False)
+        # Hint font for de-emphasized helper text
+        try:
+            from tkinter import font as _tkfont
+            base_font = _tkfont.nametofont('TkDefaultFont')
+            self.hint_font = base_font.copy()
+            self.hint_font.configure(slant='italic')
+        except Exception:
+            self.hint_font = None
 
         # Top warning banner (disclaimer)
         banner = ttk.Frame(self)
@@ -217,7 +225,7 @@ class App(ttk.Frame):
         # Section: Upload
         up_f = ttk.LabelFrame(box1, text="Upload local changes to server")
         up_f.grid(row=1, column=0, columnspan=3, sticky=tk.W+tk.E, padx=4, pady=4)
-        ttk.Button(up_f, text="Upload Trainer (trainer.json)", command=self._safe(self._update_trainer)).grid(row=0, column=0, padx=4, pady=4, sticky=tk.W)
+        ttk.Button(up_f, text="Upload Trainer", command=self._safe(self._update_trainer)).grid(row=0, column=0, padx=4, pady=4, sticky=tk.W)
         ttk.Button(up_f, text="Upload Selected Slot", command=self._safe(self._update_slot_selected)).grid(row=0, column=1, padx=4, pady=4, sticky=tk.W)
         ttk.Button(up_f, text="Upload All", command=self._safe(self._upload_all)).grid(row=0, column=2, padx=4, pady=4, sticky=tk.W)
 
@@ -238,6 +246,8 @@ class App(ttk.Frame):
         ttk.Label(
             box2,
             text="Works with the selected slot's ongoing run (slot file).",
+            foreground='gray50',
+            font=(self.hint_font if self.hint_font else None),
         ).pack(fill=tk.X, padx=6, pady=(2, 0))
         ttk.Button(box2, text="Analyze Team", command=self._analyze_team_dialog).pack(side=tk.LEFT, padx=4, pady=4)
         ttk.Button(box2, text="Edit Team", command=self._safe(self._edit_team_dialog)).pack(side=tk.LEFT, padx=4, pady=4)
@@ -250,6 +260,8 @@ class App(ttk.Frame):
         ttk.Label(
             box3,
             text="Affects modifiers and items in the selected slot's current run (slot file).",
+            foreground='gray50',
+            font=(self.hint_font if self.hint_font else None),
         ).pack(fill=tk.X, padx=6, pady=(2, 0))
         # Modifiers manager
         mod_btns = ttk.Frame(box3)
@@ -284,24 +296,24 @@ class App(ttk.Frame):
         except Exception:
             pass
         # Attributes
-        ttk.Label(box4, text="abilityAttr:").grid(row=1, column=0, sticky=tk.W, padx=4, pady=2)
+        ttk.Label(box4, text="abilityAttr:").grid(row=2, column=0, sticky=tk.W, padx=4, pady=2)
         # abilityAttr presets via checkboxes
         mask = load_ability_attr_mask() or {"ability_1": 1, "ability_2": 2, "ability_hidden": 4}
         self.aa1 = tk.IntVar(value=1)
         self.aa2 = tk.IntVar(value=1)
         self.aah = tk.IntVar(value=1)
-        ttk.Checkbutton(box4, text="Ability 1", variable=self.aa1).grid(row=1, column=1, sticky=tk.W, padx=4)
-        ttk.Checkbutton(box4, text="Ability 2", variable=self.aa2).grid(row=1, column=2, sticky=tk.W, padx=4)
-        ttk.Checkbutton(box4, text="Hidden", variable=self.aah).grid(row=1, column=3, sticky=tk.W, padx=4)
+        ttk.Checkbutton(box4, text="Ability 1", variable=self.aa1).grid(row=3, column=1, sticky=tk.W, padx=4)
+        ttk.Checkbutton(box4, text="Ability 2", variable=self.aa2).grid(row=3, column=2, sticky=tk.W, padx=4)
+        ttk.Checkbutton(box4, text="Hidden", variable=self.aah).grid(row=2, column=3, sticky=tk.W, padx=4)
 
-        ttk.Label(box4, text="passiveAttr:").grid(row=2, column=0, sticky=tk.W, padx=4, pady=2)
+        ttk.Label(box4, text="passiveAttr:").grid(row=3, column=0, sticky=tk.W, padx=4, pady=2)
         # Passive presets (UNLOCKED=1, ENABLED=2)
         self.p_unlocked = tk.IntVar(value=1)
         self.p_enabled = tk.IntVar(value=0)
-        ttk.Checkbutton(box4, text="Unlocked", variable=self.p_unlocked).grid(row=2, column=1, sticky=tk.W, padx=4)
-        ttk.Checkbutton(box4, text="Enabled", variable=self.p_enabled).grid(row=2, column=2, sticky=tk.W, padx=4)
+        ttk.Checkbutton(box4, text="Unlocked", variable=self.p_unlocked).grid(row=3, column=1, sticky=tk.W, padx=4)
+        ttk.Checkbutton(box4, text="Enabled", variable=self.p_enabled).grid(row=3, column=2, sticky=tk.W, padx=4)
 
-        ttk.Label(box4, text="Cost Reduction (valueReduction):").grid(row=3, column=0, sticky=tk.W, padx=4, pady=2)
+        ttk.Label(box4, text="Cost Reduction (valueReduction):").grid(row=4, column=0, sticky=tk.W, padx=4, pady=2)
         self.starter_value_reduction = ttk.Entry(box4, width=8)
         self.starter_value_reduction.insert(0, "0")
         self.starter_value_reduction.grid(row=3, column=1, sticky=tk.W, padx=4, pady=2)
@@ -1044,7 +1056,7 @@ class App(ttk.Frame):
                 # Informative messages
                 if not any_local:
                     try:
-                        messagebox.showinfo('No local dumps', 'No local dumps found. Use Data IO → Dump to fetch trainer and/or slots you want to edit.')
+                        messagebox.showinfo('No local dumps', 'No local dumps found. Use Data IO ? Dump to fetch trainer and/or slots you want to edit.')
                     except Exception:
                         pass
                 elif any_outdated:
@@ -3191,3 +3203,5 @@ class _TeamEditorDialog_Legacy(tk.Toplevel):
             self._on_cat_change()
         except Exception:
             pass
+
+
