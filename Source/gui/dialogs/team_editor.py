@@ -71,13 +71,20 @@ class TeamEditorDialog(tk.Toplevel):
         self.move_id_to_name = move_id_to_name
         self.ability_id_to_name = abil_id_to_name
 
+        # --- Section: Core (level, HP, friendship, ability, passive, held items) ---
         ttk.Label(parent, text="Level:").grid(row=0, column=0, sticky=tk.W)
         self.level_var = tk.StringVar()
         ttk.Entry(parent, textvariable=self.level_var, width=6).grid(row=0, column=1, sticky=tk.W)
+        # Current HP and Max HP label
+        ttk.Label(parent, text="HP:").grid(row=0, column=2, sticky=tk.W, padx=(8,0))
+        self.hp_var = tk.StringVar()
+        ttk.Entry(parent, textvariable=self.hp_var, width=6).grid(row=0, column=3, sticky=tk.W)
+        self.hp_max_label = ttk.Label(parent, text="/ -")
+        self.hp_max_label.grid(row=0, column=4, sticky=tk.W, padx=(4,0))
         # Friendship (0-255)
-        ttk.Label(parent, text="Friendship:").grid(row=0, column=2, sticky=tk.W, padx=(8,0))
+        ttk.Label(parent, text="Friendship:").grid(row=0, column=5, sticky=tk.W, padx=(12,0))
         self.friendship_var = tk.StringVar()
-        ttk.Entry(parent, textvariable=self.friendship_var, width=6).grid(row=0, column=3, sticky=tk.W)
+        ttk.Entry(parent, textvariable=self.friendship_var, width=6).grid(row=0, column=6, sticky=tk.W)
         # Recalculate stats when level changes
         def _on_level_change(*args):
             try:
@@ -104,6 +111,8 @@ class TeamEditorDialog(tk.Toplevel):
             pass
         self.passive_var = tk.IntVar(value=0)
         ttk.Checkbutton(parent, text="Passive", variable=self.passive_var).grid(row=1, column=3, sticky=tk.W, padx=6)
+        # Held items via manager
+        ttk.Button(parent, text="Manage Items...", command=self._open_items_for_current).grid(row=1, column=4, sticky=tk.W, padx=(8,0))
 
         ttk.Label(parent, text="Nature:").grid(row=2, column=0, sticky=tk.W)
         # Nature combobox with effect hints (e.g., Adamant +Atk/-SpA)
@@ -159,7 +168,7 @@ class TeamEditorDialog(tk.Toplevel):
             ttk.Label(iv_frame, text=lab+":").grid(row=j-3, column=2, sticky=tk.E, padx=8, pady=1)
             ttk.Entry(iv_frame, textvariable=self.iv_vars[j], width=4).grid(row=j-3, column=3, sticky=tk.W)
 
-        # Calculated Stats
+        # --- Section: Stats ---
         ttk.Label(parent, text="Calculated Stats:").grid(row=4, column=0, sticky=tk.NW)
         stats_frame = ttk.Frame(parent)
         stats_frame.grid(row=4, column=1, columnspan=3, sticky=tk.W)
@@ -184,18 +193,35 @@ class TeamEditorDialog(tk.Toplevel):
             self.move_lbls.append(lbl)
             self.move_acs.append(ac)
 
-        ttk.Button(parent, text="Save to file", command=self._save).grid(row=10, column=0, pady=8)
-        ttk.Button(parent, text="Upload", command=self._upload).grid(row=10, column=1, pady=8)
-        # Status editor
-        ttk.Label(parent, text="Status (effect id):").grid(row=11, column=0, sticky=tk.W)
+        # --- Section: Status (placed above actions) ---
+        ttk.Label(parent, text="Status:").grid(row=10, column=0, sticky=tk.W)
         self.status_effect_var = tk.StringVar()
-        ttk.Entry(parent, textvariable=self.status_effect_var, width=6).grid(row=11, column=1, sticky=tk.W)
-        ttk.Label(parent, text="sleepTurnsRemaining:").grid(row=12, column=0, sticky=tk.E)
+        ttk.Entry(parent, textvariable=self.status_effect_var, width=6).grid(row=10, column=1, sticky=tk.W)
+        # Dropdown for convenience
+        self.status_choice = tk.StringVar()
+        self.status_combo = ttk.Combobox(parent, textvariable=self.status_choice, width=20, state='readonly',
+                                         values=[
+                                             'No Status', 'Burn (1)', 'Freeze (2)', 'Paralysis (3)', 'Poison (4)', 'Sleep (5)', 'Toxic (6)'
+                                         ])
+        self.status_combo.grid(row=10, column=2, sticky=tk.W, padx=4)
+        self.status_name_label = ttk.Label(parent, text="")
+        self.status_name_label.grid(row=10, column=3, columnspan=2, sticky=tk.W)
+        ttk.Label(parent, text="sleepTurnsRemaining:").grid(row=11, column=0, sticky=tk.E)
         self.status_sleep_var = tk.StringVar(value="0")
-        ttk.Entry(parent, textvariable=self.status_sleep_var, width=6).grid(row=12, column=1, sticky=tk.W)
-        ttk.Label(parent, text="toxicTurnCount:").grid(row=12, column=2, sticky=tk.E)
+        self.sleep_entry = ttk.Entry(parent, textvariable=self.status_sleep_var, width=6)
+        self.sleep_entry.grid(row=11, column=1, sticky=tk.W)
+        ttk.Label(parent, text="toxicTurnCount:").grid(row=11, column=2, sticky=tk.E)
         self.status_toxic_var = tk.StringVar(value="0")
-        ttk.Entry(parent, textvariable=self.status_toxic_var, width=6).grid(row=12, column=3, sticky=tk.W)
+        self.toxic_entry = ttk.Entry(parent, textvariable=self.status_toxic_var, width=6)
+        self.toxic_entry.grid(row=11, column=3, sticky=tk.W)
+        # Actions
+        ttk.Button(parent, text="Save to file", command=self._save).grid(row=12, column=0, pady=8)
+        ttk.Button(parent, text="Upload", command=self._upload).grid(row=12, column=1, pady=8)
+        # Bind status dropdown
+        try:
+            self.status_combo.bind('<<ComboboxSelected>>', lambda e: self._on_status_choice())
+        except Exception:
+            pass
 
     def _on_select(self, event=None):
         if not self.team_list.curselection():
