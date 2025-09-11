@@ -77,6 +77,27 @@ Stage-And-Commit -Paths @(
   "debug/docs/GUI_MIGRATION_PLAN.md"
 ) -Message "docs: postmortem for GUI startup fix; update changelog" -Exclude $exclude
 
+# Group 7: Team Editor enhancements (Form & Visuals, EXP↔Level, status)
+Stage-And-Commit -Paths @(
+  "Source/gui/dialogs/team_editor.py",
+  "Source/gui/sections/slots.py"
+) -Message "team-editor: add Form & Visuals; EXP↔Level sync; status UX; growth rate" -Exclude $exclude
+
+# Group 8: New catalogs and growth mapping
+Stage-And-Commit -Paths @(
+  "Source/rogueeditor/catalog.py",
+  "Source/data/exp_tables.json",
+  "Source/data/types.json",
+  "Source/data/type_matrix.json",
+  "Source/data/pokeballs.json",
+  "Source/data/growth_map.json"
+) -Message "data: exp tables/types/pokeballs/growth mapping; helpers" -Exclude $exclude
+
+# Group 9: Team Editor plan doc
+Stage-And-Commit -Paths @(
+  "debug/docs/TEAM_EDITOR_ENHANCEMENTS_PLAN.md"
+) -Message "docs: team editor enhancements plan and progress" -Exclude $exclude
+
 # Any remaining changes
 $remaining = git status --porcelain | % { $_.Substring(3) } | Where-Object { $_ -ne "" }
 if ($remaining) {

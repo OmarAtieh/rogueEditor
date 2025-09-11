@@ -9,6 +9,25 @@ The format follows a simplified Keep a Changelog style.
 - Richer autocomplete with id labels across all pickers.
 - Name-based held item catalog (pending item enum) across GUI/CLI.
 
+## [2025-09-11-TE]
+- Team Editor: Form & Visuals tab
+  - Added new tab with Tera Type (catalog-backed), Shiny + Luck (0 if not shiny, 1–3 if shiny), Pause Evolutions, Gender, and Poké Ball pickers. Changes write to the slot and are saved/uploaded via existing flows.
+- Team Editor: EXP ↔ Level synchronization
+  - Level is now editable; changing Level updates EXP to the exact growth breakpoint. Changing EXP updates Level using the floor rule. Stats preview updates live.
+  - Added read-only Growth Rate label (e.g., “Medium Slow”), normalized from the CSV and matched to exp.ts growth tables.
+  - Implemented growth group mapping via `TmpServerFiles/GameData/2/ListOfPokémonByExperienceType.csv`; normalized names (spaces/case) to GrowthRate enum tokens.
+- Team Editor: Ability & Passives
+  - Simplified UI: removed ability id text/picker from the visible interface (kept logic for future use), kept Passive Enabled, and added an Ability Slot radio (1 / 2 / Hidden). Warning shown when selecting slot 2 (some species lack a second ability).
+- Team Editor: Status UX
+  - Primary status shows a single contextual field: Sleep turns remaining or Toxic turns. Volatile effects are hidden (battle-only, not persisted).
+- Trainer tab (slot scope only)
+  - Money and Weather are editable; Play Time and Game Mode are display-only. Added button to open Modifiers/Items manager pre-targeted to Trainer.
+- Catalogs & parsers
+  - Parsed exp.ts, built JSON tables and helpers `exp_for_level()` / `level_from_exp()`.
+  - Parsed pokemon-type.ts to build types catalog and extracted a type matchup matrix from type.ts for future analysis.
+  - Parsed pokeball.ts to enable a Poké Ball picker.
+  - Added growth map cache under `Source/data/growth_map.json`.
+
 ## [2025-09-11]
 - GUI: Startup crash fix
   - Fixed AttributeError on launch caused by a missing `_upload_all` handler wired in Data IO. Implemented `_upload_all` to upload `trainer.json` and any present `slot N.json` files (1–5) with confirmations and clear summaries.
