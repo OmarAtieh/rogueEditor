@@ -75,7 +75,7 @@ class App(ttk.Frame):
         root = self.winfo_toplevel()
         try:
             root.title("rogueEditor GUI")
-            root.geometry("1000x800")
+            root.geometry("1000x850")
             root.minsize(720, 600)
         except Exception:
             pass
@@ -161,7 +161,7 @@ class App(ttk.Frame):
         qa.grid(row=6, column=0, columnspan=3, sticky=tk.W, padx=4, pady=4)
         self.btn_backup = ttk.Button(qa, text="Backup All", command=self._safe(self._backup), state=tk.DISABLED)
         self.btn_backup.pack(side=tk.LEFT, padx=4)
-        self.btn_restore = ttk.Button(qa, text="Restore Backup", command=self._safe(self._restore_dialog2), state=tk.DISABLED)
+        self.btn_restore = ttk.Button(qa, text="Restore Backup (to server)", command=self._safe(self._restore_dialog2), state=tk.DISABLED)
         self.btn_restore.pack(side=tk.LEFT, padx=4)
         self.backup_status_var = tk.StringVar(value="Last backup: none")
         ttk.Label(qa, textvariable=self.backup_status_var).pack(side=tk.LEFT, padx=8)
@@ -192,12 +192,14 @@ class App(ttk.Frame):
         box1.pack(fill=tk.X, padx=6, pady=6)
         ttk.Button(box1, text="Dump All", command=self._safe(self._dump_all)).grid(row=0, column=0, padx=4, pady=4, sticky=tk.W)
         ttk.Button(box1, text="Dump Trainer", command=self._safe(self._dump_trainer)).grid(row=0, column=1, padx=4, pady=4, sticky=tk.W)
-        # Slot selection dropdown for dump/update
-        ttk.Label(box1, text="Slot:").grid(row=0, column=2, sticky=tk.E)
+        # Slot selection dropdown for dump/update (aligned with Upload Slot button below)
+        slotgrp = ttk.Frame(box1)
+        slotgrp.grid(row=0, column=2, sticky=tk.W)
+        ttk.Label(slotgrp, text="Slot:").pack(side=tk.LEFT, padx=(0, 4))
         self.slot_var = tk.StringVar(value="1")
-        self.slot_combo = ttk.Combobox(box1, textvariable=self.slot_var, values=["1","2","3","4","5"], width=4, state="readonly")
-        self.slot_combo.grid(row=0, column=3, sticky=tk.W)
-        ttk.Button(box1, text="Dump Slot", command=self._safe(self._dump_slot_selected)).grid(row=0, column=4, padx=4, pady=4, sticky=tk.W)
+        self.slot_combo = ttk.Combobox(slotgrp, textvariable=self.slot_var, values=["1","2","3","4","5"], width=4, state="readonly")
+        self.slot_combo.pack(side=tk.LEFT)
+        ttk.Button(slotgrp, text="Dump Slot", command=self._safe(self._dump_slot_selected)).pack(side=tk.LEFT, padx=4)
         # Upload actions
         ttk.Button(box1, text="Upload All", command=self._safe(self._upload_all)).grid(row=1, column=0, padx=4, pady=4, sticky=tk.W)
         ttk.Button(box1, text="Upload Trainer (trainer.json)", command=self._safe(self._update_trainer)).grid(row=1, column=1, padx=4, pady=4, sticky=tk.W)
@@ -212,8 +214,8 @@ class App(ttk.Frame):
             ),
             foreground="red",
         ).grid(row=2, column=1, columnspan=3, sticky=tk.W, padx=4, pady=2)
-        ttk.Button(box1, text="Upload Local Changes...", command=self._safe(self._upload_local_dialog)).grid(row=3, column=0, padx=4, pady=4, sticky=tk.W)
-        ttk.Button(box1, text="Restore from Backup", command=self._safe(self._restore_dialog2)).grid(row=3, column=1, padx=4, pady=4, sticky=tk.W)
+        # Removed redundant "Upload Local Changes..." in favor of explicit Upload buttons above
+        ttk.Button(box1, text="Restore Backup (to server)", command=self._safe(self._restore_dialog2)).grid(row=3, column=0, padx=4, pady=4, sticky=tk.W)
 
                 # Slots summary
         handle = build_slots_section(inner, self)

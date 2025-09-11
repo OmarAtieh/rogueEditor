@@ -80,9 +80,20 @@ Stage-And-Commit -Paths @(
 # Any remaining changes
 $remaining = git status --porcelain | % { $_.Substring(3) } | Where-Object { $_ -ne "" }
 if ($remaining) {
-  Write-Host "Staging remaining changes..." -ForegroundColor Yellow
-  git add -A
-  git commit -m "misc: remaining changes"
+  # Exclude known large/generated assets from the catch-all commit
+  if ($exclude -and $exclude.Count -gt 0) {
+    $regex = ($exclude | ForEach-Object { [regex]::Escape($_).Replace('\\*', '.*') })
+    $remaining = $remaining | Where-Object {
+      $keep = $true
+      foreach ($r in $regex) { if ($_ -match "^$r$") { $keep = $false; break } }
+      $keep
+    }
+  }
+  if ($remaining.Count -gt 0) {
+    Write-Host "Staging remaining changes..." -ForegroundColor Yellow
+    git add -- $remaining
+    git commit -m "misc: remaining changes"
+  }
 }
 
 Write-Host "Pushing to $Remote/$Branch..." -ForegroundColor Green
