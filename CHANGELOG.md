@@ -9,16 +9,60 @@ The format follows a simplified Keep a Changelog style.
 - Richer autocomplete with id labels across all pickers.
 - Name-based held item catalog (pending item enum) across GUI/CLI.
 
+## [2025-09-11]
+- GUI: Startup crash fix
+  - Fixed AttributeError on launch caused by a missing `_upload_all` handler wired in Data IO. Implemented `_upload_all` to upload `trainer.json` and any present `slot N.json` files (1–5) with confirmations and clear summaries.
+  - Kept actions behind the existing `_safe(...)` wrapper to run in the background thread and surface errors in dialogs and the console log.
+- Diagnostics
+  - Verified Tk/Tcl via pre-load and startup healthchecks; stderr is mirrored to log for native Tk errors.
+  - `debug/logs/app.log` and `debug/logs/app_state.json` record run outcomes and environment to speed up future triage.
+
+## [2025-09-10-2]
+- Session lifecycle
+  - Always establish a fresh clientSessionId on successful login (prefer server-provided; else generate).
+  - GUI: Added "Refresh Session" button next to Login to re-login and rotate the session id.
+  - GUI: Added "Last session update" label persisted per user.
+  - CLI: Added menu option to refresh session (re-login and rotate clientSessionId).
+- Base stats and stat inference
+  - Added `Source/data/base_stats.json` importer (debug/tools) and runtime loader.
+  - Team Editor now prefers catalog base stats; when missing, reverse-infers base stats by removing item and nature multipliers before computing.
+  - Calculated stats apply nature then item multipliers; inference divides them out.
+- Selectors write numeric IDs, with labels for clarity
+  - Move pickers set move ID in the field; adjacent label shows name + id.
+  - Starter picker sets dex ID; added adjacent label showing display name + id.
+- Modifiers & Items Manager
+  - Consolidated on a single manager; removed legacy Modifiers Manager from code paths.
+  - Added optional post-upload verification (compare modifiers with server).
+- Team Editor verification
+  - After upload, optional verify compares party with server and shows diff when mismatched.
+- Data IO
+  - Added "Dump All" (trainer + slots 1-5) with overwrite confirmation.
+  - Dump Trainer/Slot prompt before overwriting existing local dumps.
+  - Slots Refresh now reads local dumps only (no server fetch) and shows last local timestamp.
+
 ## [2025-09-10]
 - GUI: Starters UX
   - Added a "Pick..." button next to the Pokémon selector to choose starters from a searchable catalog.
   - Kept Pokémon autocomplete; selection now sets the text box directly for clarity.
+  - Separated sections: "Starter Unlock & Data" vs "Eggs & Tickets"; moved Pokedex action next to unlock controls and clarified candies apply to the selected starter.
 - GUI: Output dialogs for analysis/tools
   - Analyze Team, Analyze Run Conditions, List Modifiers, and Pokedex now show results in a scrollable dialog (and still log to console) instead of only printing to the console.
+  - Added a Save… button in dialogs so users can choose to save reports after reviewing them.
   - Added "Analyze Modifiers" action to summarize modifier types, player vs targeted counts, and most-targeted party ids.
 - GUI: Feedback/async
   - All new actions run asynchronously and provide message dialogs for success/failure where applicable.
 - Dev: Minor layout tidy-up in Starters and Modifiers sections.
+- GUI: Items UX
+  - New Item Manager dialog with party picker, current per-mon modifiers view, and curated/observed item pickers (Common, Accuracy with boost, Berries, Base Stat Booster, Observed from dumps).
+  - Keeps quick Add/Remove Item actions for power users.
+  - Team Editor shows an "Item effects (preview)" line highlighting common stat-impacting items (scaffolding for stat calc integration).
+  - Simplified Modifiers/Items section: primary actions are Item Manager, Modifiers Manager, and Analyze Modifiers. Removed redundant top-level Add/Remove and List Modifiers in favor of dedicated managers and analysis dialog.
+  - Stat multipliers: Calculated Stats in Team Editor now apply 10% per stack for stat-boosting modifiers (e.g., BASE_STAT_BOOSTER per selected stat; common items like CHOICE_BAND/SPECS/SCARF, EVIOLITE, MUSCLE_BAND, WISE_GLASSES). Added UI to adjust stacks in Team Editor and Item Manager.
+  - Unified target management: Item Manager now supports Trainer or Pokémon targets, shows applicable modifiers per target, and lets you add/edit/remove with confirmations. Stacks are clamped to non-negative.
+  - Selection retention: Adding/editing modifiers in Item Manager does not change the current Pokémon selection.
+ 
+- GUI: Layout
+  - Moved the Console to a right-side pane (narrower, taller) to give more room to the main controls. Left side stacks Login, Actions, and feature sections in a taller column.
 
 ## [2025-09-09]
 - GUI: Backup/Restore
