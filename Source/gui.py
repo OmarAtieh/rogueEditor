@@ -188,6 +188,16 @@ class App(ttk.Frame):
         canvas.create_window((0, 0), window=inner, anchor="nw")
         self.actions_frame = inner
 
+        # Ensure a shared slot variable exists for all actions
+        try:
+            _ = self.slot_var
+        except Exception:
+            self.slot_var = tk.StringVar(value="1")
+
+        # Slots summary (move to top to act as the shared slot selector)
+        handle = build_slots_section(inner, self)
+        self.slot_tree = handle["slot_tree"]
+
         # Data IO
         box1 = ttk.LabelFrame(inner, text="Data IO")
         box1.pack(fill=tk.X, padx=6, pady=6)
@@ -196,21 +206,15 @@ class App(ttk.Frame):
         dump_f = ttk.LabelFrame(box1, text="Dump from server to local (for editing)")
         dump_f.grid(row=0, column=0, columnspan=3, sticky=tk.W+tk.E, padx=4, pady=4)
         ttk.Button(dump_f, text="Dump Trainer", command=self._safe(self._dump_trainer)).grid(row=1, column=0, padx=4, pady=4, sticky=tk.W)
-        # Slot selection (aligned block)
-        slotgrp = ttk.Frame(dump_f)
-        slotgrp.grid(row=1, column=1, sticky=tk.W)
-        ttk.Label(slotgrp, text="Slot:").pack(side=tk.LEFT, padx=(0, 4))
-        self.slot_var = tk.StringVar(value="1")
-        self.slot_combo = ttk.Combobox(slotgrp, textvariable=self.slot_var, values=["1","2","3","4","5"], width=4, state="readonly")
-        self.slot_combo.pack(side=tk.LEFT)
-        ttk.Button(slotgrp, text="Dump Slot", command=self._safe(self._dump_slot_selected)).pack(side=tk.LEFT, padx=4)
+        # Shared slot selection comes from the Slots overview above
+        ttk.Button(dump_f, text="Dump Selected Slot", command=self._safe(self._dump_slot_selected)).grid(row=1, column=1, padx=4, pady=4, sticky=tk.W)
         ttk.Button(dump_f, text="Dump All", command=self._safe(self._dump_all)).grid(row=1, column=2, padx=4, pady=4, sticky=tk.W)
 
         # Section: Upload
         up_f = ttk.LabelFrame(box1, text="Upload local changes to server")
         up_f.grid(row=1, column=0, columnspan=3, sticky=tk.W+tk.E, padx=4, pady=4)
         ttk.Button(up_f, text="Upload Trainer (trainer.json)", command=self._safe(self._update_trainer)).grid(row=0, column=0, padx=4, pady=4, sticky=tk.W)
-        ttk.Button(up_f, text="Upload Slot (slot N.json)", command=self._safe(self._update_slot_selected)).grid(row=0, column=1, padx=4, pady=4, sticky=tk.W)
+        ttk.Button(up_f, text="Upload Selected Slot", command=self._safe(self._update_slot_selected)).grid(row=0, column=1, padx=4, pady=4, sticky=tk.W)
         ttk.Button(up_f, text="Upload All", command=self._safe(self._upload_all)).grid(row=0, column=2, padx=4, pady=4, sticky=tk.W)
 
         # Section: Local Files
@@ -222,9 +226,7 @@ class App(ttk.Frame):
             foreground="red",
         ).grid(row=0, column=1, sticky=tk.W, padx=4, pady=4)
 
-                # Slots summary
-        handle = build_slots_section(inner, self)
-        self.slot_tree = handle["slot_tree"]
+        # (Slots summary moved above)
 
         # Team
         box2 = ttk.LabelFrame(inner, text="Active Run Team")
@@ -984,6 +986,18 @@ class App(ttk.Frame):
         from rogueeditor.utils import slot_save_path, load_json
         def work():
             rows = []
+            any_local = False
+            any_outdated = False
+            # Compare dump times with last session update if available
+            last_update_ts = None
+            try:
+                from rogueeditor.utils import get_user_last_session_update
+                ts_str = get_user_last_session_update(self.username or "")
+                if ts_str:
+                    import datetime as _dt
+                    last_update_ts = _dt.datetime.strptime(ts_str, '%Y-%m-%d %H:%M:%S').timestamp()
+            except Exception:
+                last_update_ts = None
             for i in range(1, 6):
                 party_ct = '-'
                 playtime = '-'
@@ -991,6 +1005,7 @@ class App(ttk.Frame):
                 local = '-'
                 p = slot_save_path(self.username, i)
                 if os.path.exists(p):
+                    any_local = True
                     try:
                         data = load_json(p)
                         party = data.get('party') or []
@@ -1008,6 +1023,8 @@ class App(ttk.Frame):
                         empty = True
                     ts = os.path.getmtime(p)
                     local = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(ts))
+                    if last_update_ts and ts < last_update_ts:
+                        any_outdated = True
                 rows.append((i, party_ct, playtime, local, empty))
             def update():
                 for r in self.slot_tree.get_children():
@@ -1015,6 +1032,17 @@ class App(ttk.Frame):
                 for (slot, party_ct, playtime, local, empty) in rows:
                     tags = ('empty',) if empty else ()
                     self.slot_tree.insert('', 'end', values=(slot, party_ct, playtime, local), tags=tags)
+                # Informative messages
+                if not any_local:
+                    try:
+                        messagebox.showinfo('No local dumps', 'No local dumps found. Use Data IO → Dump to fetch trainer and/or slots you want to edit.')
+                    except Exception:
+                        pass
+                elif any_outdated:
+                    try:
+                        messagebox.showwarning('Dumps may be out of date', 'Some local dumps are older than the last login. Consider dumping again to avoid overwriting newer server data.')
+                    except Exception:
+                        pass
             self.after(0, update)
         self._run_async("Loading local slots...", work)
 

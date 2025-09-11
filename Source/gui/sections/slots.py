@@ -17,6 +17,7 @@ def build(parent: tk.Widget, app) -> dict:
     tb = ttk.Frame(boxS)
     tb.pack(fill=tk.X, padx=4, pady=(4, 0))
     ttk.Button(tb, text="Refresh", command=app._safe(app._refresh_slots)).pack(side=tk.LEFT)
+    ttk.Label(tb, text="Select a slot below to target Data IO actions").pack(side=tk.LEFT, padx=8)
 
     cols = ("slot", "party", "playtime", "local")
     slot_tree = ttk.Treeview(boxS, columns=cols, show="headings", height=6)
