@@ -13,6 +13,8 @@ The format follows a simplified Keep a Changelog style.
 - GUI: Startup crash fix
   - Fixed AttributeError on launch caused by a missing `_upload_all` handler wired in Data IO. Implemented `_upload_all` to upload `trainer.json` and any present `slot N.json` files (1–5) with confirmations and clear summaries.
   - Kept actions behind the existing `_safe(...)` wrapper to run in the background thread and surface errors in dialogs and the console log.
+- UX: Disclaimer enhancements
+  - Expanded the top warning to highlight that over-editing can trivialize the game experience, and clarified intended uses: backup/restore, recovery from desync/corruption, and safe personal experimentation.
 - Diagnostics
   - Verified Tk/Tcl via pre-load and startup healthchecks; stderr is mirrored to log for native Tk errors.
   - `debug/logs/app.log` and `debug/logs/app_state.json` record run outcomes and environment to speed up future triage.

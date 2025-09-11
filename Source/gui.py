@@ -95,7 +95,10 @@ class App(ttk.Frame):
         warn_text = (
             "WARNING: Use at your own risk. The author is not responsible for "
             "data loss or account bans. No data is collected; only data is "
-            "exchanged between your local computer and the official game server."
+            "exchanged between your local computer and the official game server.\n"
+            "Tip: Going overboard can trivialize the game and reduce enjoyment.\n"
+            "Intended uses include backing up/restoring your own data, recovering from desync/corruption, "
+            "and safe personal experimentation. Always back up before editing."
         )
         ttk.Label(
             banner,
