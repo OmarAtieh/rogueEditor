@@ -163,6 +163,21 @@ def set_user_csid(username: str, csid: str) -> None:
     save_users_config(cfg)
 
 
+def get_user_last_session_update(username: str) -> Optional[str]:
+    cfg = load_users_config()
+    u = sanitize_username(username)
+    return (cfg.get("users", {}).get(u) or {}).get("lastSessionUpdate")
+
+
+def set_user_last_session_update(username: str, when_str: str) -> None:
+    cfg = load_users_config()
+    u = sanitize_username(username)
+    cfg.setdefault("users", {})
+    cfg["users"].setdefault(u, {})
+    cfg["users"][u]["lastSessionUpdate"] = when_str
+    save_users_config(cfg)
+
+
 def list_usernames() -> list[str]:
     cfg = load_users_config()
     return sorted((cfg.get("users") or {}).keys())

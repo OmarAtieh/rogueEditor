@@ -58,8 +58,8 @@ class PokerogueAPI:
         if not token:
             raise RuntimeError("Authentication succeeded but no token returned.")
         self.token = token
-        # Capture clientSessionId if present
-        self.client_session_id = data.get("clientSessionId", self.client_session_id)
+        # Capture clientSessionId if present; reset prior value on each fresh login
+        self.client_session_id = data.get("clientSessionId")
         return token
 
     # --- Trainer ---

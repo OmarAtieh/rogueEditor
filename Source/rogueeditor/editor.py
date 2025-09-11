@@ -58,7 +58,14 @@ class Editor:
         if not os.path.exists(path):
             print(f"{path} was not found!")
             return
-        data = load_json(path)
+        try:
+            data = load_json(path)
+        except Exception as e:
+            print(f"Invalid JSON in {path}: {e}")
+            return
+        if not isinstance(data, dict):
+            print(f"{path} must contain a JSON object at the top level.")
+            return
         self.api.update_trainer(data)
         print("Your trainer data has been updated!")
 
@@ -68,7 +75,14 @@ class Editor:
         if not os.path.exists(path):
             print(f"{path} was not found!")
             return
-        data = load_json(path)
+        try:
+            data = load_json(path)
+        except Exception as e:
+            print(f"Invalid JSON in {path}: {e}")
+            return
+        if not isinstance(data, dict):
+            print(f"{path} must contain a JSON object at the top level.")
+            return
         self.api.update_slot(slot, data)
         print(f"Your save data has been updated in slot: {slot}!")
 

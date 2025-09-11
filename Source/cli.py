@@ -19,16 +19,18 @@ from rogueeditor.utils import (
     slot_save_path,
 )
 
-def _resolve_client_session_id(cli_csid: Optional[str] = None) -> Optional[str]:
+def _resolve_client_session_id_fresh(api: PokerogueAPI, cli_csid: Optional[str] = None) -> str:
+    """Resolve a fresh clientSessionId for this run.
+
+    Preference order:
+      1) If server returned a clientSessionId on login, use it.
+      2) If explicitly provided via CLI, use it.
+      3) Else generate a new one.
+    """
+    if getattr(api, "client_session_id", None):
+        return str(api.client_session_id)
     if cli_csid:
         return cli_csid
-    env = os.getenv("ROGUEEDITOR_CLIENT_SESSION_ID")
-    if env:
-        return env
-    file_val = load_client_session_id()
-    if file_val:
-        return file_val
-    # Generate a new one if nothing provided
     return generate_client_session_id()
 
 
@@ -86,16 +88,15 @@ def run_smoke_noninteractive(csid: Optional[str] = None) -> int:
     print(f"[INFO] Using test user: {username}")
     api = PokerogueAPI(username, password)
     tok = api.login()
-    # Attach clientSessionId if available
-    csid = _resolve_client_session_id(csid) or csid
-    if csid:
-        api.client_session_id = csid
-        print("[INFO] Using clientSessionId from env/args")
-        try:
-            save_client_session_id(csid)
-            print("[INFO] Saved clientSessionId to .env/env_data.txt")
-        except Exception:
-            pass
+    # Always establish a fresh clientSessionId for this run
+    csid = _resolve_client_session_id_fresh(api, csid)
+    api.client_session_id = csid
+    print("[INFO] Using new clientSessionId for this session")
+    try:
+        save_client_session_id(csid)
+        print("[INFO] Saved clientSessionId to .env/env_data.txt")
+    except Exception:
+        pass
     try:
         auth_header = api._auth_headers()["authorization"]
         print(f"[DEBUG] Auth header (prefix): {auth_header[:30]}...")
@@ -176,20 +177,19 @@ def main():
         password_l = input(f"Password for {username_l}: ")
         api_l = PokerogueAPI(username_l, password_l)
         api_l.login()
-        # Prefer persisted user-specific csid, then CLI/env/file/generate
-        csid_l = get_user_csid(username_l) or _resolve_client_session_id(args.csid)
-        if csid_l:
-            api_l.client_session_id = csid_l
-            print("[INFO] Using clientSessionId from env/args")
-            try:
-                save_client_session_id(csid_l)
-                print("[INFO] Saved clientSessionId to .env/env_data.txt")
-            except Exception:
-                pass
-            try:
-                set_user_csid(username_l, csid_l)
-            except Exception:
-                pass
+        # Always establish a fresh clientSessionId after login (server-returned or generated)
+        csid_l = _resolve_client_session_id_fresh(api_l, args.csid)
+        api_l.client_session_id = csid_l
+        print("[INFO] Using new clientSessionId for this session")
+        try:
+            save_client_session_id(csid_l)
+            print("[INFO] Saved clientSessionId to .env/env_data.txt")
+        except Exception:
+            pass
+        try:
+            set_user_csid(username_l, csid_l)
+        except Exception:
+            pass
         editor_l = Editor(api_l)
         # Fetch account info to show trainerId
         try:
@@ -252,6 +252,7 @@ def main():
                 ("19", "Switch user (login as different)"),
                 ("20", "Build data catalogs (from tmpServerFiles)"),
                 ("26", "Clean dev artifacts (debug/tmpServerFiles/.env opts)"),
+                ("27", "Refresh session (re-login and rotate clientSessionId)"),
                 ("0", "Exit"),
             ],
         ),
