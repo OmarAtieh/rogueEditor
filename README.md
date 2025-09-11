@@ -1,4 +1,4 @@
-# rogueEditor
+ï»¿# rogueEditor
 
 Pokerogue.net save editor for trainers and run data, with both CLI and GUI.
 
@@ -16,14 +16,14 @@ Discord: Oviren
   - Timestamped backups and a restore dialog (restore all/trainer/slot, delete backups with warnings).
 - System/Session aware API
   - Uses `/savedata/system/*` and `/savedata/session/*` with `clientSessionId`.
-  - UI shows slots summary; server indexing is 0-based (UI uses 1–5).
+  - UI shows slots summary; server indexing is 0-based (UI uses 1-5).
 - Team editor
-  - Level, IVs (two-column layout with clamped 0–31), moves (name/id), ability (name/id), nature (name/id), held item (id or name if catalog available).
-  - Add a new Pokémon to the party.
+  - Level, IVs (two-column layout with clamped 0-31), moves (name/id), ability (name/id), nature (name/id), held item (id or name if catalog available).
+  - Add a new Pokemon to the party.
 - Starters
-  - abilityAttr/passiveAttr presets, valueReduction, candies increment, gacha deltas.
+  - abilityAttr/passiveAttr presets, cost reduction (valueReduction), candies increment, gacha deltas.
 - Modifiers / Items
-  - Manager dialog for player and Pokémon modifiers; add/remove and upload.
+  - Manager dialog for player and Pokemon modifiers; add/remove and upload.
   - Quick item templates (WIDE_LENS, FOCUS_BAND, BERRY, etc.) and BASE_STAT_BOOSTER with stat selection.
 - Data catalogs
   - Clean JSON catalogs in `Source/data/` (moves, abilities, ability_attr, natures, weather, stats, modifiers, berries, items if available).
@@ -62,10 +62,19 @@ python Source/cli.py --noninteractive
 
 ## Usage Tips
 
-- First run: Build catalogs (CLI Tools ? 20) to generate `Source/data` from `tmpServerFiles/GameData` (optional; recommended before deleting tmpServerFiles).
+- First run: Build catalogs (CLI Tools â†’ 20) to generate `Source/data` from `tmpServerFiles/GameData` (optional; recommended before deleting tmpServerFiles).
 - clientSessionId: Generated or persisted per user automatically; can be provided via `--csid`.
 - Backups: Backup/Restore prominently available near login in GUI; latest backup shown. Restore supports ALL, Trainer only, or specific slot.
 - Save vs Upload: Most editors save to local JSON first, then prompt to upload to the server.
+
+## Ethics & Intended Use
+
+- Editing saves can easily trivialize progression and reduce enjoyment. Please be mindful.
+- This tool exists to help you:
+  - back up and restore your own data,
+  - recover from corrupt or desynced saves,
+  - and safely experiment on your own account.
+- Always back up before making changes. Use at your own risk.
 
 ## Notes
 
