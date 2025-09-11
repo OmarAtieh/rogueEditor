@@ -191,32 +191,36 @@ class App(ttk.Frame):
         # Data IO
         box1 = ttk.LabelFrame(inner, text="Data IO")
         box1.pack(fill=tk.X, padx=6, pady=6)
-        ttk.Button(box1, text="Dump All", command=self._safe(self._dump_all)).grid(row=0, column=0, padx=4, pady=4, sticky=tk.W)
-        ttk.Button(box1, text="Dump Trainer", command=self._safe(self._dump_trainer)).grid(row=0, column=1, padx=4, pady=4, sticky=tk.W)
-        # Slot selection dropdown for dump/update (aligned with Upload Slot button below)
-        slotgrp = ttk.Frame(box1)
-        slotgrp.grid(row=0, column=2, sticky=tk.W)
+
+        # Section: Dumps
+        dump_f = ttk.LabelFrame(box1, text="Dump from server to local (for editing)")
+        dump_f.grid(row=0, column=0, columnspan=3, sticky=tk.W+tk.E, padx=4, pady=4)
+        ttk.Button(dump_f, text="Dump Trainer", command=self._safe(self._dump_trainer)).grid(row=1, column=0, padx=4, pady=4, sticky=tk.W)
+        # Slot selection (aligned block)
+        slotgrp = ttk.Frame(dump_f)
+        slotgrp.grid(row=1, column=1, sticky=tk.W)
         ttk.Label(slotgrp, text="Slot:").pack(side=tk.LEFT, padx=(0, 4))
         self.slot_var = tk.StringVar(value="1")
         self.slot_combo = ttk.Combobox(slotgrp, textvariable=self.slot_var, values=["1","2","3","4","5"], width=4, state="readonly")
         self.slot_combo.pack(side=tk.LEFT)
         ttk.Button(slotgrp, text="Dump Slot", command=self._safe(self._dump_slot_selected)).pack(side=tk.LEFT, padx=4)
-        # Upload actions
-        ttk.Button(box1, text="Upload All", command=self._safe(self._upload_all)).grid(row=1, column=0, padx=4, pady=4, sticky=tk.W)
-        ttk.Button(box1, text="Upload Trainer (trainer.json)", command=self._safe(self._update_trainer)).grid(row=1, column=1, padx=4, pady=4, sticky=tk.W)
-        ttk.Button(box1, text="Upload Slot (slot N.json)", command=self._safe(self._update_slot_selected)).grid(row=1, column=2, padx=4, pady=4, sticky=tk.W)
-        # Tools
-        ttk.Button(box1, text="Open Local Dump...", command=self._safe(self._open_local_dump_dialog)).grid(row=2, column=0, padx=4, pady=2, sticky=tk.W)
-        ttk.Label(
-            box1,
-            text=(
-                "Use with caution. Manual edits may corrupt saves. "
-                "Proceed at your own risk."
-            ),
+        ttk.Button(dump_f, text="Dump All", command=self._safe(self._dump_all)).grid(row=1, column=2, padx=4, pady=4, sticky=tk.W)
+
+        # Section: Upload
+        up_f = ttk.LabelFrame(box1, text="Upload local changes to server")
+        up_f.grid(row=1, column=0, columnspan=3, sticky=tk.W+tk.E, padx=4, pady=4)
+        ttk.Button(up_f, text="Upload Trainer (trainer.json)", command=self._safe(self._update_trainer)).grid(row=0, column=0, padx=4, pady=4, sticky=tk.W)
+        ttk.Button(up_f, text="Upload Slot (slot N.json)", command=self._safe(self._update_slot_selected)).grid(row=0, column=1, padx=4, pady=4, sticky=tk.W)
+        ttk.Button(up_f, text="Upload All", command=self._safe(self._upload_all)).grid(row=0, column=2, padx=4, pady=4, sticky=tk.W)
+
+        # Section: Local Files
+        local_f = ttk.LabelFrame(box1, text="Open local dumps (view/edit at your own risk)")
+        local_f.grid(row=2, column=0, columnspan=3, sticky=tk.W+tk.E, padx=4, pady=4)
+        ttk.Button(local_f, text="Open Local Dump...", command=self._safe(self._open_local_dump_dialog)).grid(row=0, column=0, padx=4, pady=4, sticky=tk.W)
+        ttk.Label(local_f, text=(
+            "Manual edits may corrupt saves. Proceed at your own risk."),
             foreground="red",
-        ).grid(row=2, column=1, columnspan=3, sticky=tk.W, padx=4, pady=2)
-        # Removed redundant "Upload Local Changes..." in favor of explicit Upload buttons above
-        ttk.Button(box1, text="Restore Backup (to server)", command=self._safe(self._restore_dialog2)).grid(row=3, column=0, padx=4, pady=4, sticky=tk.W)
+        ).grid(row=0, column=1, sticky=tk.W, padx=4, pady=4)
 
                 # Slots summary
         handle = build_slots_section(inner, self)
