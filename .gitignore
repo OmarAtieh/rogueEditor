@@ -46,3 +46,6 @@ debug/logs/
 *.tmp
 *.bak
 
+# Tmp
+Tmp*.txt
+Tmp*.py
