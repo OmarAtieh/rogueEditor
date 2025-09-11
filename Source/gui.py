@@ -155,10 +155,12 @@ class App(ttk.Frame):
         ttk.Label(frm, text="Password:").grid(row=1, column=0, sticky=tk.W, padx=4, pady=4)
         self.pass_entry = ttk.Entry(frm, show="*")
         self.pass_entry.grid(row=1, column=1, sticky=tk.W, padx=4, pady=4)
+        self.show_pwd_var = tk.BooleanVar(value=False)
+        ttk.Checkbutton(frm, text="Show", variable=self.show_pwd_var, command=lambda: self.pass_entry.config(show="" if self.show_pwd_var.get() else "*")).grid(row=1, column=2, sticky=tk.W, padx=4, pady=4)
 
         ttk.Label(frm, text="clientSessionId (optional):").grid(row=2, column=0, sticky=tk.W, padx=4, pady=4)
-        self.csid_entry = ttk.Entry(frm, width=50)
-        self.csid_entry.grid(row=2, column=1, columnspan=2, sticky=tk.W, padx=4, pady=4)
+        self.csid_entry = ttk.Entry(frm, width=50, show="*")
+        self.csid_entry.grid(row=2, column=1, sticky=tk.W, padx=4, pady=4)
 
         # Row of buttons (keep within 4 side-by-side)
         ttk.Button(frm, text="Login", command=self._login).grid(row=3, column=1, padx=4, pady=6, sticky=tk.W)
@@ -274,7 +276,7 @@ class App(ttk.Frame):
         box4.pack(fill=tk.X, padx=6, pady=6)
         ttk.Label(
             box4,
-            text="Edits trainer (account-wide) data � persists across runs (trainer.json).",
+            text="Edits trainer (account-wide) data â€” persists across runs (trainer.json).",
             foreground='gray50',
             font=(self.hint_font if getattr(self, 'hint_font', None) else None),
         ).grid(row=0, column=0, columnspan=5, sticky=tk.W, padx=6, pady=(2, 2))
@@ -2670,7 +2672,7 @@ def run():
                 if tid in rec_types:
                     recognized.append((i, m))
         if not recognized:
-            messagebox.showinfo('No items', 'No recognized stat-boosting modifiers found for this Pokémon.')
+            messagebox.showinfo('No items', 'No recognized stat-boosting modifiers found for this PokÃƒÂ©mon.')
             return
         top = tk.Toplevel(self)
         top.title('Adjust Item Stacks')
