@@ -131,7 +131,7 @@ class App(ttk.Frame):
         # Compact mode toggle (top-right)
         ttk.Checkbutton(
             banner,
-            text="Compact (hide banner)",
+            text="Hide banner",
             variable=self.compact_mode,
             command=lambda: self._apply_compact_mode(self.compact_mode.get()),
         ).grid(row=0, column=1, sticky=tk.E, padx=8)
@@ -288,7 +288,7 @@ class App(ttk.Frame):
         box4.pack(fill=tk.X, padx=6, pady=6)
         ttk.Label(
             box4,
-            text="Edits trainer (account-wide) data â€” persists across runs (trainer.json).",
+            text="Edits trainer (account-wide) data & persists across runs (trainer.json).",
             foreground='gray50',
             font=(self.hint_font if getattr(self, 'hint_font', None) else None),
         ).grid(row=0, column=0, columnspan=5, sticky=tk.W, padx=6, pady=(2, 2))

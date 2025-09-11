@@ -1,0 +1,18 @@
+{
+  "name_to_id": {
+    "pokeball": 0,
+    "great_ball": 1,
+    "ultra_ball": 2,
+    "rogue_ball": 3,
+    "master_ball": 4,
+    "luxury_ball": 5
+  },
+  "id_to_name": {
+    "0": "POKEBALL",
+    "1": "GREAT_BALL",
+    "2": "ULTRA_BALL",
+    "3": "ROGUE_BALL",
+    "4": "MASTER_BALL",
+    "5": "LUXURY_BALL"
+  }
+}
