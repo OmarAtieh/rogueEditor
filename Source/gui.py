@@ -106,7 +106,9 @@ class App(ttk.Frame):
             "exchanged between your local computer and the official game server.\n"
             "Tip: Going overboard can trivialize the game and reduce enjoyment.\n"
             "Intended uses include backing up/restoring your own data, recovering from desync/corruption, "
-            "and safe personal experimentation. Always back up before editing."
+            "and safe personal experimentation. Always back up before editing.\n"
+            "Note: This is a side project — some features (e.g., Items/Modifiers) may not be fully functional yet, "
+            "and data catalogs may contain inaccuracies (for example, certain move data)."
         )
         self.banner_label = ttk.Label(
             banner,
