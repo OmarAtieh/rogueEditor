@@ -22,6 +22,16 @@ class TeamEditorDialog(tk.Toplevel):
         self.data = self.api.get_slot(slot)
         self.party = self.data.get("party") or []
         self._build()
+        # Make dialog modal relative to the main window to avoid focus switching issues
+        try:
+            master._modalize(self)
+        except Exception:
+            try:
+                self.transient(master)
+                self.grab_set()
+                self.focus_set()
+            except Exception:
+                pass
 
     def _build(self):
         frame = ttk.Frame(self)
