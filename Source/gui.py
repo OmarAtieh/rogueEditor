@@ -1,4 +1,4 @@
-﻿﻿from __future__ import annotations
+?from __future__ import annotations
 
 import os
 import sys
@@ -274,8 +274,10 @@ class App(ttk.Frame):
         box4.pack(fill=tk.X, padx=6, pady=6)
         ttk.Label(
             box4,
-            text="Edits trainer (account-wide) data — persists across runs (trainer.json).",
-        ).grid(row=0, column=0, columnspan=4, sticky=tk.W, padx=6, pady=(2, 2))
+            text="Edits trainer (account-wide) data � persists across runs (trainer.json).",
+            foreground='gray50',
+            font=(self.hint_font if getattr(self, 'hint_font', None) else None),
+        ).grid(row=0, column=0, columnspan=5, sticky=tk.W, padx=6, pady=(2, 2))
         # Pokemon selector
         from rogueeditor.utils import load_pokemon_index
         dex = (load_pokemon_index().get("dex") or {})
@@ -286,9 +288,10 @@ class App(ttk.Frame):
         self.starter_ac = AutoCompleteEntry(box4, name_to_id, width=30)
         self.starter_ac.grid(row=1, column=1, sticky=tk.W, padx=4, pady=2)
         ttk.Button(box4, text="Pick...", command=self._pick_starter_from_catalog).grid(row=1, column=2, sticky=tk.W, padx=4, pady=2)
+        ttk.Button(box4, text="Pokedex IDs", command=self._safe(self._pokedex_list)).grid(row=1, column=3, sticky=tk.W, padx=4, pady=2)
         # Label to show chosen Pokemon name and id
         self.starter_label = ttk.Label(box4, text="")
-        self.starter_label.grid(row=1, column=3, sticky=tk.W, padx=6, pady=2)
+        self.starter_label.grid(row=1, column=4, sticky=tk.W, padx=6, pady=2)
         # Update label as the entry changes
         try:
             self.starter_ac.bind('<KeyRelease>', lambda e: self._update_starter_label())
@@ -302,8 +305,8 @@ class App(ttk.Frame):
         self.aa1 = tk.IntVar(value=1)
         self.aa2 = tk.IntVar(value=1)
         self.aah = tk.IntVar(value=1)
-        ttk.Checkbutton(box4, text="Ability 1", variable=self.aa1).grid(row=3, column=1, sticky=tk.W, padx=4)
-        ttk.Checkbutton(box4, text="Ability 2", variable=self.aa2).grid(row=3, column=2, sticky=tk.W, padx=4)
+        ttk.Checkbutton(box4, text="Ability 1", variable=self.aa1).grid(row=2, column=1, sticky=tk.W, padx=4)
+        ttk.Checkbutton(box4, text="Ability 2", variable=self.aa2).grid(row=2, column=2, sticky=tk.W, padx=4)
         ttk.Checkbutton(box4, text="Hidden", variable=self.aah).grid(row=2, column=3, sticky=tk.W, padx=4)
 
         ttk.Label(box4, text="passiveAttr:").grid(row=3, column=0, sticky=tk.W, padx=4, pady=2)
@@ -316,23 +319,23 @@ class App(ttk.Frame):
         ttk.Label(box4, text="Cost Reduction (valueReduction):").grid(row=4, column=0, sticky=tk.W, padx=4, pady=2)
         self.starter_value_reduction = ttk.Entry(box4, width=8)
         self.starter_value_reduction.insert(0, "0")
-        self.starter_value_reduction.grid(row=3, column=1, sticky=tk.W, padx=4, pady=2)
+        self.starter_value_reduction.grid(row=4, column=1, sticky=tk.W, padx=4, pady=2)
 
         btn_row = ttk.Frame(box4)
-        btn_row.grid(row=4, column=1, columnspan=3, sticky=tk.W)
+        btn_row.grid(row=5, column=1, columnspan=3, sticky=tk.W)
         ttk.Button(btn_row, text="Apply Attributes", command=self._safe(self._apply_starter_attrs)).grid(row=0, column=0, padx=4, pady=4, sticky=tk.W)
         ttk.Button(btn_row, text="Unlock Starter...", command=self._safe(self._unlock_starter_dialog)).grid(row=0, column=1, padx=4, pady=4, sticky=tk.W)
         ttk.Button(btn_row, text="Unlock All Starters", command=self._safe(self._unlock_all_starters)).grid(row=0, column=2, padx=4, pady=4, sticky=tk.W)
-        ttk.Button(btn_row, text="Pokedex IDs", command=self._safe(self._pokedex_list)).grid(row=0, column=3, padx=4, pady=4, sticky=tk.W)
+        # Pokedex IDs moved next to the Pick button
 
         # Candies increment
-        ttk.Label(box4, text="Candies Î” (selected):").grid(row=5, column=0, sticky=tk.W, padx=4, pady=2)
+        ttk.Label(box4, text="Candies (selected):").grid(row=6, column=0, sticky=tk.W, padx=4, pady=2)
         self.starter_candy_delta = ttk.Entry(box4, width=8)
         self.starter_candy_delta.insert(0, "0")
-        self.starter_candy_delta.grid(row=5, column=1, sticky=tk.W, padx=4, pady=2)
+        self.starter_candy_delta.grid(row=6, column=1, sticky=tk.W, padx=4, pady=2)
         # Secondary actions aligned under the primary actions row
         btn_row2 = ttk.Frame(box4)
-        btn_row2.grid(row=6, column=1, columnspan=3, sticky=tk.W)
+        btn_row2.grid(row=7, column=1, columnspan=3, sticky=tk.W)
         ttk.Button(btn_row2, text="Increment Candies", command=self._safe(self._inc_starter_candies)).grid(row=0, column=1, padx=4, pady=2, sticky=tk.W)
         ttk.Button(btn_row2, text="Unlock All Passives (mask=7)", command=self._safe(self._unlock_all_passives)).grid(row=0, column=2, padx=4, pady=2, sticky=tk.W)
         # moved: Increment Candies button now appears below under secondary actions
@@ -342,13 +345,13 @@ class App(ttk.Frame):
 
         # Subsection: Eggs & Tickets
         s2 = ttk.LabelFrame(box4, text="Eggs & Tickets")
-        s2.grid(row=7, column=0, columnspan=5, sticky=tk.W+tk.E, padx=4, pady=6)
-        ttk.Label(s2, text="Gacha Î” C/R/E/L:").grid(row=0, column=0, sticky=tk.W, padx=4, pady=2)
+        s2.grid(row=8, column=0, columnspan=5, sticky=tk.W+tk.E, padx=4, pady=6)
+        ttk.Label(s2, text="Gacha ? C/R/E/L:").grid(row=0, column=0, sticky=tk.W, padx=4, pady=2)
         self.gacha_d0 = ttk.Entry(s2, width=5); self.gacha_d0.insert(0, "0"); self.gacha_d0.grid(row=0, column=1, sticky=tk.W, padx=2)
         self.gacha_d1 = ttk.Entry(s2, width=5); self.gacha_d1.insert(0, "0"); self.gacha_d1.grid(row=0, column=2, sticky=tk.W, padx=2)
         self.gacha_d2 = ttk.Entry(s2, width=5); self.gacha_d2.insert(0, "0"); self.gacha_d2.grid(row=0, column=3, sticky=tk.W, padx=2)
         self.gacha_d3 = ttk.Entry(s2, width=5); self.gacha_d3.insert(0, "0"); self.gacha_d3.grid(row=0, column=4, sticky=tk.W, padx=2)
-        ttk.Button(s2, text="Apply Gacha Î”", command=self._safe(self._apply_gacha_delta)).grid(row=0, column=5, sticky=tk.W, padx=4, pady=2)
+        ttk.Button(s2, text="Apply Gacha ?", command=self._safe(self._apply_gacha_delta)).grid(row=0, column=5, sticky=tk.W, padx=4, pady=2)
         ttk.Button(s2, text="Hatch All Eggs After Next Fight", command=self._safe(self._hatch_eggs)).grid(row=1, column=1, columnspan=3, sticky=tk.W, padx=4, pady=4)
 
     def _build_console(self):
@@ -1853,7 +1856,7 @@ class App(ttk.Frame):
         except ValueError:
             messagebox.showwarning("Invalid", "All deltas must be integers")
             return
-        if not messagebox.askyesno("Confirm", f"Apply gacha deltas C/R/E/L = {d0}/{d1}/{d2}/{d3} (save locally)?"):
+        if not messagebox.askyesno("Confirm", f"Apply Gacha ? C/R/E/L = {d0}/{d1}/{d2}/{d3} (save locally)?"):
             return
         data = self.api.get_trainer()
         current = data.get("voucherCounts") or {}
@@ -2667,7 +2670,7 @@ def run():
                 if tid in rec_types:
                     recognized.append((i, m))
         if not recognized:
-            messagebox.showinfo('No items', 'No recognized stat-boosting modifiers found for this PokÃ©mon.')
+            messagebox.showinfo('No items', 'No recognized stat-boosting modifiers found for this Pokémon.')
             return
         top = tk.Toplevel(self)
         top.title('Adjust Item Stacks')
