@@ -100,17 +100,18 @@ class App(ttk.Frame):
             "Intended uses include backing up/restoring your own data, recovering from desync/corruption, "
             "and safe personal experimentation. Always back up before editing."
         )
-        ttk.Label(
+        self.banner_label = ttk.Label(
             banner,
             text=warn_text,
             foreground="red",
             wraplength=900,
             justify=tk.LEFT,
-        ).grid(row=0, column=0, sticky=tk.W, padx=8, pady=(6, 2))
+        )
+        self.banner_label.grid(row=0, column=0, sticky=tk.W, padx=8, pady=(6, 2))
         # Compact mode toggle (top-right)
         ttk.Checkbutton(
             banner,
-            text="Compact mode",
+            text="Compact (hide banner)",
             variable=self.compact_mode,
             command=lambda: self._apply_compact_mode(self.compact_mode.get()),
         ).grid(row=0, column=1, sticky=tk.E, padx=8)
@@ -362,23 +363,16 @@ class App(ttk.Frame):
         self.bind_all('<Button-5>', _on_mousewheel)
 
     def _apply_compact_mode(self, enabled: bool):
+        """Compact mode collapses the warning banner text (session only)."""
         try:
             if enabled:
-                # Reduce paddings and row heights
-                self.style.configure('TButton', padding=(4, 2))
-                self.style.configure('TLabel', padding=(0, 0))
-                self.style.configure('TEntry', padding=(1, 1))
-                self.style.configure('Treeview', rowheight=18)
-            else:
-                # Revert to defaults (let theme decide reasonable padding)
-                # Use None to clear explicit overrides
-                for name in ('TButton', 'TLabel', 'TEntry'):
-                    try:
-                        self.style.configure(name, padding=None)
-                    except Exception:
-                        pass
                 try:
-                    self.style.configure('Treeview', rowheight=None)
+                    self.banner_label.grid_remove()
+                except Exception:
+                    pass
+            else:
+                try:
+                    self.banner_label.grid()
                 except Exception:
                     pass
         except Exception:
