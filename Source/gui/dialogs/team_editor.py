@@ -115,6 +115,8 @@ class TeamEditorDialog(tk.Toplevel):
         ttk.Checkbutton(parent, text="Passive", variable=self.passive_var).grid(row=1, column=3, sticky=tk.W, padx=6)
         # Held items via manager
         ttk.Button(parent, text="Manage Items...", command=self._open_items_for_current).grid(row=1, column=4, sticky=tk.W, padx=(8,0))
+        self.pokerus_var = tk.IntVar(value=0)
+        ttk.Checkbutton(parent, text="Pokerus", variable=self.pokerus_var).grid(row=1, column=7, sticky=tk.W, padx=(8,0))
 
         ttk.Label(parent, text="Nature:").grid(row=2, column=0, sticky=tk.W)
         # Nature combobox with effect hints (e.g., Adamant +Atk/-SpA)
@@ -249,6 +251,10 @@ class TeamEditorDialog(tk.Toplevel):
             pass
         try:
             self.passive_var.set(1 if bool(mon.get('passive')) else 0)
+        try:
+            self.pokerus_var.set(1 if bool(mon.get('pokerus')) else 0)
+        except Exception:
+            self.pokerus_var.set(0)
         except Exception:
             self.passive_var.set(0)
         # Nature
@@ -422,6 +428,13 @@ class TeamEditorDialog(tk.Toplevel):
                 elif "heldItem" in mon:
                     mon["heldItem"] = iid
                 elif "item" in mon:
+                elif "item" in mon:
+                    mon["item"] = hid
+        # Pokerus state
+        try:
+            mon["pokerus"] = bool(self.pokerus_var.get())
+        except Exception:
+            pass
                     mon["item"] = iid
         else:
             hv = self.held_item_var.get().strip()
@@ -432,6 +445,13 @@ class TeamEditorDialog(tk.Toplevel):
                 elif "heldItem" in mon:
                     mon["heldItem"] = hid
                 elif "item" in mon:
+                elif "item" in mon:
+                    mon["item"] = hid
+        # Pokerus state
+        try:
+            mon["pokerus"] = bool(self.pokerus_var.get())
+        except Exception:
+            pass
                     mon["item"] = hid
         # Status
         try:
