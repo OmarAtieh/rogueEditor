@@ -1,0 +1,9278 @@
+{
+  "by_dex": {
+    "1": {
+      "dex": "1",
+      "name": "bulbasaur",
+      "stats": [
+        45,
+        49,
+        49,
+        65,
+        65,
+        45
+      ],
+      "total": 318,
+      "source": {
+        "name": "Bulbasaur",
+        "dex": "1",
+        "confidence": "name"
+      }
+    },
+    "4": {
+      "dex": "4",
+      "name": "charmander",
+      "stats": [
+        39,
+        52,
+        43,
+        60,
+        50,
+        65
+      ],
+      "total": 309,
+      "source": {
+        "name": "Charmander",
+        "dex": "4",
+        "confidence": "name"
+      }
+    },
+    "7": {
+      "dex": "7",
+      "name": "squirtle",
+      "stats": [
+        44,
+        48,
+        65,
+        50,
+        64,
+        43
+      ],
+      "total": 314,
+      "source": {
+        "name": "Squirtle",
+        "dex": "7",
+        "confidence": "name"
+      }
+    },
+    "10": {
+      "dex": "10",
+      "name": "caterpie",
+      "stats": [
+        45,
+        30,
+        35,
+        20,
+        20,
+        45
+      ],
+      "total": 195,
+      "source": {
+        "name": "Caterpie",
+        "dex": "10",
+        "confidence": "name"
+      }
+    },
+    "13": {
+      "dex": "13",
+      "name": "weedle",
+      "stats": [
+        40,
+        35,
+        30,
+        20,
+        20,
+        50
+      ],
+      "total": 195,
+      "source": {
+        "name": "Weedle",
+        "dex": "13",
+        "confidence": "name"
+      }
+    },
+    "16": {
+      "dex": "16",
+      "name": "pidgey",
+      "stats": [
+        40,
+        45,
+        40,
+        35,
+        35,
+        56
+      ],
+      "total": 251,
+      "source": {
+        "name": "Pidgey",
+        "dex": "16",
+        "confidence": "name"
+      }
+    },
+    "19": {
+      "dex": "19",
+      "name": "rattata",
+      "stats": [
+        30,
+        56,
+        35,
+        25,
+        35,
+        72
+      ],
+      "total": 253,
+      "source": {
+        "name": "Rattata",
+        "dex": "19",
+        "confidence": "name"
+      }
+    },
+    "21": {
+      "dex": "21",
+      "name": "spearow",
+      "stats": [
+        40,
+        60,
+        30,
+        31,
+        31,
+        70
+      ],
+      "total": 262,
+      "source": {
+        "name": "Spearow",
+        "dex": "21",
+        "confidence": "name"
+      }
+    },
+    "23": {
+      "dex": "23",
+      "name": "ekans",
+      "stats": [
+        35,
+        60,
+        44,
+        40,
+        54,
+        55
+      ],
+      "total": 288,
+      "source": {
+        "name": "Ekans",
+        "dex": "23",
+        "confidence": "name"
+      }
+    },
+    "25": {
+      "dex": "25",
+      "name": "pikachu",
+      "stats": [
+        45,
+        80,
+        50,
+        75,
+        60,
+        120
+      ],
+      "total": 430,
+      "source": {
+        "name": "Pikachu",
+        "dex": "25",
+        "confidence": "name"
+      }
+    },
+    "27": {
+      "dex": "27",
+      "name": "sandshrew",
+      "stats": [
+        50,
+        75,
+        90,
+        10,
+        35,
+        40
+      ],
+      "total": 300,
+      "source": {
+        "name": "Sandshrew",
+        "dex": "27",
+        "confidence": "name"
+      }
+    },
+    "29": {
+      "dex": "29",
+      "name": "nidoran-f",
+      "stats": [
+        55,
+        47,
+        52,
+        40,
+        40,
+        41
+      ],
+      "total": 275,
+      "source": {
+        "name": "Nidoran♀",
+        "dex": "29",
+        "confidence": "name"
+      }
+    },
+    "32": {
+      "dex": "32",
+      "name": "nidoran-m",
+      "stats": [
+        46,
+        57,
+        40,
+        40,
+        40,
+        50
+      ],
+      "total": 273,
+      "source": {
+        "name": "Nidoran♂",
+        "dex": "32",
+        "confidence": "name"
+      }
+    },
+    "35": {
+      "dex": "35",
+      "name": "clefairy",
+      "stats": [
+        70,
+        45,
+        48,
+        60,
+        65,
+        35
+      ],
+      "total": 323,
+      "source": {
+        "name": "Clefairy",
+        "dex": "35",
+        "confidence": "name"
+      }
+    },
+    "37": {
+      "dex": "37",
+      "name": "vulpix",
+      "stats": [
+        38,
+        41,
+        40,
+        50,
+        65,
+        65
+      ],
+      "total": 299,
+      "source": {
+        "name": "Vulpix",
+        "dex": "37",
+        "confidence": "name"
+      }
+    },
+    "39": {
+      "dex": "39",
+      "name": "jigglypuff",
+      "stats": [
+        115,
+        45,
+        20,
+        45,
+        25,
+        20
+      ],
+      "total": 270,
+      "source": {
+        "name": "Jigglypuff",
+        "dex": "39",
+        "confidence": "name"
+      }
+    },
+    "41": {
+      "dex": "41",
+      "name": "zubat",
+      "stats": [
+        40,
+        45,
+        35,
+        30,
+        40,
+        55
+      ],
+      "total": 245,
+      "source": {
+        "name": "Zubat",
+        "dex": "41",
+        "confidence": "name"
+      }
+    },
+    "43": {
+      "dex": "43",
+      "name": "oddish",
+      "stats": [
+        45,
+        50,
+        55,
+        75,
+        65,
+        30
+      ],
+      "total": 320,
+      "source": {
+        "name": "Oddish",
+        "dex": "43",
+        "confidence": "name"
+      }
+    },
+    "46": {
+      "dex": "46",
+      "name": "paras",
+      "stats": [
+        35,
+        70,
+        55,
+        45,
+        55,
+        25
+      ],
+      "total": 285,
+      "source": {
+        "name": "Paras",
+        "dex": "46",
+        "confidence": "name"
+      }
+    },
+    "48": {
+      "dex": "48",
+      "name": "venonat",
+      "stats": [
+        60,
+        55,
+        50,
+        40,
+        55,
+        45
+      ],
+      "total": 305,
+      "source": {
+        "name": "Venonat",
+        "dex": "48",
+        "confidence": "name"
+      }
+    },
+    "50": {
+      "dex": "50",
+      "name": "diglett",
+      "stats": [
+        10,
+        55,
+        30,
+        35,
+        45,
+        90
+      ],
+      "total": 265,
+      "source": {
+        "name": "Diglett",
+        "dex": "50",
+        "confidence": "name"
+      }
+    },
+    "52": {
+      "dex": "52",
+      "name": "meowth",
+      "stats": [
+        50,
+        65,
+        55,
+        40,
+        40,
+        40
+      ],
+      "total": 290,
+      "source": {
+        "name": "Meowth",
+        "dex": "52",
+        "confidence": "name"
+      }
+    },
+    "54": {
+      "dex": "54",
+      "name": "psyduck",
+      "stats": [
+        50,
+        52,
+        48,
+        65,
+        50,
+        55
+      ],
+      "total": 320,
+      "source": {
+        "name": "Psyduck",
+        "dex": "54",
+        "confidence": "name"
+      }
+    },
+    "56": {
+      "dex": "56",
+      "name": "mankey",
+      "stats": [
+        40,
+        80,
+        35,
+        35,
+        45,
+        70
+      ],
+      "total": 305,
+      "source": {
+        "name": "Mankey",
+        "dex": "56",
+        "confidence": "name"
+      }
+    },
+    "58": {
+      "dex": "58",
+      "name": "growlithe",
+      "stats": [
+        60,
+        75,
+        45,
+        65,
+        50,
+        55
+      ],
+      "total": 350,
+      "source": {
+        "name": "Growlithe",
+        "dex": "58",
+        "confidence": "name"
+      }
+    },
+    "60": {
+      "dex": "60",
+      "name": "poliwag",
+      "stats": [
+        40,
+        50,
+        40,
+        40,
+        40,
+        90
+      ],
+      "total": 300,
+      "source": {
+        "name": "Poliwag",
+        "dex": "60",
+        "confidence": "name"
+      }
+    },
+    "63": {
+      "dex": "63",
+      "name": "abra",
+      "stats": [
+        25,
+        20,
+        15,
+        105,
+        55,
+        90
+      ],
+      "total": 310,
+      "source": {
+        "name": "Abra",
+        "dex": "63",
+        "confidence": "name"
+      }
+    },
+    "66": {
+      "dex": "66",
+      "name": "machop",
+      "stats": [
+        70,
+        80,
+        50,
+        35,
+        35,
+        35
+      ],
+      "total": 305,
+      "source": {
+        "name": "Machop",
+        "dex": "66",
+        "confidence": "name"
+      }
+    },
+    "69": {
+      "dex": "69",
+      "name": "bellsprout",
+      "stats": [
+        50,
+        75,
+        35,
+        70,
+        30,
+        40
+      ],
+      "total": 300,
+      "source": {
+        "name": "Bellsprout",
+        "dex": "69",
+        "confidence": "name"
+      }
+    },
+    "72": {
+      "dex": "72",
+      "name": "tentacool",
+      "stats": [
+        40,
+        40,
+        35,
+        50,
+        100,
+        70
+      ],
+      "total": 335,
+      "source": {
+        "name": "Tentacool",
+        "dex": "72",
+        "confidence": "name"
+      }
+    },
+    "74": {
+      "dex": "74",
+      "name": "geodude",
+      "stats": [
+        40,
+        80,
+        100,
+        30,
+        30,
+        20
+      ],
+      "total": 300,
+      "source": {
+        "name": "Geodude",
+        "dex": "74",
+        "confidence": "name"
+      }
+    },
+    "77": {
+      "dex": "77",
+      "name": "ponyta",
+      "stats": [
+        50,
+        85,
+        55,
+        65,
+        65,
+        90
+      ],
+      "total": 410,
+      "source": {
+        "name": "Ponyta",
+        "dex": "77",
+        "confidence": "name"
+      }
+    },
+    "79": {
+      "dex": "79",
+      "name": "slowpoke",
+      "stats": [
+        90,
+        65,
+        65,
+        40,
+        40,
+        15
+      ],
+      "total": 315,
+      "source": {
+        "name": "Slowpoke",
+        "dex": "79",
+        "confidence": "name"
+      }
+    },
+    "81": {
+      "dex": "81",
+      "name": "magnemite",
+      "stats": [
+        25,
+        35,
+        70,
+        95,
+        55,
+        45
+      ],
+      "total": 325,
+      "source": {
+        "name": "Magnemite",
+        "dex": "81",
+        "confidence": "name"
+      }
+    },
+    "83": {
+      "dex": "83",
+      "name": "farfetchd",
+      "stats": [
+        52,
+        95,
+        55,
+        58,
+        62,
+        55
+      ],
+      "total": 377,
+      "source": {
+        "name": "Farfetch'd",
+        "dex": "83",
+        "confidence": "name"
+      }
+    },
+    "84": {
+      "dex": "84",
+      "name": "doduo",
+      "stats": [
+        35,
+        85,
+        45,
+        35,
+        35,
+        75
+      ],
+      "total": 310,
+      "source": {
+        "name": "Doduo",
+        "dex": "84",
+        "confidence": "name"
+      }
+    },
+    "86": {
+      "dex": "86",
+      "name": "seel",
+      "stats": [
+        65,
+        45,
+        55,
+        45,
+        70,
+        45
+      ],
+      "total": 325,
+      "source": {
+        "name": "Seel",
+        "dex": "86",
+        "confidence": "name"
+      }
+    },
+    "88": {
+      "dex": "88",
+      "name": "grimer",
+      "stats": [
+        80,
+        80,
+        50,
+        40,
+        50,
+        25
+      ],
+      "total": 325,
+      "source": {
+        "name": "Grimer",
+        "dex": "88",
+        "confidence": "name"
+      }
+    },
+    "90": {
+      "dex": "90",
+      "name": "shellder",
+      "stats": [
+        30,
+        65,
+        100,
+        45,
+        25,
+        40
+      ],
+      "total": 305,
+      "source": {
+        "name": "Shellder",
+        "dex": "90",
+        "confidence": "name"
+      }
+    },
+    "92": {
+      "dex": "92",
+      "name": "gastly",
+      "stats": [
+        30,
+        35,
+        30,
+        100,
+        35,
+        80
+      ],
+      "total": 310,
+      "source": {
+        "name": "Gastly",
+        "dex": "92",
+        "confidence": "name"
+      }
+    },
+    "95": {
+      "dex": "95",
+      "name": "onix",
+      "stats": [
+        35,
+        45,
+        160,
+        30,
+        45,
+        70
+      ],
+      "total": 385,
+      "source": {
+        "name": "Onix",
+        "dex": "95",
+        "confidence": "name"
+      }
+    },
+    "96": {
+      "dex": "96",
+      "name": "drowzee",
+      "stats": [
+        60,
+        48,
+        45,
+        43,
+        90,
+        42
+      ],
+      "total": 328,
+      "source": {
+        "name": "Drowzee",
+        "dex": "96",
+        "confidence": "name"
+      }
+    },
+    "98": {
+      "dex": "98",
+      "name": "krabby",
+      "stats": [
+        30,
+        105,
+        90,
+        25,
+        25,
+        50
+      ],
+      "total": 325,
+      "source": {
+        "name": "Krabby",
+        "dex": "98",
+        "confidence": "name"
+      }
+    },
+    "100": {
+      "dex": "100",
+      "name": "voltorb",
+      "stats": [
+        40,
+        30,
+        50,
+        55,
+        55,
+        100
+      ],
+      "total": 330,
+      "source": {
+        "name": "Voltorb",
+        "dex": "100",
+        "confidence": "name"
+      }
+    },
+    "102": {
+      "dex": "102",
+      "name": "exeggcute",
+      "stats": [
+        60,
+        40,
+        80,
+        60,
+        45,
+        40
+      ],
+      "total": 325,
+      "source": {
+        "name": "Exeggcute",
+        "dex": "102",
+        "confidence": "name"
+      }
+    },
+    "104": {
+      "dex": "104",
+      "name": "cubone",
+      "stats": [
+        50,
+        50,
+        95,
+        40,
+        50,
+        35
+      ],
+      "total": 320,
+      "source": {
+        "name": "Cubone",
+        "dex": "104",
+        "confidence": "name"
+      }
+    },
+    "106": {
+      "dex": "106",
+      "name": "hitmonlee",
+      "stats": [
+        50,
+        120,
+        53,
+        35,
+        110,
+        87
+      ],
+      "total": 455,
+      "source": {
+        "name": "Hitmonlee",
+        "dex": "106",
+        "confidence": "name"
+      }
+    },
+    "107": {
+      "dex": "107",
+      "name": "hitmonchan",
+      "stats": [
+        50,
+        105,
+        79,
+        35,
+        110,
+        76
+      ],
+      "total": 455,
+      "source": {
+        "name": "Hitmonchan",
+        "dex": "107",
+        "confidence": "name"
+      }
+    },
+    "108": {
+      "dex": "108",
+      "name": "lickitung",
+      "stats": [
+        90,
+        55,
+        75,
+        60,
+        75,
+        30
+      ],
+      "total": 385,
+      "source": {
+        "name": "Lickitung",
+        "dex": "108",
+        "confidence": "name"
+      }
+    },
+    "109": {
+      "dex": "109",
+      "name": "koffing",
+      "stats": [
+        40,
+        65,
+        95,
+        60,
+        45,
+        35
+      ],
+      "total": 340,
+      "source": {
+        "name": "Koffing",
+        "dex": "109",
+        "confidence": "name"
+      }
+    },
+    "111": {
+      "dex": "111",
+      "name": "rhyhorn",
+      "stats": [
+        80,
+        85,
+        95,
+        30,
+        30,
+        25
+      ],
+      "total": 345,
+      "source": {
+        "name": "Rhyhorn",
+        "dex": "111",
+        "confidence": "name"
+      }
+    },
+    "113": {
+      "dex": "113",
+      "name": "chansey",
+      "stats": [
+        250,
+        5,
+        5,
+        35,
+        105,
+        50
+      ],
+      "total": 450,
+      "source": {
+        "name": "Chansey",
+        "dex": "113",
+        "confidence": "name"
+      }
+    },
+    "114": {
+      "dex": "114",
+      "name": "tangela",
+      "stats": [
+        65,
+        55,
+        115,
+        100,
+        40,
+        60
+      ],
+      "total": 435,
+      "source": {
+        "name": "Tangela",
+        "dex": "114",
+        "confidence": "name"
+      }
+    },
+    "115": {
+      "dex": "115",
+      "name": "kangaskhan",
+      "stats": [
+        105,
+        125,
+        100,
+        60,
+        100,
+        100
+      ],
+      "total": 590,
+      "source": {
+        "name": "Kangaskhan",
+        "dex": "115",
+        "confidence": "name"
+      }
+    },
+    "116": {
+      "dex": "116",
+      "name": "horsea",
+      "stats": [
+        30,
+        40,
+        70,
+        70,
+        25,
+        60
+      ],
+      "total": 295,
+      "source": {
+        "name": "Horsea",
+        "dex": "116",
+        "confidence": "name"
+      }
+    },
+    "118": {
+      "dex": "118",
+      "name": "goldeen",
+      "stats": [
+        45,
+        67,
+        60,
+        35,
+        50,
+        63
+      ],
+      "total": 320,
+      "source": {
+        "name": "Goldeen",
+        "dex": "118",
+        "confidence": "name"
+      }
+    },
+    "120": {
+      "dex": "120",
+      "name": "staryu",
+      "stats": [
+        30,
+        45,
+        55,
+        70,
+        55,
+        85
+      ],
+      "total": 340,
+      "source": {
+        "name": "Staryu",
+        "dex": "120",
+        "confidence": "name"
+      }
+    },
+    "122": {
+      "dex": "122",
+      "name": "mr-mime",
+      "stats": [
+        50,
+        65,
+        65,
+        90,
+        90,
+        100
+      ],
+      "total": 460,
+      "source": {
+        "name": "Mr. Mime",
+        "dex": "122",
+        "confidence": "name"
+      }
+    },
+    "123": {
+      "dex": "123",
+      "name": "scyther",
+      "stats": [
+        70,
+        110,
+        80,
+        55,
+        80,
+        105
+      ],
+      "total": 500,
+      "source": {
+        "name": "Scyther",
+        "dex": "123",
+        "confidence": "name"
+      }
+    },
+    "124": {
+      "dex": "124",
+      "name": "jynx",
+      "stats": [
+        65,
+        50,
+        35,
+        115,
+        95,
+        95
+      ],
+      "total": 455,
+      "source": {
+        "name": "Jynx",
+        "dex": "124",
+        "confidence": "name"
+      }
+    },
+    "125": {
+      "dex": "125",
+      "name": "electabuzz",
+      "stats": [
+        65,
+        83,
+        57,
+        95,
+        85,
+        105
+      ],
+      "total": 490,
+      "source": {
+        "name": "Electabuzz",
+        "dex": "125",
+        "confidence": "name"
+      }
+    },
+    "126": {
+      "dex": "126",
+      "name": "magmar",
+      "stats": [
+        65,
+        95,
+        57,
+        100,
+        85,
+        93
+      ],
+      "total": 495,
+      "source": {
+        "name": "Magmar",
+        "dex": "126",
+        "confidence": "name"
+      }
+    },
+    "127": {
+      "dex": "127",
+      "name": "pinsir",
+      "stats": [
+        65,
+        155,
+        120,
+        65,
+        90,
+        105
+      ],
+      "total": 600,
+      "source": {
+        "name": "Pinsir",
+        "dex": "127",
+        "confidence": "name"
+      }
+    },
+    "128": {
+      "dex": "128",
+      "name": "tauros",
+      "stats": [
+        75,
+        110,
+        105,
+        30,
+        70,
+        100
+      ],
+      "total": 490,
+      "source": {
+        "name": "Tauros",
+        "dex": "128",
+        "confidence": "name"
+      }
+    },
+    "129": {
+      "dex": "129",
+      "name": "magikarp",
+      "stats": [
+        20,
+        10,
+        55,
+        15,
+        20,
+        80
+      ],
+      "total": 200,
+      "source": {
+        "name": "Magikarp",
+        "dex": "129",
+        "confidence": "name"
+      }
+    },
+    "131": {
+      "dex": "131",
+      "name": "lapras",
+      "stats": [
+        130,
+        85,
+        80,
+        85,
+        95,
+        60
+      ],
+      "total": 535,
+      "source": {
+        "name": "Lapras",
+        "dex": "131",
+        "confidence": "name"
+      }
+    },
+    "132": {
+      "dex": "132",
+      "name": "ditto",
+      "stats": [
+        48,
+        48,
+        48,
+        48,
+        48,
+        48
+      ],
+      "total": 288,
+      "source": {
+        "name": "Ditto",
+        "dex": "132",
+        "confidence": "name"
+      }
+    },
+    "133": {
+      "dex": "133",
+      "name": "eevee",
+      "stats": [
+        65,
+        75,
+        70,
+        65,
+        85,
+        75
+      ],
+      "total": 435,
+      "source": {
+        "name": "Eevee",
+        "dex": "133",
+        "confidence": "name"
+      }
+    },
+    "137": {
+      "dex": "137",
+      "name": "porygon",
+      "stats": [
+        65,
+        60,
+        70,
+        85,
+        75,
+        40
+      ],
+      "total": 395,
+      "source": {
+        "name": "Porygon",
+        "dex": "137",
+        "confidence": "name"
+      }
+    },
+    "138": {
+      "dex": "138",
+      "name": "omanyte",
+      "stats": [
+        35,
+        40,
+        100,
+        90,
+        55,
+        35
+      ],
+      "total": 355,
+      "source": {
+        "name": "Omanyte",
+        "dex": "138",
+        "confidence": "name"
+      }
+    },
+    "140": {
+      "dex": "140",
+      "name": "kabuto",
+      "stats": [
+        30,
+        80,
+        90,
+        55,
+        45,
+        55
+      ],
+      "total": 355,
+      "source": {
+        "name": "Kabuto",
+        "dex": "140",
+        "confidence": "name"
+      }
+    },
+    "142": {
+      "dex": "142",
+      "name": "aerodactyl",
+      "stats": [
+        80,
+        135,
+        85,
+        70,
+        95,
+        150
+      ],
+      "total": 615,
+      "source": {
+        "name": "Aerodactyl",
+        "dex": "142",
+        "confidence": "name"
+      }
+    },
+    "143": {
+      "dex": "143",
+      "name": "snorlax",
+      "stats": [
+        160,
+        110,
+        65,
+        65,
+        110,
+        30
+      ],
+      "total": 540,
+      "source": {
+        "name": "Snorlax",
+        "dex": "143",
+        "confidence": "name"
+      }
+    },
+    "144": {
+      "dex": "144",
+      "name": "articuno",
+      "stats": [
+        90,
+        85,
+        85,
+        125,
+        100,
+        95
+      ],
+      "total": 580,
+      "source": {
+        "name": "Articuno",
+        "dex": "144",
+        "confidence": "name"
+      }
+    },
+    "145": {
+      "dex": "145",
+      "name": "zapdos",
+      "stats": [
+        90,
+        125,
+        90,
+        85,
+        90,
+        100
+      ],
+      "total": 580,
+      "source": {
+        "name": "Zapdos",
+        "dex": "145",
+        "confidence": "name"
+      }
+    },
+    "146": {
+      "dex": "146",
+      "name": "moltres",
+      "stats": [
+        90,
+        85,
+        90,
+        100,
+        125,
+        90
+      ],
+      "total": 580,
+      "source": {
+        "name": "Moltres",
+        "dex": "146",
+        "confidence": "name"
+      }
+    },
+    "147": {
+      "dex": "147",
+      "name": "dratini",
+      "stats": [
+        41,
+        64,
+        45,
+        50,
+        50,
+        50
+      ],
+      "total": 300,
+      "source": {
+        "name": "Dratini",
+        "dex": "147",
+        "confidence": "name"
+      }
+    },
+    "150": {
+      "dex": "150",
+      "name": "mewtwo",
+      "stats": [
+        106,
+        150,
+        70,
+        194,
+        120,
+        140
+      ],
+      "total": 780,
+      "source": {
+        "name": "Mewtwo",
+        "dex": "150",
+        "confidence": "name"
+      }
+    },
+    "151": {
+      "dex": "151",
+      "name": "mew",
+      "stats": [
+        100,
+        100,
+        100,
+        100,
+        100,
+        100
+      ],
+      "total": 600,
+      "source": {
+        "name": "Mew",
+        "dex": "151",
+        "confidence": "name"
+      }
+    },
+    "152": {
+      "dex": "152",
+      "name": "chikorita",
+      "stats": [
+        45,
+        49,
+        65,
+        49,
+        65,
+        45
+      ],
+      "total": 318,
+      "source": {
+        "name": "Chikorita",
+        "dex": "152",
+        "confidence": "name"
+      }
+    },
+    "155": {
+      "dex": "155",
+      "name": "cyndaquil",
+      "stats": [
+        39,
+        52,
+        43,
+        60,
+        50,
+        65
+      ],
+      "total": 309,
+      "source": {
+        "name": "Cyndaquil",
+        "dex": "155",
+        "confidence": "name"
+      }
+    },
+    "158": {
+      "dex": "158",
+      "name": "totodile",
+      "stats": [
+        50,
+        65,
+        64,
+        44,
+        48,
+        43
+      ],
+      "total": 314,
+      "source": {
+        "name": "Totodile",
+        "dex": "158",
+        "confidence": "name"
+      }
+    },
+    "161": {
+      "dex": "161",
+      "name": "sentret",
+      "stats": [
+        35,
+        46,
+        34,
+        35,
+        45,
+        20
+      ],
+      "total": 215,
+      "source": {
+        "name": "Sentret",
+        "dex": "161",
+        "confidence": "name"
+      }
+    },
+    "163": {
+      "dex": "163",
+      "name": "hoothoot",
+      "stats": [
+        60,
+        30,
+        30,
+        36,
+        56,
+        50
+      ],
+      "total": 262,
+      "source": {
+        "name": "Hoothoot",
+        "dex": "163",
+        "confidence": "name"
+      }
+    },
+    "165": {
+      "dex": "165",
+      "name": "ledyba",
+      "stats": [
+        40,
+        20,
+        30,
+        40,
+        80,
+        55
+      ],
+      "total": 265,
+      "source": {
+        "name": "Ledyba",
+        "dex": "165",
+        "confidence": "name"
+      }
+    },
+    "167": {
+      "dex": "167",
+      "name": "spinarak",
+      "stats": [
+        40,
+        60,
+        40,
+        40,
+        40,
+        30
+      ],
+      "total": 250,
+      "source": {
+        "name": "Spinarak",
+        "dex": "167",
+        "confidence": "name"
+      }
+    },
+    "170": {
+      "dex": "170",
+      "name": "chinchou",
+      "stats": [
+        75,
+        38,
+        38,
+        56,
+        56,
+        67
+      ],
+      "total": 330,
+      "source": {
+        "name": "Chinchou",
+        "dex": "170",
+        "confidence": "name"
+      }
+    },
+    "172": {
+      "dex": "172",
+      "name": "pichu",
+      "stats": [
+        20,
+        40,
+        15,
+        35,
+        35,
+        60
+      ],
+      "total": 205,
+      "source": {
+        "name": "Pichu",
+        "dex": "172",
+        "confidence": "name"
+      }
+    },
+    "173": {
+      "dex": "173",
+      "name": "cleffa",
+      "stats": [
+        50,
+        25,
+        28,
+        45,
+        55,
+        15
+      ],
+      "total": 218,
+      "source": {
+        "name": "Cleffa",
+        "dex": "173",
+        "confidence": "name"
+      }
+    },
+    "174": {
+      "dex": "174",
+      "name": "igglybuff",
+      "stats": [
+        90,
+        30,
+        15,
+        40,
+        20,
+        15
+      ],
+      "total": 210,
+      "source": {
+        "name": "Igglybuff",
+        "dex": "174",
+        "confidence": "name"
+      }
+    },
+    "175": {
+      "dex": "175",
+      "name": "togepi",
+      "stats": [
+        35,
+        20,
+        65,
+        40,
+        65,
+        20
+      ],
+      "total": 245,
+      "source": {
+        "name": "Togepi",
+        "dex": "175",
+        "confidence": "name"
+      }
+    },
+    "177": {
+      "dex": "177",
+      "name": "natu",
+      "stats": [
+        40,
+        50,
+        45,
+        70,
+        45,
+        70
+      ],
+      "total": 320,
+      "source": {
+        "name": "Natu",
+        "dex": "177",
+        "confidence": "name"
+      }
+    },
+    "179": {
+      "dex": "179",
+      "name": "mareep",
+      "stats": [
+        55,
+        40,
+        40,
+        65,
+        45,
+        35
+      ],
+      "total": 280,
+      "source": {
+        "name": "Mareep",
+        "dex": "179",
+        "confidence": "name"
+      }
+    },
+    "183": {
+      "dex": "183",
+      "name": "marill",
+      "stats": [
+        70,
+        20,
+        50,
+        20,
+        50,
+        40
+      ],
+      "total": 250,
+      "source": {
+        "name": "Marill",
+        "dex": "183",
+        "confidence": "name"
+      }
+    },
+    "185": {
+      "dex": "185",
+      "name": "sudowoodo",
+      "stats": [
+        70,
+        100,
+        115,
+        30,
+        65,
+        30
+      ],
+      "total": 410,
+      "source": {
+        "name": "Sudowoodo",
+        "dex": "185",
+        "confidence": "name"
+      }
+    },
+    "187": {
+      "dex": "187",
+      "name": "hoppip",
+      "stats": [
+        35,
+        35,
+        40,
+        35,
+        55,
+        50
+      ],
+      "total": 250,
+      "source": {
+        "name": "Hoppip",
+        "dex": "187",
+        "confidence": "name"
+      }
+    },
+    "190": {
+      "dex": "190",
+      "name": "aipom",
+      "stats": [
+        55,
+        70,
+        55,
+        40,
+        55,
+        85
+      ],
+      "total": 360,
+      "source": {
+        "name": "Aipom",
+        "dex": "190",
+        "confidence": "name"
+      }
+    },
+    "191": {
+      "dex": "191",
+      "name": "sunkern",
+      "stats": [
+        30,
+        30,
+        30,
+        30,
+        30,
+        30
+      ],
+      "total": 180,
+      "source": {
+        "name": "Sunkern",
+        "dex": "191",
+        "confidence": "name"
+      }
+    },
+    "193": {
+      "dex": "193",
+      "name": "yanma",
+      "stats": [
+        65,
+        65,
+        45,
+        75,
+        45,
+        95
+      ],
+      "total": 390,
+      "source": {
+        "name": "Yanma",
+        "dex": "193",
+        "confidence": "name"
+      }
+    },
+    "194": {
+      "dex": "194",
+      "name": "wooper",
+      "stats": [
+        55,
+        45,
+        45,
+        25,
+        25,
+        15
+      ],
+      "total": 210,
+      "source": {
+        "name": "Wooper",
+        "dex": "194",
+        "confidence": "name"
+      }
+    },
+    "198": {
+      "dex": "198",
+      "name": "murkrow",
+      "stats": [
+        60,
+        85,
+        42,
+        85,
+        42,
+        91
+      ],
+      "total": 405,
+      "source": {
+        "name": "Murkrow",
+        "dex": "198",
+        "confidence": "name"
+      }
+    },
+    "200": {
+      "dex": "200",
+      "name": "misdreavus",
+      "stats": [
+        60,
+        60,
+        60,
+        85,
+        85,
+        85
+      ],
+      "total": 435,
+      "source": {
+        "name": "Misdreavus",
+        "dex": "200",
+        "confidence": "name"
+      }
+    },
+    "201": {
+      "dex": "201",
+      "name": "unown",
+      "stats": [
+        48,
+        72,
+        48,
+        72,
+        48,
+        48
+      ],
+      "total": 336,
+      "source": {
+        "name": "Unown",
+        "dex": "201",
+        "confidence": "name"
+      }
+    },
+    "202": {
+      "dex": "202",
+      "name": "wobbuffet",
+      "stats": [
+        190,
+        33,
+        58,
+        33,
+        58,
+        33
+      ],
+      "total": 405,
+      "source": {
+        "name": "Wobbuffet",
+        "dex": "202",
+        "confidence": "name"
+      }
+    },
+    "203": {
+      "dex": "203",
+      "name": "girafarig",
+      "stats": [
+        70,
+        80,
+        65,
+        90,
+        65,
+        85
+      ],
+      "total": 455,
+      "source": {
+        "name": "Girafarig",
+        "dex": "203",
+        "confidence": "name"
+      }
+    },
+    "204": {
+      "dex": "204",
+      "name": "pineco",
+      "stats": [
+        50,
+        65,
+        90,
+        35,
+        35,
+        15
+      ],
+      "total": 290,
+      "source": {
+        "name": "Pineco",
+        "dex": "204",
+        "confidence": "name"
+      }
+    },
+    "206": {
+      "dex": "206",
+      "name": "dunsparce",
+      "stats": [
+        100,
+        70,
+        70,
+        65,
+        65,
+        45
+      ],
+      "total": 415,
+      "source": {
+        "name": "Dunsparce",
+        "dex": "206",
+        "confidence": "name"
+      }
+    },
+    "207": {
+      "dex": "207",
+      "name": "gligar",
+      "stats": [
+        65,
+        75,
+        105,
+        35,
+        65,
+        85
+      ],
+      "total": 430,
+      "source": {
+        "name": "Gligar",
+        "dex": "207",
+        "confidence": "name"
+      }
+    },
+    "209": {
+      "dex": "209",
+      "name": "snubbull",
+      "stats": [
+        60,
+        80,
+        50,
+        40,
+        40,
+        30
+      ],
+      "total": 300,
+      "source": {
+        "name": "Snubbull",
+        "dex": "209",
+        "confidence": "name"
+      }
+    },
+    "211": {
+      "dex": "211",
+      "name": "qwilfish",
+      "stats": [
+        65,
+        95,
+        85,
+        55,
+        55,
+        85
+      ],
+      "total": 440,
+      "source": {
+        "name": "Qwilfish",
+        "dex": "211",
+        "confidence": "name"
+      }
+    },
+    "213": {
+      "dex": "213",
+      "name": "shuckle",
+      "stats": [
+        20,
+        10,
+        230,
+        10,
+        230,
+        5
+      ],
+      "total": 505,
+      "source": {
+        "name": "Shuckle",
+        "dex": "213",
+        "confidence": "name"
+      }
+    },
+    "214": {
+      "dex": "214",
+      "name": "heracross",
+      "stats": [
+        80,
+        185,
+        115,
+        40,
+        105,
+        75
+      ],
+      "total": 600,
+      "source": {
+        "name": "Heracross",
+        "dex": "214",
+        "confidence": "name"
+      }
+    },
+    "215": {
+      "dex": "215",
+      "name": "sneasel",
+      "stats": [
+        55,
+        95,
+        55,
+        35,
+        75,
+        115
+      ],
+      "total": 430,
+      "source": {
+        "name": "Sneasel",
+        "dex": "215",
+        "confidence": "name"
+      }
+    },
+    "216": {
+      "dex": "216",
+      "name": "teddiursa",
+      "stats": [
+        60,
+        80,
+        50,
+        50,
+        50,
+        40
+      ],
+      "total": 330,
+      "source": {
+        "name": "Teddiursa",
+        "dex": "216",
+        "confidence": "name"
+      }
+    },
+    "218": {
+      "dex": "218",
+      "name": "slugma",
+      "stats": [
+        40,
+        40,
+        40,
+        70,
+        40,
+        20
+      ],
+      "total": 250,
+      "source": {
+        "name": "Slugma",
+        "dex": "218",
+        "confidence": "name"
+      }
+    },
+    "220": {
+      "dex": "220",
+      "name": "swinub",
+      "stats": [
+        50,
+        50,
+        40,
+        30,
+        30,
+        50
+      ],
+      "total": 250,
+      "source": {
+        "name": "Swinub",
+        "dex": "220",
+        "confidence": "name"
+      }
+    },
+    "222": {
+      "dex": "222",
+      "name": "corsola",
+      "stats": [
+        60,
+        55,
+        100,
+        65,
+        100,
+        30
+      ],
+      "total": 410,
+      "source": {
+        "name": "Corsola",
+        "dex": "222",
+        "confidence": "name"
+      }
+    },
+    "223": {
+      "dex": "223",
+      "name": "remoraid",
+      "stats": [
+        35,
+        65,
+        35,
+        65,
+        35,
+        65
+      ],
+      "total": 300,
+      "source": {
+        "name": "Remoraid",
+        "dex": "223",
+        "confidence": "name"
+      }
+    },
+    "225": {
+      "dex": "225",
+      "name": "delibird",
+      "stats": [
+        45,
+        55,
+        45,
+        65,
+        45,
+        75
+      ],
+      "total": 330,
+      "source": {
+        "name": "Delibird",
+        "dex": "225",
+        "confidence": "name"
+      }
+    },
+    "226": {
+      "dex": "226",
+      "name": "mantine",
+      "stats": [
+        85,
+        40,
+        70,
+        80,
+        140,
+        70
+      ],
+      "total": 485,
+      "source": {
+        "name": "Mantine",
+        "dex": "226",
+        "confidence": "name"
+      }
+    },
+    "227": {
+      "dex": "227",
+      "name": "skarmory",
+      "stats": [
+        65,
+        80,
+        140,
+        40,
+        70,
+        70
+      ],
+      "total": 465,
+      "source": {
+        "name": "Skarmory",
+        "dex": "227",
+        "confidence": "name"
+      }
+    },
+    "228": {
+      "dex": "228",
+      "name": "houndour",
+      "stats": [
+        45,
+        60,
+        30,
+        80,
+        50,
+        65
+      ],
+      "total": 330,
+      "source": {
+        "name": "Houndour",
+        "dex": "228",
+        "confidence": "name"
+      }
+    },
+    "231": {
+      "dex": "231",
+      "name": "phanpy",
+      "stats": [
+        90,
+        60,
+        60,
+        40,
+        40,
+        40
+      ],
+      "total": 330,
+      "source": {
+        "name": "Phanpy",
+        "dex": "231",
+        "confidence": "name"
+      }
+    },
+    "234": {
+      "dex": "234",
+      "name": "stantler",
+      "stats": [
+        73,
+        95,
+        62,
+        85,
+        65,
+        85
+      ],
+      "total": 465,
+      "source": {
+        "name": "Stantler",
+        "dex": "234",
+        "confidence": "name"
+      }
+    },
+    "235": {
+      "dex": "235",
+      "name": "smeargle",
+      "stats": [
+        55,
+        20,
+        35,
+        20,
+        45,
+        75
+      ],
+      "total": 250,
+      "source": {
+        "name": "Smeargle",
+        "dex": "235",
+        "confidence": "name"
+      }
+    },
+    "236": {
+      "dex": "236",
+      "name": "tyrogue",
+      "stats": [
+        35,
+        35,
+        35,
+        35,
+        35,
+        35
+      ],
+      "total": 210,
+      "source": {
+        "name": "Tyrogue",
+        "dex": "236",
+        "confidence": "name"
+      }
+    },
+    "238": {
+      "dex": "238",
+      "name": "smoochum",
+      "stats": [
+        45,
+        30,
+        15,
+        85,
+        65,
+        65
+      ],
+      "total": 305,
+      "source": {
+        "name": "Smoochum",
+        "dex": "238",
+        "confidence": "name"
+      }
+    },
+    "239": {
+      "dex": "239",
+      "name": "elekid",
+      "stats": [
+        45,
+        63,
+        37,
+        65,
+        55,
+        95
+      ],
+      "total": 360,
+      "source": {
+        "name": "Elekid",
+        "dex": "239",
+        "confidence": "name"
+      }
+    },
+    "240": {
+      "dex": "240",
+      "name": "magby",
+      "stats": [
+        45,
+        75,
+        37,
+        70,
+        55,
+        83
+      ],
+      "total": 365,
+      "source": {
+        "name": "Magby",
+        "dex": "240",
+        "confidence": "name"
+      }
+    },
+    "241": {
+      "dex": "241",
+      "name": "miltank",
+      "stats": [
+        95,
+        80,
+        105,
+        40,
+        70,
+        100
+      ],
+      "total": 490,
+      "source": {
+        "name": "Miltank",
+        "dex": "241",
+        "confidence": "name"
+      }
+    },
+    "243": {
+      "dex": "243",
+      "name": "raikou",
+      "stats": [
+        90,
+        85,
+        75,
+        115,
+        100,
+        115
+      ],
+      "total": 580,
+      "source": {
+        "name": "Raikou",
+        "dex": "243",
+        "confidence": "name"
+      }
+    },
+    "244": {
+      "dex": "244",
+      "name": "entei",
+      "stats": [
+        115,
+        115,
+        85,
+        90,
+        75,
+        100
+      ],
+      "total": 580,
+      "source": {
+        "name": "Entei",
+        "dex": "244",
+        "confidence": "name"
+      }
+    },
+    "245": {
+      "dex": "245",
+      "name": "suicune",
+      "stats": [
+        100,
+        75,
+        115,
+        90,
+        115,
+        85
+      ],
+      "total": 580,
+      "source": {
+        "name": "Suicune",
+        "dex": "245",
+        "confidence": "name"
+      }
+    },
+    "246": {
+      "dex": "246",
+      "name": "larvitar",
+      "stats": [
+        50,
+        64,
+        50,
+        45,
+        50,
+        41
+      ],
+      "total": 300,
+      "source": {
+        "name": "Larvitar",
+        "dex": "246",
+        "confidence": "name"
+      }
+    },
+    "249": {
+      "dex": "249",
+      "name": "lugia",
+      "stats": [
+        106,
+        90,
+        130,
+        90,
+        154,
+        110
+      ],
+      "total": 680,
+      "source": {
+        "name": "Lugia",
+        "dex": "249",
+        "confidence": "name"
+      }
+    },
+    "250": {
+      "dex": "250",
+      "name": "ho-oh",
+      "stats": [
+        106,
+        130,
+        90,
+        110,
+        154,
+        90
+      ],
+      "total": 680,
+      "source": {
+        "name": "Ho-Oh",
+        "dex": "250",
+        "confidence": "name"
+      }
+    },
+    "251": {
+      "dex": "251",
+      "name": "celebi",
+      "stats": [
+        100,
+        100,
+        100,
+        100,
+        100,
+        100
+      ],
+      "total": 600,
+      "source": {
+        "name": "Celebi",
+        "dex": "251",
+        "confidence": "name"
+      }
+    },
+    "252": {
+      "dex": "252",
+      "name": "treecko",
+      "stats": [
+        40,
+        45,
+        35,
+        65,
+        55,
+        70
+      ],
+      "total": 310,
+      "source": {
+        "name": "Treecko",
+        "dex": "252",
+        "confidence": "name"
+      }
+    },
+    "255": {
+      "dex": "255",
+      "name": "torchic",
+      "stats": [
+        45,
+        60,
+        40,
+        70,
+        50,
+        45
+      ],
+      "total": 310,
+      "source": {
+        "name": "Torchic",
+        "dex": "255",
+        "confidence": "name"
+      }
+    },
+    "258": {
+      "dex": "258",
+      "name": "mudkip",
+      "stats": [
+        50,
+        70,
+        50,
+        50,
+        50,
+        40
+      ],
+      "total": 310,
+      "source": {
+        "name": "Mudkip",
+        "dex": "258",
+        "confidence": "name"
+      }
+    },
+    "261": {
+      "dex": "261",
+      "name": "poochyena",
+      "stats": [
+        35,
+        55,
+        35,
+        30,
+        30,
+        35
+      ],
+      "total": 220,
+      "source": {
+        "name": "Poochyena",
+        "dex": "261",
+        "confidence": "name"
+      }
+    },
+    "263": {
+      "dex": "263",
+      "name": "zigzagoon",
+      "stats": [
+        38,
+        30,
+        41,
+        30,
+        41,
+        60
+      ],
+      "total": 240,
+      "source": {
+        "name": "Zigzagoon",
+        "dex": "263",
+        "confidence": "name"
+      }
+    },
+    "265": {
+      "dex": "265",
+      "name": "wurmple",
+      "stats": [
+        45,
+        45,
+        35,
+        20,
+        30,
+        20
+      ],
+      "total": 195,
+      "source": {
+        "name": "Wurmple",
+        "dex": "265",
+        "confidence": "name"
+      }
+    },
+    "270": {
+      "dex": "270",
+      "name": "lotad",
+      "stats": [
+        40,
+        30,
+        30,
+        40,
+        50,
+        30
+      ],
+      "total": 220,
+      "source": {
+        "name": "Lotad",
+        "dex": "270",
+        "confidence": "name"
+      }
+    },
+    "273": {
+      "dex": "273",
+      "name": "seedot",
+      "stats": [
+        40,
+        40,
+        50,
+        30,
+        30,
+        30
+      ],
+      "total": 220,
+      "source": {
+        "name": "Seedot",
+        "dex": "273",
+        "confidence": "name"
+      }
+    },
+    "276": {
+      "dex": "276",
+      "name": "taillow",
+      "stats": [
+        40,
+        55,
+        30,
+        30,
+        30,
+        85
+      ],
+      "total": 270,
+      "source": {
+        "name": "Taillow",
+        "dex": "276",
+        "confidence": "name"
+      }
+    },
+    "278": {
+      "dex": "278",
+      "name": "wingull",
+      "stats": [
+        40,
+        30,
+        30,
+        55,
+        30,
+        85
+      ],
+      "total": 270,
+      "source": {
+        "name": "Wingull",
+        "dex": "278",
+        "confidence": "name"
+      }
+    },
+    "280": {
+      "dex": "280",
+      "name": "ralts",
+      "stats": [
+        28,
+        25,
+        25,
+        45,
+        35,
+        40
+      ],
+      "total": 198,
+      "source": {
+        "name": "Ralts",
+        "dex": "280",
+        "confidence": "name"
+      }
+    },
+    "283": {
+      "dex": "283",
+      "name": "surskit",
+      "stats": [
+        40,
+        30,
+        32,
+        50,
+        52,
+        65
+      ],
+      "total": 269,
+      "source": {
+        "name": "Surskit",
+        "dex": "283",
+        "confidence": "name"
+      }
+    },
+    "285": {
+      "dex": "285",
+      "name": "shroomish",
+      "stats": [
+        60,
+        40,
+        60,
+        40,
+        60,
+        35
+      ],
+      "total": 295,
+      "source": {
+        "name": "Shroomish",
+        "dex": "285",
+        "confidence": "name"
+      }
+    },
+    "287": {
+      "dex": "287",
+      "name": "slakoth",
+      "stats": [
+        60,
+        60,
+        60,
+        35,
+        35,
+        30
+      ],
+      "total": 280,
+      "source": {
+        "name": "Slakoth",
+        "dex": "287",
+        "confidence": "name"
+      }
+    },
+    "290": {
+      "dex": "290",
+      "name": "nincada",
+      "stats": [
+        31,
+        45,
+        90,
+        30,
+        30,
+        40
+      ],
+      "total": 266,
+      "source": {
+        "name": "Nincada",
+        "dex": "290",
+        "confidence": "name"
+      }
+    },
+    "293": {
+      "dex": "293",
+      "name": "whismur",
+      "stats": [
+        64,
+        51,
+        23,
+        51,
+        23,
+        28
+      ],
+      "total": 240,
+      "source": {
+        "name": "Whismur",
+        "dex": "293",
+        "confidence": "name"
+      }
+    },
+    "296": {
+      "dex": "296",
+      "name": "makuhita",
+      "stats": [
+        72,
+        60,
+        30,
+        20,
+        30,
+        25
+      ],
+      "total": 237,
+      "source": {
+        "name": "Makuhita",
+        "dex": "296",
+        "confidence": "name"
+      }
+    },
+    "298": {
+      "dex": "298",
+      "name": "azurill",
+      "stats": [
+        50,
+        20,
+        40,
+        20,
+        40,
+        20
+      ],
+      "total": 190,
+      "source": {
+        "name": "Azurill",
+        "dex": "298",
+        "confidence": "name"
+      }
+    },
+    "299": {
+      "dex": "299",
+      "name": "nosepass",
+      "stats": [
+        30,
+        45,
+        135,
+        45,
+        90,
+        30
+      ],
+      "total": 375,
+      "source": {
+        "name": "Nosepass",
+        "dex": "299",
+        "confidence": "name"
+      }
+    },
+    "300": {
+      "dex": "300",
+      "name": "skitty",
+      "stats": [
+        50,
+        45,
+        45,
+        35,
+        35,
+        50
+      ],
+      "total": 260,
+      "source": {
+        "name": "Skitty",
+        "dex": "300",
+        "confidence": "name"
+      }
+    },
+    "302": {
+      "dex": "302",
+      "name": "sableye",
+      "stats": [
+        50,
+        85,
+        125,
+        85,
+        115,
+        20
+      ],
+      "total": 480,
+      "source": {
+        "name": "Sableye",
+        "dex": "302",
+        "confidence": "name"
+      }
+    },
+    "303": {
+      "dex": "303",
+      "name": "mawile",
+      "stats": [
+        50,
+        105,
+        125,
+        55,
+        95,
+        50
+      ],
+      "total": 480,
+      "source": {
+        "name": "Mawile",
+        "dex": "303",
+        "confidence": "name"
+      }
+    },
+    "304": {
+      "dex": "304",
+      "name": "aron",
+      "stats": [
+        50,
+        70,
+        100,
+        40,
+        40,
+        30
+      ],
+      "total": 330,
+      "source": {
+        "name": "Aron",
+        "dex": "304",
+        "confidence": "name"
+      }
+    },
+    "307": {
+      "dex": "307",
+      "name": "meditite",
+      "stats": [
+        30,
+        40,
+        55,
+        40,
+        55,
+        60
+      ],
+      "total": 280,
+      "source": {
+        "name": "Meditite",
+        "dex": "307",
+        "confidence": "name"
+      }
+    },
+    "309": {
+      "dex": "309",
+      "name": "electrike",
+      "stats": [
+        40,
+        45,
+        40,
+        65,
+        40,
+        65
+      ],
+      "total": 295,
+      "source": {
+        "name": "Electrike",
+        "dex": "309",
+        "confidence": "name"
+      }
+    },
+    "311": {
+      "dex": "311",
+      "name": "plusle",
+      "stats": [
+        60,
+        50,
+        40,
+        85,
+        75,
+        95
+      ],
+      "total": 405,
+      "source": {
+        "name": "Plusle",
+        "dex": "311",
+        "confidence": "name"
+      }
+    },
+    "312": {
+      "dex": "312",
+      "name": "minun",
+      "stats": [
+        60,
+        40,
+        50,
+        75,
+        85,
+        95
+      ],
+      "total": 405,
+      "source": {
+        "name": "Minun",
+        "dex": "312",
+        "confidence": "name"
+      }
+    },
+    "313": {
+      "dex": "313",
+      "name": "volbeat",
+      "stats": [
+        65,
+        73,
+        75,
+        47,
+        85,
+        85
+      ],
+      "total": 430,
+      "source": {
+        "name": "Volbeat",
+        "dex": "313",
+        "confidence": "name"
+      }
+    },
+    "314": {
+      "dex": "314",
+      "name": "illumise",
+      "stats": [
+        65,
+        47,
+        75,
+        73,
+        85,
+        85
+      ],
+      "total": 430,
+      "source": {
+        "name": "Illumise",
+        "dex": "314",
+        "confidence": "name"
+      }
+    },
+    "315": {
+      "dex": "315",
+      "name": "roselia",
+      "stats": [
+        50,
+        60,
+        45,
+        100,
+        80,
+        65
+      ],
+      "total": 400,
+      "source": {
+        "name": "Roselia",
+        "dex": "315",
+        "confidence": "name"
+      }
+    },
+    "316": {
+      "dex": "316",
+      "name": "gulpin",
+      "stats": [
+        70,
+        43,
+        53,
+        43,
+        53,
+        40
+      ],
+      "total": 302,
+      "source": {
+        "name": "Gulpin",
+        "dex": "316",
+        "confidence": "name"
+      }
+    },
+    "318": {
+      "dex": "318",
+      "name": "carvanha",
+      "stats": [
+        45,
+        90,
+        20,
+        65,
+        20,
+        65
+      ],
+      "total": 305,
+      "source": {
+        "name": "Carvanha",
+        "dex": "318",
+        "confidence": "name"
+      }
+    },
+    "320": {
+      "dex": "320",
+      "name": "wailmer",
+      "stats": [
+        130,
+        70,
+        35,
+        70,
+        35,
+        60
+      ],
+      "total": 400,
+      "source": {
+        "name": "Wailmer",
+        "dex": "320",
+        "confidence": "name"
+      }
+    },
+    "322": {
+      "dex": "322",
+      "name": "numel",
+      "stats": [
+        60,
+        60,
+        40,
+        65,
+        45,
+        35
+      ],
+      "total": 305,
+      "source": {
+        "name": "Numel",
+        "dex": "322",
+        "confidence": "name"
+      }
+    },
+    "324": {
+      "dex": "324",
+      "name": "torkoal",
+      "stats": [
+        70,
+        85,
+        140,
+        85,
+        70,
+        20
+      ],
+      "total": 470,
+      "source": {
+        "name": "Torkoal",
+        "dex": "324",
+        "confidence": "name"
+      }
+    },
+    "325": {
+      "dex": "325",
+      "name": "spoink",
+      "stats": [
+        60,
+        25,
+        35,
+        70,
+        80,
+        60
+      ],
+      "total": 330,
+      "source": {
+        "name": "Spoink",
+        "dex": "325",
+        "confidence": "name"
+      }
+    },
+    "327": {
+      "dex": "327",
+      "name": "spinda",
+      "stats": [
+        60,
+        60,
+        60,
+        60,
+        60,
+        60
+      ],
+      "total": 360,
+      "source": {
+        "name": "Spinda",
+        "dex": "327",
+        "confidence": "name"
+      }
+    },
+    "328": {
+      "dex": "328",
+      "name": "trapinch",
+      "stats": [
+        45,
+        100,
+        45,
+        45,
+        45,
+        10
+      ],
+      "total": 290,
+      "source": {
+        "name": "Trapinch",
+        "dex": "328",
+        "confidence": "name"
+      }
+    },
+    "331": {
+      "dex": "331",
+      "name": "cacnea",
+      "stats": [
+        50,
+        85,
+        40,
+        85,
+        40,
+        35
+      ],
+      "total": 335,
+      "source": {
+        "name": "Cacnea",
+        "dex": "331",
+        "confidence": "name"
+      }
+    },
+    "333": {
+      "dex": "333",
+      "name": "swablu",
+      "stats": [
+        45,
+        40,
+        60,
+        40,
+        75,
+        50
+      ],
+      "total": 310,
+      "source": {
+        "name": "Swablu",
+        "dex": "333",
+        "confidence": "name"
+      }
+    },
+    "335": {
+      "dex": "335",
+      "name": "zangoose",
+      "stats": [
+        73,
+        115,
+        60,
+        60,
+        60,
+        90
+      ],
+      "total": 458,
+      "source": {
+        "name": "Zangoose",
+        "dex": "335",
+        "confidence": "name"
+      }
+    },
+    "336": {
+      "dex": "336",
+      "name": "seviper",
+      "stats": [
+        73,
+        100,
+        60,
+        100,
+        60,
+        65
+      ],
+      "total": 458,
+      "source": {
+        "name": "Seviper",
+        "dex": "336",
+        "confidence": "name"
+      }
+    },
+    "337": {
+      "dex": "337",
+      "name": "lunatone",
+      "stats": [
+        90,
+        55,
+        65,
+        95,
+        85,
+        70
+      ],
+      "total": 460,
+      "source": {
+        "name": "Lunatone",
+        "dex": "337",
+        "confidence": "name"
+      }
+    },
+    "338": {
+      "dex": "338",
+      "name": "solrock",
+      "stats": [
+        90,
+        95,
+        85,
+        55,
+        65,
+        70
+      ],
+      "total": 460,
+      "source": {
+        "name": "Solrock",
+        "dex": "338",
+        "confidence": "name"
+      }
+    },
+    "339": {
+      "dex": "339",
+      "name": "barboach",
+      "stats": [
+        50,
+        48,
+        43,
+        46,
+        41,
+        60
+      ],
+      "total": 288,
+      "source": {
+        "name": "Barboach",
+        "dex": "339",
+        "confidence": "name"
+      }
+    },
+    "341": {
+      "dex": "341",
+      "name": "corphish",
+      "stats": [
+        43,
+        80,
+        65,
+        50,
+        35,
+        35
+      ],
+      "total": 308,
+      "source": {
+        "name": "Corphish",
+        "dex": "341",
+        "confidence": "name"
+      }
+    },
+    "343": {
+      "dex": "343",
+      "name": "baltoy",
+      "stats": [
+        40,
+        40,
+        55,
+        40,
+        70,
+        55
+      ],
+      "total": 300,
+      "source": {
+        "name": "Baltoy",
+        "dex": "343",
+        "confidence": "name"
+      }
+    },
+    "345": {
+      "dex": "345",
+      "name": "lileep",
+      "stats": [
+        66,
+        41,
+        77,
+        61,
+        87,
+        23
+      ],
+      "total": 355,
+      "source": {
+        "name": "Lileep",
+        "dex": "345",
+        "confidence": "name"
+      }
+    },
+    "347": {
+      "dex": "347",
+      "name": "anorith",
+      "stats": [
+        45,
+        95,
+        50,
+        40,
+        50,
+        75
+      ],
+      "total": 355,
+      "source": {
+        "name": "Anorith",
+        "dex": "347",
+        "confidence": "name"
+      }
+    },
+    "349": {
+      "dex": "349",
+      "name": "feebas",
+      "stats": [
+        20,
+        15,
+        20,
+        10,
+        55,
+        80
+      ],
+      "total": 200,
+      "source": {
+        "name": "Feebas",
+        "dex": "349",
+        "confidence": "name"
+      }
+    },
+    "351": {
+      "dex": "351",
+      "name": "castform",
+      "stats": [
+        70,
+        70,
+        70,
+        70,
+        70,
+        70
+      ],
+      "total": 420,
+      "source": {
+        "name": "Castform",
+        "dex": "351",
+        "confidence": "name"
+      }
+    },
+    "352": {
+      "dex": "352",
+      "name": "kecleon",
+      "stats": [
+        60,
+        90,
+        70,
+        60,
+        120,
+        40
+      ],
+      "total": 440,
+      "source": {
+        "name": "Kecleon",
+        "dex": "352",
+        "confidence": "name"
+      }
+    },
+    "353": {
+      "dex": "353",
+      "name": "shuppet",
+      "stats": [
+        44,
+        75,
+        35,
+        63,
+        33,
+        45
+      ],
+      "total": 295,
+      "source": {
+        "name": "Shuppet",
+        "dex": "353",
+        "confidence": "name"
+      }
+    },
+    "355": {
+      "dex": "355",
+      "name": "duskull",
+      "stats": [
+        20,
+        40,
+        90,
+        30,
+        90,
+        25
+      ],
+      "total": 295,
+      "source": {
+        "name": "Duskull",
+        "dex": "355",
+        "confidence": "name"
+      }
+    },
+    "357": {
+      "dex": "357",
+      "name": "tropius",
+      "stats": [
+        99,
+        68,
+        83,
+        72,
+        87,
+        51
+      ],
+      "total": 460,
+      "source": {
+        "name": "Tropius",
+        "dex": "357",
+        "confidence": "name"
+      }
+    },
+    "358": {
+      "dex": "358",
+      "name": "chimecho",
+      "stats": [
+        75,
+        50,
+        80,
+        95,
+        90,
+        65
+      ],
+      "total": 455,
+      "source": {
+        "name": "Chimecho",
+        "dex": "358",
+        "confidence": "name"
+      }
+    },
+    "359": {
+      "dex": "359",
+      "name": "absol",
+      "stats": [
+        65,
+        150,
+        60,
+        115,
+        60,
+        115
+      ],
+      "total": 565,
+      "source": {
+        "name": "Absol",
+        "dex": "359",
+        "confidence": "name"
+      }
+    },
+    "360": {
+      "dex": "360",
+      "name": "wynaut",
+      "stats": [
+        95,
+        23,
+        48,
+        23,
+        48,
+        23
+      ],
+      "total": 260,
+      "source": {
+        "name": "Wynaut",
+        "dex": "360",
+        "confidence": "name"
+      }
+    },
+    "361": {
+      "dex": "361",
+      "name": "snorunt",
+      "stats": [
+        50,
+        50,
+        50,
+        50,
+        50,
+        50
+      ],
+      "total": 300,
+      "source": {
+        "name": "Snorunt",
+        "dex": "361",
+        "confidence": "name"
+      }
+    },
+    "363": {
+      "dex": "363",
+      "name": "spheal",
+      "stats": [
+        70,
+        40,
+        50,
+        55,
+        50,
+        25
+      ],
+      "total": 290,
+      "source": {
+        "name": "Spheal",
+        "dex": "363",
+        "confidence": "name"
+      }
+    },
+    "366": {
+      "dex": "366",
+      "name": "clamperl",
+      "stats": [
+        35,
+        64,
+        85,
+        74,
+        55,
+        32
+      ],
+      "total": 345,
+      "source": {
+        "name": "Clamperl",
+        "dex": "366",
+        "confidence": "name"
+      }
+    },
+    "369": {
+      "dex": "369",
+      "name": "relicanth",
+      "stats": [
+        100,
+        90,
+        130,
+        45,
+        65,
+        55
+      ],
+      "total": 485,
+      "source": {
+        "name": "Relicanth",
+        "dex": "369",
+        "confidence": "name"
+      }
+    },
+    "370": {
+      "dex": "370",
+      "name": "luvdisc",
+      "stats": [
+        43,
+        30,
+        55,
+        40,
+        65,
+        97
+      ],
+      "total": 330,
+      "source": {
+        "name": "Luvdisc",
+        "dex": "370",
+        "confidence": "name"
+      }
+    },
+    "371": {
+      "dex": "371",
+      "name": "bagon",
+      "stats": [
+        45,
+        75,
+        60,
+        40,
+        30,
+        50
+      ],
+      "total": 300,
+      "source": {
+        "name": "Bagon",
+        "dex": "371",
+        "confidence": "name"
+      }
+    },
+    "374": {
+      "dex": "374",
+      "name": "beldum",
+      "stats": [
+        40,
+        55,
+        80,
+        35,
+        60,
+        30
+      ],
+      "total": 300,
+      "source": {
+        "name": "Beldum",
+        "dex": "374",
+        "confidence": "name"
+      }
+    },
+    "377": {
+      "dex": "377",
+      "name": "regirock",
+      "stats": [
+        80,
+        100,
+        200,
+        50,
+        100,
+        50
+      ],
+      "total": 580,
+      "source": {
+        "name": "Regirock",
+        "dex": "377",
+        "confidence": "name"
+      }
+    },
+    "378": {
+      "dex": "378",
+      "name": "regice",
+      "stats": [
+        80,
+        50,
+        100,
+        100,
+        200,
+        50
+      ],
+      "total": 580,
+      "source": {
+        "name": "Regice",
+        "dex": "378",
+        "confidence": "name"
+      }
+    },
+    "379": {
+      "dex": "379",
+      "name": "registeel",
+      "stats": [
+        80,
+        75,
+        150,
+        75,
+        150,
+        50
+      ],
+      "total": 580,
+      "source": {
+        "name": "Registeel",
+        "dex": "379",
+        "confidence": "name"
+      }
+    },
+    "380": {
+      "dex": "380",
+      "name": "latias",
+      "stats": [
+        80,
+        100,
+        120,
+        140,
+        150,
+        110
+      ],
+      "total": 700,
+      "source": {
+        "name": "Latias",
+        "dex": "380",
+        "confidence": "name"
+      }
+    },
+    "381": {
+      "dex": "381",
+      "name": "latios",
+      "stats": [
+        80,
+        130,
+        100,
+        160,
+        120,
+        110
+      ],
+      "total": 700,
+      "source": {
+        "name": "Latios",
+        "dex": "381",
+        "confidence": "name"
+      }
+    },
+    "382": {
+      "dex": "382",
+      "name": "kyogre",
+      "stats": [
+        100,
+        150,
+        90,
+        180,
+        160,
+        90
+      ],
+      "total": 770,
+      "source": {
+        "name": "Kyogre",
+        "dex": "382",
+        "confidence": "name"
+      }
+    },
+    "383": {
+      "dex": "383",
+      "name": "groudon",
+      "stats": [
+        100,
+        180,
+        160,
+        150,
+        90,
+        90
+      ],
+      "total": 770,
+      "source": {
+        "name": "Groudon",
+        "dex": "383",
+        "confidence": "name"
+      }
+    },
+    "384": {
+      "dex": "384",
+      "name": "rayquaza",
+      "stats": [
+        105,
+        180,
+        100,
+        180,
+        100,
+        115
+      ],
+      "total": 780,
+      "source": {
+        "name": "Rayquaza",
+        "dex": "384",
+        "confidence": "name"
+      }
+    },
+    "385": {
+      "dex": "385",
+      "name": "jirachi",
+      "stats": [
+        100,
+        100,
+        100,
+        100,
+        100,
+        100
+      ],
+      "total": 600,
+      "source": {
+        "name": "Jirachi",
+        "dex": "385",
+        "confidence": "name"
+      }
+    },
+    "387": {
+      "dex": "387",
+      "name": "turtwig",
+      "stats": [
+        55,
+        68,
+        64,
+        45,
+        55,
+        31
+      ],
+      "total": 318,
+      "source": {
+        "name": "Turtwig",
+        "dex": "387",
+        "confidence": "name"
+      }
+    },
+    "390": {
+      "dex": "390",
+      "name": "chimchar",
+      "stats": [
+        44,
+        58,
+        44,
+        58,
+        44,
+        61
+      ],
+      "total": 309,
+      "source": {
+        "name": "Chimchar",
+        "dex": "390",
+        "confidence": "name"
+      }
+    },
+    "393": {
+      "dex": "393",
+      "name": "piplup",
+      "stats": [
+        53,
+        51,
+        53,
+        61,
+        56,
+        40
+      ],
+      "total": 314,
+      "source": {
+        "name": "Piplup",
+        "dex": "393",
+        "confidence": "name"
+      }
+    },
+    "396": {
+      "dex": "396",
+      "name": "starly",
+      "stats": [
+        40,
+        55,
+        30,
+        30,
+        30,
+        60
+      ],
+      "total": 245,
+      "source": {
+        "name": "Starly",
+        "dex": "396",
+        "confidence": "name"
+      }
+    },
+    "399": {
+      "dex": "399",
+      "name": "bidoof",
+      "stats": [
+        59,
+        45,
+        40,
+        35,
+        40,
+        31
+      ],
+      "total": 250,
+      "source": {
+        "name": "Bidoof",
+        "dex": "399",
+        "confidence": "name"
+      }
+    },
+    "401": {
+      "dex": "401",
+      "name": "kricketot",
+      "stats": [
+        37,
+        25,
+        41,
+        25,
+        41,
+        25
+      ],
+      "total": 194,
+      "source": {
+        "name": "Kricketot",
+        "dex": "401",
+        "confidence": "name"
+      }
+    },
+    "403": {
+      "dex": "403",
+      "name": "shinx",
+      "stats": [
+        45,
+        65,
+        34,
+        40,
+        34,
+        45
+      ],
+      "total": 263,
+      "source": {
+        "name": "Shinx",
+        "dex": "403",
+        "confidence": "name"
+      }
+    },
+    "406": {
+      "dex": "406",
+      "name": "budew",
+      "stats": [
+        40,
+        30,
+        35,
+        50,
+        70,
+        55
+      ],
+      "total": 280,
+      "source": {
+        "name": "Budew",
+        "dex": "406",
+        "confidence": "name"
+      }
+    },
+    "408": {
+      "dex": "408",
+      "name": "cranidos",
+      "stats": [
+        67,
+        125,
+        40,
+        30,
+        30,
+        58
+      ],
+      "total": 350,
+      "source": {
+        "name": "Cranidos",
+        "dex": "408",
+        "confidence": "name"
+      }
+    },
+    "410": {
+      "dex": "410",
+      "name": "shieldon",
+      "stats": [
+        30,
+        42,
+        118,
+        42,
+        88,
+        30
+      ],
+      "total": 350,
+      "source": {
+        "name": "Shieldon",
+        "dex": "410",
+        "confidence": "name"
+      }
+    },
+    "412": {
+      "dex": "412",
+      "name": "burmy",
+      "stats": [
+        40,
+        29,
+        45,
+        29,
+        45,
+        36
+      ],
+      "total": 224,
+      "source": {
+        "name": "Burmy",
+        "dex": "412",
+        "confidence": "name"
+      }
+    },
+    "415": {
+      "dex": "415",
+      "name": "combee",
+      "stats": [
+        30,
+        30,
+        42,
+        30,
+        42,
+        70
+      ],
+      "total": 244,
+      "source": {
+        "name": "Combee",
+        "dex": "415",
+        "confidence": "name"
+      }
+    },
+    "417": {
+      "dex": "417",
+      "name": "pachirisu",
+      "stats": [
+        60,
+        45,
+        70,
+        45,
+        90,
+        95
+      ],
+      "total": 405,
+      "source": {
+        "name": "Pachirisu",
+        "dex": "417",
+        "confidence": "name"
+      }
+    },
+    "418": {
+      "dex": "418",
+      "name": "buizel",
+      "stats": [
+        55,
+        65,
+        35,
+        60,
+        30,
+        85
+      ],
+      "total": 330,
+      "source": {
+        "name": "Buizel",
+        "dex": "418",
+        "confidence": "name"
+      }
+    },
+    "420": {
+      "dex": "420",
+      "name": "cherubi",
+      "stats": [
+        45,
+        35,
+        45,
+        62,
+        53,
+        35
+      ],
+      "total": 275,
+      "source": {
+        "name": "Cherubi",
+        "dex": "420",
+        "confidence": "name"
+      }
+    },
+    "422": {
+      "dex": "422",
+      "name": "shellos",
+      "stats": [
+        76,
+        48,
+        48,
+        57,
+        62,
+        34
+      ],
+      "total": 325,
+      "source": {
+        "name": "Shellos",
+        "dex": "422",
+        "confidence": "name"
+      }
+    },
+    "425": {
+      "dex": "425",
+      "name": "drifloon",
+      "stats": [
+        90,
+        50,
+        34,
+        60,
+        44,
+        70
+      ],
+      "total": 348,
+      "source": {
+        "name": "Drifloon",
+        "dex": "425",
+        "confidence": "name"
+      }
+    },
+    "427": {
+      "dex": "427",
+      "name": "buneary",
+      "stats": [
+        55,
+        66,
+        44,
+        44,
+        56,
+        85
+      ],
+      "total": 350,
+      "source": {
+        "name": "Buneary",
+        "dex": "427",
+        "confidence": "name"
+      }
+    },
+    "431": {
+      "dex": "431",
+      "name": "glameow",
+      "stats": [
+        49,
+        55,
+        42,
+        42,
+        37,
+        85
+      ],
+      "total": 310,
+      "source": {
+        "name": "Glameow",
+        "dex": "431",
+        "confidence": "name"
+      }
+    },
+    "433": {
+      "dex": "433",
+      "name": "chingling",
+      "stats": [
+        45,
+        30,
+        50,
+        65,
+        50,
+        45
+      ],
+      "total": 285,
+      "source": {
+        "name": "Chingling",
+        "dex": "433",
+        "confidence": "name"
+      }
+    },
+    "434": {
+      "dex": "434",
+      "name": "stunky",
+      "stats": [
+        63,
+        63,
+        47,
+        41,
+        41,
+        74
+      ],
+      "total": 329,
+      "source": {
+        "name": "Stunky",
+        "dex": "434",
+        "confidence": "name"
+      }
+    },
+    "436": {
+      "dex": "436",
+      "name": "bronzor",
+      "stats": [
+        57,
+        24,
+        86,
+        24,
+        86,
+        23
+      ],
+      "total": 300,
+      "source": {
+        "name": "Bronzor",
+        "dex": "436",
+        "confidence": "name"
+      }
+    },
+    "438": {
+      "dex": "438",
+      "name": "bonsly",
+      "stats": [
+        50,
+        80,
+        95,
+        10,
+        45,
+        10
+      ],
+      "total": 290,
+      "source": {
+        "name": "Bonsly",
+        "dex": "438",
+        "confidence": "name"
+      }
+    },
+    "439": {
+      "dex": "439",
+      "name": "mime-jr",
+      "stats": [
+        20,
+        25,
+        45,
+        70,
+        90,
+        60
+      ],
+      "total": 310,
+      "source": {
+        "name": "Mime Jr.",
+        "dex": "439",
+        "confidence": "name"
+      }
+    },
+    "440": {
+      "dex": "440",
+      "name": "happiny",
+      "stats": [
+        100,
+        5,
+        5,
+        15,
+        65,
+        30
+      ],
+      "total": 220,
+      "source": {
+        "name": "Happiny",
+        "dex": "440",
+        "confidence": "name"
+      }
+    },
+    "441": {
+      "dex": "441",
+      "name": "chatot",
+      "stats": [
+        76,
+        65,
+        45,
+        92,
+        42,
+        91
+      ],
+      "total": 411,
+      "source": {
+        "name": "Chatot",
+        "dex": "441",
+        "confidence": "name"
+      }
+    },
+    "442": {
+      "dex": "442",
+      "name": "spiritomb",
+      "stats": [
+        50,
+        92,
+        108,
+        92,
+        108,
+        35
+      ],
+      "total": 485,
+      "source": {
+        "name": "Spiritomb",
+        "dex": "442",
+        "confidence": "name"
+      }
+    },
+    "443": {
+      "dex": "443",
+      "name": "gible",
+      "stats": [
+        58,
+        70,
+        45,
+        40,
+        45,
+        42
+      ],
+      "total": 300,
+      "source": {
+        "name": "Gible",
+        "dex": "443",
+        "confidence": "name"
+      }
+    },
+    "446": {
+      "dex": "446",
+      "name": "munchlax",
+      "stats": [
+        135,
+        85,
+        40,
+        40,
+        85,
+        5
+      ],
+      "total": 390,
+      "source": {
+        "name": "Munchlax",
+        "dex": "446",
+        "confidence": "name"
+      }
+    },
+    "447": {
+      "dex": "447",
+      "name": "riolu",
+      "stats": [
+        40,
+        70,
+        40,
+        35,
+        40,
+        60
+      ],
+      "total": 285,
+      "source": {
+        "name": "Riolu",
+        "dex": "447",
+        "confidence": "name"
+      }
+    },
+    "449": {
+      "dex": "449",
+      "name": "hippopotas",
+      "stats": [
+        68,
+        72,
+        78,
+        38,
+        42,
+        32
+      ],
+      "total": 330,
+      "source": {
+        "name": "Hippopotas",
+        "dex": "449",
+        "confidence": "name"
+      }
+    },
+    "451": {
+      "dex": "451",
+      "name": "skorupi",
+      "stats": [
+        40,
+        50,
+        90,
+        30,
+        55,
+        65
+      ],
+      "total": 330,
+      "source": {
+        "name": "Skorupi",
+        "dex": "451",
+        "confidence": "name"
+      }
+    },
+    "453": {
+      "dex": "453",
+      "name": "croagunk",
+      "stats": [
+        48,
+        61,
+        40,
+        61,
+        40,
+        50
+      ],
+      "total": 300,
+      "source": {
+        "name": "Croagunk",
+        "dex": "453",
+        "confidence": "name"
+      }
+    },
+    "455": {
+      "dex": "455",
+      "name": "carnivine",
+      "stats": [
+        74,
+        100,
+        72,
+        90,
+        72,
+        46
+      ],
+      "total": 454,
+      "source": {
+        "name": "Carnivine",
+        "dex": "455",
+        "confidence": "name"
+      }
+    },
+    "456": {
+      "dex": "456",
+      "name": "finneon",
+      "stats": [
+        49,
+        49,
+        56,
+        49,
+        61,
+        66
+      ],
+      "total": 330,
+      "source": {
+        "name": "Finneon",
+        "dex": "456",
+        "confidence": "name"
+      }
+    },
+    "458": {
+      "dex": "458",
+      "name": "mantyke",
+      "stats": [
+        45,
+        20,
+        50,
+        60,
+        120,
+        50
+      ],
+      "total": 345,
+      "source": {
+        "name": "Mantyke",
+        "dex": "458",
+        "confidence": "name"
+      }
+    },
+    "459": {
+      "dex": "459",
+      "name": "snover",
+      "stats": [
+        60,
+        62,
+        50,
+        62,
+        60,
+        40
+      ],
+      "total": 334,
+      "source": {
+        "name": "Snover",
+        "dex": "459",
+        "confidence": "name"
+      }
+    },
+    "479": {
+      "dex": "479",
+      "name": "rotom",
+      "stats": [
+        50,
+        65,
+        107,
+        105,
+        107,
+        86
+      ],
+      "total": 520,
+      "source": {
+        "name": "Rotom",
+        "dex": "479",
+        "confidence": "name"
+      }
+    },
+    "480": {
+      "dex": "480",
+      "name": "uxie",
+      "stats": [
+        75,
+        75,
+        130,
+        75,
+        130,
+        95
+      ],
+      "total": 580,
+      "source": {
+        "name": "Uxie",
+        "dex": "480",
+        "confidence": "name"
+      }
+    },
+    "481": {
+      "dex": "481",
+      "name": "mesprit",
+      "stats": [
+        80,
+        105,
+        105,
+        105,
+        105,
+        80
+      ],
+      "total": 580,
+      "source": {
+        "name": "Mesprit",
+        "dex": "481",
+        "confidence": "name"
+      }
+    },
+    "482": {
+      "dex": "482",
+      "name": "azelf",
+      "stats": [
+        75,
+        125,
+        70,
+        125,
+        70,
+        115
+      ],
+      "total": 580,
+      "source": {
+        "name": "Azelf",
+        "dex": "482",
+        "confidence": "name"
+      }
+    },
+    "483": {
+      "dex": "483",
+      "name": "dialga",
+      "stats": [
+        100,
+        100,
+        120,
+        150,
+        120,
+        90
+      ],
+      "total": 680,
+      "source": {
+        "name": "Dialga",
+        "dex": "483",
+        "confidence": "name"
+      }
+    },
+    "484": {
+      "dex": "484",
+      "name": "palkia",
+      "stats": [
+        90,
+        100,
+        100,
+        150,
+        120,
+        120
+      ],
+      "total": 680,
+      "source": {
+        "name": "Palkia",
+        "dex": "484",
+        "confidence": "name"
+      }
+    },
+    "485": {
+      "dex": "485",
+      "name": "heatran",
+      "stats": [
+        91,
+        90,
+        106,
+        130,
+        106,
+        77
+      ],
+      "total": 600,
+      "source": {
+        "name": "Heatran",
+        "dex": "485",
+        "confidence": "name"
+      }
+    },
+    "486": {
+      "dex": "486",
+      "name": "regigigas",
+      "stats": [
+        110,
+        160,
+        110,
+        80,
+        110,
+        100
+      ],
+      "total": 670,
+      "source": {
+        "name": "Regigigas",
+        "dex": "486",
+        "confidence": "name"
+      }
+    },
+    "488": {
+      "dex": "488",
+      "name": "cresselia",
+      "stats": [
+        120,
+        70,
+        110,
+        75,
+        120,
+        85
+      ],
+      "total": 580,
+      "source": {
+        "name": "Cresselia",
+        "dex": "488",
+        "confidence": "name"
+      }
+    },
+    "489": {
+      "dex": "489",
+      "name": "phione",
+      "stats": [
+        80,
+        80,
+        80,
+        80,
+        80,
+        80
+      ],
+      "total": 480,
+      "source": {
+        "name": "Phione",
+        "dex": "489",
+        "confidence": "name"
+      }
+    },
+    "490": {
+      "dex": "490",
+      "name": "manaphy",
+      "stats": [
+        100,
+        100,
+        100,
+        100,
+        100,
+        100
+      ],
+      "total": 600,
+      "source": {
+        "name": "Manaphy",
+        "dex": "490",
+        "confidence": "name"
+      }
+    },
+    "491": {
+      "dex": "491",
+      "name": "darkrai",
+      "stats": [
+        70,
+        90,
+        90,
+        135,
+        90,
+        125
+      ],
+      "total": 600,
+      "source": {
+        "name": "Darkrai",
+        "dex": "491",
+        "confidence": "name"
+      }
+    },
+    "493": {
+      "dex": "493",
+      "name": "arceus",
+      "stats": [
+        120,
+        120,
+        120,
+        120,
+        120,
+        120
+      ],
+      "total": 720,
+      "source": {
+        "name": "Arceus",
+        "dex": "493",
+        "confidence": "name"
+      }
+    },
+    "494": {
+      "dex": "494",
+      "name": "victini",
+      "stats": [
+        100,
+        100,
+        100,
+        100,
+        100,
+        100
+      ],
+      "total": 600,
+      "source": {
+        "name": "Victini",
+        "dex": "494",
+        "confidence": "name"
+      }
+    },
+    "495": {
+      "dex": "495",
+      "name": "snivy",
+      "stats": [
+        45,
+        45,
+        55,
+        45,
+        55,
+        63
+      ],
+      "total": 308,
+      "source": {
+        "name": "Snivy",
+        "dex": "495",
+        "confidence": "name"
+      }
+    },
+    "498": {
+      "dex": "498",
+      "name": "tepig",
+      "stats": [
+        65,
+        63,
+        45,
+        45,
+        45,
+        45
+      ],
+      "total": 308,
+      "source": {
+        "name": "Tepig",
+        "dex": "498",
+        "confidence": "name"
+      }
+    },
+    "501": {
+      "dex": "501",
+      "name": "oshawott",
+      "stats": [
+        55,
+        55,
+        45,
+        63,
+        45,
+        45
+      ],
+      "total": 308,
+      "source": {
+        "name": "Oshawott",
+        "dex": "501",
+        "confidence": "name"
+      }
+    },
+    "504": {
+      "dex": "504",
+      "name": "patrat",
+      "stats": [
+        45,
+        55,
+        39,
+        35,
+        39,
+        42
+      ],
+      "total": 255,
+      "source": {
+        "name": "Patrat",
+        "dex": "504",
+        "confidence": "name"
+      }
+    },
+    "506": {
+      "dex": "506",
+      "name": "lillipup",
+      "stats": [
+        45,
+        60,
+        45,
+        25,
+        45,
+        55
+      ],
+      "total": 275,
+      "source": {
+        "name": "Lillipup",
+        "dex": "506",
+        "confidence": "name"
+      }
+    },
+    "509": {
+      "dex": "509",
+      "name": "purrloin",
+      "stats": [
+        41,
+        50,
+        37,
+        50,
+        37,
+        66
+      ],
+      "total": 281,
+      "source": {
+        "name": "Purrloin",
+        "dex": "509",
+        "confidence": "name"
+      }
+    },
+    "511": {
+      "dex": "511",
+      "name": "pansage",
+      "stats": [
+        50,
+        53,
+        48,
+        53,
+        48,
+        64
+      ],
+      "total": 316,
+      "source": {
+        "name": "Pansage",
+        "dex": "511",
+        "confidence": "name"
+      }
+    },
+    "513": {
+      "dex": "513",
+      "name": "pansear",
+      "stats": [
+        50,
+        53,
+        48,
+        53,
+        48,
+        64
+      ],
+      "total": 316,
+      "source": {
+        "name": "Pansear",
+        "dex": "513",
+        "confidence": "name"
+      }
+    },
+    "515": {
+      "dex": "515",
+      "name": "panpour",
+      "stats": [
+        50,
+        53,
+        48,
+        53,
+        48,
+        64
+      ],
+      "total": 316,
+      "source": {
+        "name": "Panpour",
+        "dex": "515",
+        "confidence": "name"
+      }
+    },
+    "517": {
+      "dex": "517",
+      "name": "munna",
+      "stats": [
+        76,
+        25,
+        45,
+        67,
+        55,
+        24
+      ],
+      "total": 292,
+      "source": {
+        "name": "Munna",
+        "dex": "517",
+        "confidence": "name"
+      }
+    },
+    "519": {
+      "dex": "519",
+      "name": "pidove",
+      "stats": [
+        50,
+        55,
+        50,
+        36,
+        30,
+        43
+      ],
+      "total": 264,
+      "source": {
+        "name": "Pidove",
+        "dex": "519",
+        "confidence": "name"
+      }
+    },
+    "522": {
+      "dex": "522",
+      "name": "blitzle",
+      "stats": [
+        45,
+        60,
+        32,
+        50,
+        32,
+        76
+      ],
+      "total": 295,
+      "source": {
+        "name": "Blitzle",
+        "dex": "522",
+        "confidence": "name"
+      }
+    },
+    "524": {
+      "dex": "524",
+      "name": "roggenrola",
+      "stats": [
+        55,
+        75,
+        85,
+        25,
+        25,
+        15
+      ],
+      "total": 280,
+      "source": {
+        "name": "Roggenrola",
+        "dex": "524",
+        "confidence": "name"
+      }
+    },
+    "527": {
+      "dex": "527",
+      "name": "woobat",
+      "stats": [
+        65,
+        45,
+        43,
+        55,
+        43,
+        72
+      ],
+      "total": 323,
+      "source": {
+        "name": "Woobat",
+        "dex": "527",
+        "confidence": "name"
+      }
+    },
+    "529": {
+      "dex": "529",
+      "name": "drilbur",
+      "stats": [
+        60,
+        85,
+        40,
+        30,
+        45,
+        68
+      ],
+      "total": 328,
+      "source": {
+        "name": "Drilbur",
+        "dex": "529",
+        "confidence": "name"
+      }
+    },
+    "531": {
+      "dex": "531",
+      "name": "audino",
+      "stats": [
+        103,
+        60,
+        126,
+        80,
+        126,
+        50
+      ],
+      "total": 545,
+      "source": {
+        "name": "Audino",
+        "dex": "531",
+        "confidence": "name"
+      }
+    },
+    "532": {
+      "dex": "532",
+      "name": "timburr",
+      "stats": [
+        75,
+        80,
+        55,
+        25,
+        35,
+        35
+      ],
+      "total": 305,
+      "source": {
+        "name": "Timburr",
+        "dex": "532",
+        "confidence": "name"
+      }
+    },
+    "535": {
+      "dex": "535",
+      "name": "tympole",
+      "stats": [
+        50,
+        50,
+        40,
+        50,
+        40,
+        64
+      ],
+      "total": 294,
+      "source": {
+        "name": "Tympole",
+        "dex": "535",
+        "confidence": "name"
+      }
+    },
+    "538": {
+      "dex": "538",
+      "name": "throh",
+      "stats": [
+        120,
+        100,
+        85,
+        30,
+        85,
+        45
+      ],
+      "total": 465,
+      "source": {
+        "name": "Throh",
+        "dex": "538",
+        "confidence": "name"
+      }
+    },
+    "539": {
+      "dex": "539",
+      "name": "sawk",
+      "stats": [
+        75,
+        125,
+        75,
+        30,
+        75,
+        85
+      ],
+      "total": 465,
+      "source": {
+        "name": "Sawk",
+        "dex": "539",
+        "confidence": "name"
+      }
+    },
+    "540": {
+      "dex": "540",
+      "name": "sewaddle",
+      "stats": [
+        45,
+        53,
+        70,
+        40,
+        60,
+        42
+      ],
+      "total": 310,
+      "source": {
+        "name": "Sewaddle",
+        "dex": "540",
+        "confidence": "name"
+      }
+    },
+    "543": {
+      "dex": "543",
+      "name": "venipede",
+      "stats": [
+        30,
+        45,
+        59,
+        30,
+        39,
+        57
+      ],
+      "total": 260,
+      "source": {
+        "name": "Venipede",
+        "dex": "543",
+        "confidence": "name"
+      }
+    },
+    "546": {
+      "dex": "546",
+      "name": "cottonee",
+      "stats": [
+        40,
+        27,
+        60,
+        37,
+        50,
+        66
+      ],
+      "total": 280,
+      "source": {
+        "name": "Cottonee",
+        "dex": "546",
+        "confidence": "name"
+      }
+    },
+    "548": {
+      "dex": "548",
+      "name": "petilil",
+      "stats": [
+        45,
+        35,
+        50,
+        70,
+        50,
+        30
+      ],
+      "total": 280,
+      "source": {
+        "name": "Petilil",
+        "dex": "548",
+        "confidence": "name"
+      }
+    },
+    "551": {
+      "dex": "551",
+      "name": "sandile",
+      "stats": [
+        50,
+        72,
+        35,
+        35,
+        35,
+        65
+      ],
+      "total": 292,
+      "source": {
+        "name": "Sandile",
+        "dex": "551",
+        "confidence": "name"
+      }
+    },
+    "554": {
+      "dex": "554",
+      "name": "darumaka",
+      "stats": [
+        70,
+        90,
+        45,
+        15,
+        45,
+        50
+      ],
+      "total": 315,
+      "source": {
+        "name": "Darumaka",
+        "dex": "554",
+        "confidence": "name"
+      }
+    },
+    "556": {
+      "dex": "556",
+      "name": "maractus",
+      "stats": [
+        75,
+        86,
+        67,
+        106,
+        67,
+        60
+      ],
+      "total": 461,
+      "source": {
+        "name": "Maractus",
+        "dex": "556",
+        "confidence": "name"
+      }
+    },
+    "557": {
+      "dex": "557",
+      "name": "dwebble",
+      "stats": [
+        50,
+        65,
+        85,
+        35,
+        35,
+        55
+      ],
+      "total": 325,
+      "source": {
+        "name": "Dwebble",
+        "dex": "557",
+        "confidence": "name"
+      }
+    },
+    "559": {
+      "dex": "559",
+      "name": "scraggy",
+      "stats": [
+        50,
+        75,
+        70,
+        35,
+        70,
+        48
+      ],
+      "total": 348,
+      "source": {
+        "name": "Scraggy",
+        "dex": "559",
+        "confidence": "name"
+      }
+    },
+    "561": {
+      "dex": "561",
+      "name": "sigilyph",
+      "stats": [
+        72,
+        58,
+        80,
+        103,
+        80,
+        97
+      ],
+      "total": 490,
+      "source": {
+        "name": "Sigilyph",
+        "dex": "561",
+        "confidence": "name"
+      }
+    },
+    "562": {
+      "dex": "562",
+      "name": "yamask",
+      "stats": [
+        38,
+        55,
+        85,
+        30,
+        65,
+        30
+      ],
+      "total": 303,
+      "source": {
+        "name": "Yamask",
+        "dex": "562",
+        "confidence": "name"
+      }
+    },
+    "564": {
+      "dex": "564",
+      "name": "tirtouga",
+      "stats": [
+        54,
+        78,
+        103,
+        53,
+        45,
+        22
+      ],
+      "total": 355,
+      "source": {
+        "name": "Tirtouga",
+        "dex": "564",
+        "confidence": "name"
+      }
+    },
+    "566": {
+      "dex": "566",
+      "name": "archen",
+      "stats": [
+        55,
+        112,
+        45,
+        74,
+        45,
+        70
+      ],
+      "total": 401,
+      "source": {
+        "name": "Archen",
+        "dex": "566",
+        "confidence": "name"
+      }
+    },
+    "568": {
+      "dex": "568",
+      "name": "trubbish",
+      "stats": [
+        50,
+        50,
+        62,
+        40,
+        62,
+        65
+      ],
+      "total": 329,
+      "source": {
+        "name": "Trubbish",
+        "dex": "568",
+        "confidence": "name"
+      }
+    },
+    "570": {
+      "dex": "570",
+      "name": "zorua",
+      "stats": [
+        35,
+        60,
+        40,
+        85,
+        40,
+        70
+      ],
+      "total": 330,
+      "source": {
+        "name": "Zorua",
+        "dex": "570",
+        "confidence": "name"
+      }
+    },
+    "572": {
+      "dex": "572",
+      "name": "minccino",
+      "stats": [
+        55,
+        50,
+        40,
+        40,
+        40,
+        75
+      ],
+      "total": 300,
+      "source": {
+        "name": "Minccino",
+        "dex": "572",
+        "confidence": "name"
+      }
+    },
+    "574": {
+      "dex": "574",
+      "name": "gothita",
+      "stats": [
+        45,
+        30,
+        50,
+        55,
+        65,
+        45
+      ],
+      "total": 290,
+      "source": {
+        "name": "Gothita",
+        "dex": "574",
+        "confidence": "name"
+      }
+    },
+    "577": {
+      "dex": "577",
+      "name": "solosis",
+      "stats": [
+        45,
+        30,
+        40,
+        105,
+        50,
+        20
+      ],
+      "total": 290,
+      "source": {
+        "name": "Solosis",
+        "dex": "577",
+        "confidence": "name"
+      }
+    },
+    "580": {
+      "dex": "580",
+      "name": "ducklett",
+      "stats": [
+        62,
+        44,
+        50,
+        44,
+        50,
+        55
+      ],
+      "total": 305,
+      "source": {
+        "name": "Ducklett",
+        "dex": "580",
+        "confidence": "name"
+      }
+    },
+    "582": {
+      "dex": "582",
+      "name": "vanillite",
+      "stats": [
+        36,
+        50,
+        50,
+        65,
+        60,
+        44
+      ],
+      "total": 305,
+      "source": {
+        "name": "Vanillite",
+        "dex": "582",
+        "confidence": "name"
+      }
+    },
+    "585": {
+      "dex": "585",
+      "name": "deerling",
+      "stats": [
+        60,
+        60,
+        50,
+        40,
+        50,
+        75
+      ],
+      "total": 335,
+      "source": {
+        "name": "Deerling",
+        "dex": "585",
+        "confidence": "name"
+      }
+    },
+    "587": {
+      "dex": "587",
+      "name": "emolga",
+      "stats": [
+        55,
+        75,
+        60,
+        75,
+        60,
+        103
+      ],
+      "total": 428,
+      "source": {
+        "name": "Emolga",
+        "dex": "587",
+        "confidence": "name"
+      }
+    },
+    "588": {
+      "dex": "588",
+      "name": "karrablast",
+      "stats": [
+        50,
+        75,
+        45,
+        40,
+        45,
+        60
+      ],
+      "total": 315,
+      "source": {
+        "name": "Karrablast",
+        "dex": "588",
+        "confidence": "name"
+      }
+    },
+    "590": {
+      "dex": "590",
+      "name": "foongus",
+      "stats": [
+        69,
+        55,
+        45,
+        55,
+        55,
+        15
+      ],
+      "total": 294,
+      "source": {
+        "name": "Foongus",
+        "dex": "590",
+        "confidence": "name"
+      }
+    },
+    "592": {
+      "dex": "592",
+      "name": "frillish",
+      "stats": [
+        55,
+        40,
+        50,
+        65,
+        85,
+        40
+      ],
+      "total": 335,
+      "source": {
+        "name": "Frillish",
+        "dex": "592",
+        "confidence": "name"
+      }
+    },
+    "594": {
+      "dex": "594",
+      "name": "alomomola",
+      "stats": [
+        165,
+        75,
+        80,
+        40,
+        45,
+        65
+      ],
+      "total": 470,
+      "source": {
+        "name": "Alomomola",
+        "dex": "594",
+        "confidence": "name"
+      }
+    },
+    "595": {
+      "dex": "595",
+      "name": "joltik",
+      "stats": [
+        50,
+        47,
+        50,
+        57,
+        50,
+        65
+      ],
+      "total": 319,
+      "source": {
+        "name": "Joltik",
+        "dex": "595",
+        "confidence": "name"
+      }
+    },
+    "597": {
+      "dex": "597",
+      "name": "ferroseed",
+      "stats": [
+        44,
+        50,
+        91,
+        24,
+        86,
+        10
+      ],
+      "total": 305,
+      "source": {
+        "name": "Ferroseed",
+        "dex": "597",
+        "confidence": "name"
+      }
+    },
+    "599": {
+      "dex": "599",
+      "name": "klink",
+      "stats": [
+        40,
+        55,
+        70,
+        45,
+        60,
+        30
+      ],
+      "total": 300,
+      "source": {
+        "name": "Klink",
+        "dex": "599",
+        "confidence": "name"
+      }
+    },
+    "602": {
+      "dex": "602",
+      "name": "tynamo",
+      "stats": [
+        35,
+        55,
+        40,
+        45,
+        40,
+        60
+      ],
+      "total": 275,
+      "source": {
+        "name": "Tynamo",
+        "dex": "602",
+        "confidence": "name"
+      }
+    },
+    "605": {
+      "dex": "605",
+      "name": "elgyem",
+      "stats": [
+        55,
+        55,
+        55,
+        85,
+        55,
+        30
+      ],
+      "total": 335,
+      "source": {
+        "name": "Elgyem",
+        "dex": "605",
+        "confidence": "name"
+      }
+    },
+    "607": {
+      "dex": "607",
+      "name": "litwick",
+      "stats": [
+        50,
+        30,
+        55,
+        65,
+        55,
+        20
+      ],
+      "total": 275,
+      "source": {
+        "name": "Litwick",
+        "dex": "607",
+        "confidence": "name"
+      }
+    },
+    "610": {
+      "dex": "610",
+      "name": "axew",
+      "stats": [
+        46,
+        87,
+        60,
+        30,
+        40,
+        57
+      ],
+      "total": 320,
+      "source": {
+        "name": "Axew",
+        "dex": "610",
+        "confidence": "name"
+      }
+    },
+    "613": {
+      "dex": "613",
+      "name": "cubchoo",
+      "stats": [
+        55,
+        70,
+        40,
+        60,
+        40,
+        40
+      ],
+      "total": 305,
+      "source": {
+        "name": "Cubchoo",
+        "dex": "613",
+        "confidence": "name"
+      }
+    },
+    "615": {
+      "dex": "615",
+      "name": "cryogonal",
+      "stats": [
+        80,
+        50,
+        50,
+        95,
+        135,
+        105
+      ],
+      "total": 515,
+      "source": {
+        "name": "Cryogonal",
+        "dex": "615",
+        "confidence": "name"
+      }
+    },
+    "616": {
+      "dex": "616",
+      "name": "shelmet",
+      "stats": [
+        50,
+        40,
+        85,
+        40,
+        65,
+        25
+      ],
+      "total": 305,
+      "source": {
+        "name": "Shelmet",
+        "dex": "616",
+        "confidence": "name"
+      }
+    },
+    "618": {
+      "dex": "618",
+      "name": "stunfisk",
+      "stats": [
+        109,
+        81,
+        99,
+        66,
+        84,
+        32
+      ],
+      "total": 471,
+      "source": {
+        "name": "Stunfisk",
+        "dex": "618",
+        "confidence": "name"
+      }
+    },
+    "619": {
+      "dex": "619",
+      "name": "mienfoo",
+      "stats": [
+        45,
+        85,
+        50,
+        55,
+        50,
+        65
+      ],
+      "total": 350,
+      "source": {
+        "name": "Mienfoo",
+        "dex": "619",
+        "confidence": "name"
+      }
+    },
+    "621": {
+      "dex": "621",
+      "name": "druddigon",
+      "stats": [
+        77,
+        120,
+        90,
+        60,
+        90,
+        48
+      ],
+      "total": 485,
+      "source": {
+        "name": "Druddigon",
+        "dex": "621",
+        "confidence": "name"
+      }
+    },
+    "622": {
+      "dex": "622",
+      "name": "golett",
+      "stats": [
+        59,
+        74,
+        50,
+        35,
+        50,
+        35
+      ],
+      "total": 303,
+      "source": {
+        "name": "Golett",
+        "dex": "622",
+        "confidence": "name"
+      }
+    },
+    "624": {
+      "dex": "624",
+      "name": "pawniard",
+      "stats": [
+        45,
+        85,
+        70,
+        40,
+        40,
+        60
+      ],
+      "total": 340,
+      "source": {
+        "name": "Pawniard",
+        "dex": "624",
+        "confidence": "name"
+      }
+    },
+    "626": {
+      "dex": "626",
+      "name": "bouffalant",
+      "stats": [
+        95,
+        110,
+        95,
+        40,
+        95,
+        55
+      ],
+      "total": 490,
+      "source": {
+        "name": "Bouffalant",
+        "dex": "626",
+        "confidence": "name"
+      }
+    },
+    "627": {
+      "dex": "627",
+      "name": "rufflet",
+      "stats": [
+        70,
+        83,
+        50,
+        37,
+        50,
+        60
+      ],
+      "total": 350,
+      "source": {
+        "name": "Rufflet",
+        "dex": "627",
+        "confidence": "name"
+      }
+    },
+    "629": {
+      "dex": "629",
+      "name": "vullaby",
+      "stats": [
+        70,
+        55,
+        75,
+        45,
+        65,
+        60
+      ],
+      "total": 370,
+      "source": {
+        "name": "Vullaby",
+        "dex": "629",
+        "confidence": "name"
+      }
+    },
+    "631": {
+      "dex": "631",
+      "name": "heatmor",
+      "stats": [
+        85,
+        97,
+        66,
+        105,
+        66,
+        65
+      ],
+      "total": 484,
+      "source": {
+        "name": "Heatmor",
+        "dex": "631",
+        "confidence": "name"
+      }
+    },
+    "632": {
+      "dex": "632",
+      "name": "durant",
+      "stats": [
+        58,
+        109,
+        112,
+        48,
+        48,
+        109
+      ],
+      "total": 484,
+      "source": {
+        "name": "Durant",
+        "dex": "632",
+        "confidence": "name"
+      }
+    },
+    "633": {
+      "dex": "633",
+      "name": "deino",
+      "stats": [
+        52,
+        65,
+        50,
+        45,
+        50,
+        38
+      ],
+      "total": 300,
+      "source": {
+        "name": "Deino",
+        "dex": "633",
+        "confidence": "name"
+      }
+    },
+    "636": {
+      "dex": "636",
+      "name": "larvesta",
+      "stats": [
+        55,
+        85,
+        55,
+        50,
+        55,
+        60
+      ],
+      "total": 360,
+      "source": {
+        "name": "Larvesta",
+        "dex": "636",
+        "confidence": "name"
+      }
+    },
+    "638": {
+      "dex": "638",
+      "name": "cobalion",
+      "stats": [
+        91,
+        90,
+        129,
+        90,
+        72,
+        108
+      ],
+      "total": 580,
+      "source": {
+        "name": "Cobalion",
+        "dex": "638",
+        "confidence": "name"
+      }
+    },
+    "639": {
+      "dex": "639",
+      "name": "terrakion",
+      "stats": [
+        91,
+        129,
+        90,
+        72,
+        90,
+        108
+      ],
+      "total": 580,
+      "source": {
+        "name": "Terrakion",
+        "dex": "639",
+        "confidence": "name"
+      }
+    },
+    "640": {
+      "dex": "640",
+      "name": "virizion",
+      "stats": [
+        91,
+        90,
+        72,
+        90,
+        129,
+        108
+      ],
+      "total": 580,
+      "source": {
+        "name": "Virizion",
+        "dex": "640",
+        "confidence": "name"
+      }
+    },
+    "643": {
+      "dex": "643",
+      "name": "reshiram",
+      "stats": [
+        100,
+        120,
+        100,
+        150,
+        120,
+        90
+      ],
+      "total": 680,
+      "source": {
+        "name": "Reshiram",
+        "dex": "643",
+        "confidence": "name"
+      }
+    },
+    "644": {
+      "dex": "644",
+      "name": "zekrom",
+      "stats": [
+        100,
+        150,
+        120,
+        120,
+        100,
+        90
+      ],
+      "total": 680,
+      "source": {
+        "name": "Zekrom",
+        "dex": "644",
+        "confidence": "name"
+      }
+    },
+    "646": {
+      "dex": "646",
+      "name": "kyurem",
+      "stats": [
+        125,
+        170,
+        100,
+        120,
+        90,
+        95
+      ],
+      "total": 700,
+      "source": {
+        "name": "Kyurem",
+        "dex": "646",
+        "confidence": "name"
+      }
+    },
+    "649": {
+      "dex": "649",
+      "name": "genesect",
+      "stats": [
+        71,
+        120,
+        95,
+        120,
+        95,
+        99
+      ],
+      "total": 600,
+      "source": {
+        "name": "Genesect",
+        "dex": "649",
+        "confidence": "name"
+      }
+    },
+    "650": {
+      "dex": "650",
+      "name": "chespin",
+      "stats": [
+        56,
+        61,
+        65,
+        48,
+        45,
+        38
+      ],
+      "total": 313,
+      "source": {
+        "name": "Chespin",
+        "dex": "650",
+        "confidence": "name"
+      }
+    },
+    "653": {
+      "dex": "653",
+      "name": "fennekin",
+      "stats": [
+        40,
+        45,
+        40,
+        62,
+        60,
+        60
+      ],
+      "total": 307,
+      "source": {
+        "name": "Fennekin",
+        "dex": "653",
+        "confidence": "name"
+      }
+    },
+    "656": {
+      "dex": "656",
+      "name": "froakie",
+      "stats": [
+        41,
+        56,
+        40,
+        62,
+        44,
+        71
+      ],
+      "total": 314,
+      "source": {
+        "name": "Froakie",
+        "dex": "656",
+        "confidence": "name"
+      }
+    },
+    "659": {
+      "dex": "659",
+      "name": "bunnelby",
+      "stats": [
+        38,
+        36,
+        38,
+        32,
+        36,
+        57
+      ],
+      "total": 237,
+      "source": {
+        "name": "Bunnelby",
+        "dex": "659",
+        "confidence": "name"
+      }
+    },
+    "661": {
+      "dex": "661",
+      "name": "fletchling",
+      "stats": [
+        45,
+        50,
+        43,
+        40,
+        38,
+        62
+      ],
+      "total": 278,
+      "source": {
+        "name": "Fletchling",
+        "dex": "661",
+        "confidence": "name"
+      }
+    },
+    "664": {
+      "dex": "664",
+      "name": "scatterbug",
+      "stats": [
+        38,
+        35,
+        40,
+        27,
+        25,
+        35
+      ],
+      "total": 200,
+      "source": {
+        "name": "Scatterbug",
+        "dex": "664",
+        "confidence": "name"
+      }
+    },
+    "667": {
+      "dex": "667",
+      "name": "litleo",
+      "stats": [
+        62,
+        50,
+        58,
+        73,
+        54,
+        72
+      ],
+      "total": 369,
+      "source": {
+        "name": "Litleo",
+        "dex": "667",
+        "confidence": "name"
+      }
+    },
+    "669": {
+      "dex": "669",
+      "name": "flabebe",
+      "stats": [
+        44,
+        38,
+        39,
+        61,
+        79,
+        42
+      ],
+      "total": 303,
+      "source": {
+        "name": "Flabébé",
+        "dex": "669",
+        "confidence": "name"
+      }
+    },
+    "2670": {
+      "dex": "2670",
+      "name": "floette",
+      "stats": [
+        74,
+        65,
+        67,
+        125,
+        128,
+        92
+      ],
+      "total": 551,
+      "source": {
+        "name": "Floette",
+        "dex": "2670",
+        "confidence": "name"
+      }
+    },
+    "672": {
+      "dex": "672",
+      "name": "skiddo",
+      "stats": [
+        66,
+        65,
+        48,
+        62,
+        57,
+        52
+      ],
+      "total": 350,
+      "source": {
+        "name": "Skiddo",
+        "dex": "672",
+        "confidence": "name"
+      }
+    },
+    "674": {
+      "dex": "674",
+      "name": "pancham",
+      "stats": [
+        67,
+        82,
+        62,
+        46,
+        48,
+        43
+      ],
+      "total": 348,
+      "source": {
+        "name": "Pancham",
+        "dex": "674",
+        "confidence": "name"
+      }
+    },
+    "676": {
+      "dex": "676",
+      "name": "furfrou",
+      "stats": [
+        75,
+        80,
+        60,
+        65,
+        90,
+        102
+      ],
+      "total": 472,
+      "source": {
+        "name": "Furfrou",
+        "dex": "676",
+        "confidence": "name"
+      }
+    },
+    "677": {
+      "dex": "677",
+      "name": "espurr",
+      "stats": [
+        62,
+        48,
+        54,
+        63,
+        60,
+        68
+      ],
+      "total": 355,
+      "source": {
+        "name": "Espurr",
+        "dex": "677",
+        "confidence": "name"
+      }
+    },
+    "679": {
+      "dex": "679",
+      "name": "honedge",
+      "stats": [
+        45,
+        80,
+        100,
+        35,
+        37,
+        28
+      ],
+      "total": 325,
+      "source": {
+        "name": "Honedge",
+        "dex": "679",
+        "confidence": "name"
+      }
+    },
+    "682": {
+      "dex": "682",
+      "name": "spritzee",
+      "stats": [
+        78,
+        52,
+        60,
+        63,
+        65,
+        23
+      ],
+      "total": 341,
+      "source": {
+        "name": "Spritzee",
+        "dex": "682",
+        "confidence": "name"
+      }
+    },
+    "684": {
+      "dex": "684",
+      "name": "swirlix",
+      "stats": [
+        62,
+        48,
+        66,
+        59,
+        57,
+        49
+      ],
+      "total": 341,
+      "source": {
+        "name": "Swirlix",
+        "dex": "684",
+        "confidence": "name"
+      }
+    },
+    "686": {
+      "dex": "686",
+      "name": "inkay",
+      "stats": [
+        53,
+        54,
+        53,
+        37,
+        46,
+        45
+      ],
+      "total": 288,
+      "source": {
+        "name": "Inkay",
+        "dex": "686",
+        "confidence": "name"
+      }
+    },
+    "688": {
+      "dex": "688",
+      "name": "binacle",
+      "stats": [
+        42,
+        52,
+        67,
+        39,
+        56,
+        50
+      ],
+      "total": 306,
+      "source": {
+        "name": "Binacle",
+        "dex": "688",
+        "confidence": "name"
+      }
+    },
+    "690": {
+      "dex": "690",
+      "name": "skrelp",
+      "stats": [
+        50,
+        60,
+        60,
+        60,
+        60,
+        30
+      ],
+      "total": 320,
+      "source": {
+        "name": "Skrelp",
+        "dex": "690",
+        "confidence": "name"
+      }
+    },
+    "692": {
+      "dex": "692",
+      "name": "clauncher",
+      "stats": [
+        50,
+        53,
+        62,
+        58,
+        63,
+        44
+      ],
+      "total": 330,
+      "source": {
+        "name": "Clauncher",
+        "dex": "692",
+        "confidence": "name"
+      }
+    },
+    "694": {
+      "dex": "694",
+      "name": "helioptile",
+      "stats": [
+        44,
+        38,
+        33,
+        61,
+        43,
+        70
+      ],
+      "total": 289,
+      "source": {
+        "name": "Helioptile",
+        "dex": "694",
+        "confidence": "name"
+      }
+    },
+    "696": {
+      "dex": "696",
+      "name": "tyrunt",
+      "stats": [
+        58,
+        89,
+        77,
+        45,
+        45,
+        48
+      ],
+      "total": 362,
+      "source": {
+        "name": "Tyrunt",
+        "dex": "696",
+        "confidence": "name"
+      }
+    },
+    "698": {
+      "dex": "698",
+      "name": "amaura",
+      "stats": [
+        77,
+        59,
+        50,
+        67,
+        63,
+        46
+      ],
+      "total": 362,
+      "source": {
+        "name": "Amaura",
+        "dex": "698",
+        "confidence": "name"
+      }
+    },
+    "701": {
+      "dex": "701",
+      "name": "hawlucha",
+      "stats": [
+        78,
+        92,
+        75,
+        74,
+        63,
+        118
+      ],
+      "total": 500,
+      "source": {
+        "name": "Hawlucha",
+        "dex": "701",
+        "confidence": "name"
+      }
+    },
+    "702": {
+      "dex": "702",
+      "name": "dedenne",
+      "stats": [
+        67,
+        58,
+        57,
+        81,
+        67,
+        101
+      ],
+      "total": 431,
+      "source": {
+        "name": "Dedenne",
+        "dex": "702",
+        "confidence": "name"
+      }
+    },
+    "703": {
+      "dex": "703",
+      "name": "carbink",
+      "stats": [
+        50,
+        50,
+        150,
+        50,
+        150,
+        50
+      ],
+      "total": 500,
+      "source": {
+        "name": "Carbink",
+        "dex": "703",
+        "confidence": "name"
+      }
+    },
+    "704": {
+      "dex": "704",
+      "name": "goomy",
+      "stats": [
+        45,
+        50,
+        35,
+        55,
+        75,
+        40
+      ],
+      "total": 300,
+      "source": {
+        "name": "Goomy",
+        "dex": "704",
+        "confidence": "name"
+      }
+    },
+    "707": {
+      "dex": "707",
+      "name": "klefki",
+      "stats": [
+        57,
+        80,
+        91,
+        80,
+        87,
+        75
+      ],
+      "total": 470,
+      "source": {
+        "name": "Klefki",
+        "dex": "707",
+        "confidence": "name"
+      }
+    },
+    "708": {
+      "dex": "708",
+      "name": "phantump",
+      "stats": [
+        43,
+        70,
+        48,
+        50,
+        60,
+        38
+      ],
+      "total": 309,
+      "source": {
+        "name": "Phantump",
+        "dex": "708",
+        "confidence": "name"
+      }
+    },
+    "712": {
+      "dex": "712",
+      "name": "bergmite",
+      "stats": [
+        55,
+        69,
+        85,
+        32,
+        35,
+        28
+      ],
+      "total": 304,
+      "source": {
+        "name": "Bergmite",
+        "dex": "712",
+        "confidence": "name"
+      }
+    },
+    "714": {
+      "dex": "714",
+      "name": "noibat",
+      "stats": [
+        40,
+        30,
+        35,
+        45,
+        40,
+        55
+      ],
+      "total": 245,
+      "source": {
+        "name": "Noibat",
+        "dex": "714",
+        "confidence": "name"
+      }
+    },
+    "716": {
+      "dex": "716",
+      "name": "xerneas",
+      "stats": [
+        126,
+        131,
+        95,
+        131,
+        98,
+        99
+      ],
+      "total": 680,
+      "source": {
+        "name": "Xerneas",
+        "dex": "716",
+        "confidence": "name"
+      }
+    },
+    "717": {
+      "dex": "717",
+      "name": "yveltal",
+      "stats": [
+        126,
+        131,
+        95,
+        131,
+        98,
+        99
+      ],
+      "total": 680,
+      "source": {
+        "name": "Yveltal",
+        "dex": "717",
+        "confidence": "name"
+      }
+    },
+    "719": {
+      "dex": "719",
+      "name": "diancie",
+      "stats": [
+        50,
+        160,
+        110,
+        160,
+        110,
+        110
+      ],
+      "total": 700,
+      "source": {
+        "name": "Diancie",
+        "dex": "719",
+        "confidence": "name"
+      }
+    },
+    "720": {
+      "dex": "720",
+      "name": "hoopa",
+      "stats": [
+        80,
+        160,
+        60,
+        170,
+        130,
+        80
+      ],
+      "total": 680,
+      "source": {
+        "name": "Hoopa",
+        "dex": "720",
+        "confidence": "name"
+      }
+    },
+    "721": {
+      "dex": "721",
+      "name": "volcanion",
+      "stats": [
+        80,
+        110,
+        120,
+        130,
+        90,
+        70
+      ],
+      "total": 600,
+      "source": {
+        "name": "Volcanion",
+        "dex": "721",
+        "confidence": "name"
+      }
+    },
+    "722": {
+      "dex": "722",
+      "name": "rowlet",
+      "stats": [
+        68,
+        55,
+        55,
+        50,
+        50,
+        42
+      ],
+      "total": 320,
+      "source": {
+        "name": "Rowlet",
+        "dex": "722",
+        "confidence": "name"
+      }
+    },
+    "725": {
+      "dex": "725",
+      "name": "litten",
+      "stats": [
+        45,
+        65,
+        40,
+        60,
+        40,
+        70
+      ],
+      "total": 320,
+      "source": {
+        "name": "Litten",
+        "dex": "725",
+        "confidence": "name"
+      }
+    },
+    "728": {
+      "dex": "728",
+      "name": "popplio",
+      "stats": [
+        50,
+        54,
+        54,
+        66,
+        56,
+        40
+      ],
+      "total": 320,
+      "source": {
+        "name": "Popplio",
+        "dex": "728",
+        "confidence": "name"
+      }
+    },
+    "731": {
+      "dex": "731",
+      "name": "pikipek",
+      "stats": [
+        35,
+        75,
+        30,
+        30,
+        30,
+        65
+      ],
+      "total": 265,
+      "source": {
+        "name": "Pikipek",
+        "dex": "731",
+        "confidence": "name"
+      }
+    },
+    "734": {
+      "dex": "734",
+      "name": "yungoos",
+      "stats": [
+        48,
+        70,
+        30,
+        30,
+        30,
+        45
+      ],
+      "total": 253,
+      "source": {
+        "name": "Yungoos",
+        "dex": "734",
+        "confidence": "name"
+      }
+    },
+    "736": {
+      "dex": "736",
+      "name": "grubbin",
+      "stats": [
+        47,
+        62,
+        45,
+        55,
+        45,
+        46
+      ],
+      "total": 300,
+      "source": {
+        "name": "Grubbin",
+        "dex": "736",
+        "confidence": "name"
+      }
+    },
+    "739": {
+      "dex": "739",
+      "name": "crabrawler",
+      "stats": [
+        47,
+        82,
+        57,
+        42,
+        47,
+        63
+      ],
+      "total": 338,
+      "source": {
+        "name": "Crabrawler",
+        "dex": "739",
+        "confidence": "name"
+      }
+    },
+    "742": {
+      "dex": "742",
+      "name": "cutiefly",
+      "stats": [
+        40,
+        45,
+        40,
+        55,
+        40,
+        84
+      ],
+      "total": 304,
+      "source": {
+        "name": "Cutiefly",
+        "dex": "742",
+        "confidence": "name"
+      }
+    },
+    "744": {
+      "dex": "744",
+      "name": "rockruff",
+      "stats": [
+        45,
+        65,
+        40,
+        30,
+        40,
+        60
+      ],
+      "total": 280,
+      "source": {
+        "name": "Rockruff",
+        "dex": "744",
+        "confidence": "name"
+      }
+    },
+    "747": {
+      "dex": "747",
+      "name": "mareanie",
+      "stats": [
+        50,
+        53,
+        62,
+        43,
+        52,
+        45
+      ],
+      "total": 305,
+      "source": {
+        "name": "Mareanie",
+        "dex": "747",
+        "confidence": "name"
+      }
+    },
+    "749": {
+      "dex": "749",
+      "name": "mudbray",
+      "stats": [
+        70,
+        100,
+        70,
+        45,
+        55,
+        45
+      ],
+      "total": 385,
+      "source": {
+        "name": "Mudbray",
+        "dex": "749",
+        "confidence": "name"
+      }
+    },
+    "751": {
+      "dex": "751",
+      "name": "dewpider",
+      "stats": [
+        38,
+        40,
+        52,
+        40,
+        72,
+        27
+      ],
+      "total": 269,
+      "source": {
+        "name": "Dewpider",
+        "dex": "751",
+        "confidence": "name"
+      }
+    },
+    "753": {
+      "dex": "753",
+      "name": "fomantis",
+      "stats": [
+        40,
+        55,
+        35,
+        50,
+        35,
+        35
+      ],
+      "total": 250,
+      "source": {
+        "name": "Fomantis",
+        "dex": "753",
+        "confidence": "name"
+      }
+    },
+    "755": {
+      "dex": "755",
+      "name": "morelull",
+      "stats": [
+        40,
+        35,
+        55,
+        65,
+        75,
+        15
+      ],
+      "total": 285,
+      "source": {
+        "name": "Morelull",
+        "dex": "755",
+        "confidence": "name"
+      }
+    },
+    "757": {
+      "dex": "757",
+      "name": "salandit",
+      "stats": [
+        48,
+        44,
+        40,
+        71,
+        40,
+        77
+      ],
+      "total": 320,
+      "source": {
+        "name": "Salandit",
+        "dex": "757",
+        "confidence": "name"
+      }
+    },
+    "759": {
+      "dex": "759",
+      "name": "stufful",
+      "stats": [
+        70,
+        75,
+        50,
+        45,
+        50,
+        50
+      ],
+      "total": 340,
+      "source": {
+        "name": "Stufful",
+        "dex": "759",
+        "confidence": "name"
+      }
+    },
+    "761": {
+      "dex": "761",
+      "name": "bounsweet",
+      "stats": [
+        42,
+        30,
+        38,
+        30,
+        38,
+        32
+      ],
+      "total": 210,
+      "source": {
+        "name": "Bounsweet",
+        "dex": "761",
+        "confidence": "name"
+      }
+    },
+    "764": {
+      "dex": "764",
+      "name": "comfey",
+      "stats": [
+        51,
+        52,
+        90,
+        82,
+        110,
+        100
+      ],
+      "total": 485,
+      "source": {
+        "name": "Comfey",
+        "dex": "764",
+        "confidence": "name"
+      }
+    },
+    "765": {
+      "dex": "765",
+      "name": "oranguru",
+      "stats": [
+        90,
+        60,
+        80,
+        90,
+        110,
+        60
+      ],
+      "total": 490,
+      "source": {
+        "name": "Oranguru",
+        "dex": "765",
+        "confidence": "name"
+      }
+    },
+    "766": {
+      "dex": "766",
+      "name": "passimian",
+      "stats": [
+        100,
+        120,
+        90,
+        40,
+        60,
+        80
+      ],
+      "total": 490,
+      "source": {
+        "name": "Passimian",
+        "dex": "766",
+        "confidence": "name"
+      }
+    },
+    "767": {
+      "dex": "767",
+      "name": "wimpod",
+      "stats": [
+        25,
+        35,
+        40,
+        20,
+        30,
+        80
+      ],
+      "total": 230,
+      "source": {
+        "name": "Wimpod",
+        "dex": "767",
+        "confidence": "name"
+      }
+    },
+    "769": {
+      "dex": "769",
+      "name": "sandygast",
+      "stats": [
+        55,
+        55,
+        80,
+        70,
+        45,
+        15
+      ],
+      "total": 320,
+      "source": {
+        "name": "Sandygast",
+        "dex": "769",
+        "confidence": "name"
+      }
+    },
+    "771": {
+      "dex": "771",
+      "name": "pyukumuku",
+      "stats": [
+        55,
+        60,
+        130,
+        30,
+        130,
+        5
+      ],
+      "total": 410,
+      "source": {
+        "name": "Pyukumuku",
+        "dex": "771",
+        "confidence": "name"
+      }
+    },
+    "775": {
+      "dex": "775",
+      "name": "komala",
+      "stats": [
+        65,
+        115,
+        65,
+        75,
+        95,
+        65
+      ],
+      "total": 480,
+      "source": {
+        "name": "Komala",
+        "dex": "775",
+        "confidence": "name"
+      }
+    },
+    "776": {
+      "dex": "776",
+      "name": "turtonator",
+      "stats": [
+        60,
+        78,
+        135,
+        91,
+        85,
+        36
+      ],
+      "total": 485,
+      "source": {
+        "name": "Turtonator",
+        "dex": "776",
+        "confidence": "name"
+      }
+    },
+    "777": {
+      "dex": "777",
+      "name": "togedemaru",
+      "stats": [
+        65,
+        98,
+        63,
+        40,
+        73,
+        96
+      ],
+      "total": 435,
+      "source": {
+        "name": "Togedemaru",
+        "dex": "777",
+        "confidence": "name"
+      }
+    },
+    "779": {
+      "dex": "779",
+      "name": "bruxish",
+      "stats": [
+        68,
+        105,
+        70,
+        70,
+        70,
+        92
+      ],
+      "total": 475,
+      "source": {
+        "name": "Bruxish",
+        "dex": "779",
+        "confidence": "name"
+      }
+    },
+    "780": {
+      "dex": "780",
+      "name": "drampa",
+      "stats": [
+        78,
+        60,
+        85,
+        135,
+        91,
+        36
+      ],
+      "total": 485,
+      "source": {
+        "name": "Drampa",
+        "dex": "780",
+        "confidence": "name"
+      }
+    },
+    "781": {
+      "dex": "781",
+      "name": "dhelmise",
+      "stats": [
+        70,
+        131,
+        100,
+        86,
+        90,
+        40
+      ],
+      "total": 517,
+      "source": {
+        "name": "Dhelmise",
+        "dex": "781",
+        "confidence": "name"
+      }
+    },
+    "782": {
+      "dex": "782",
+      "name": "jangmo-o",
+      "stats": [
+        45,
+        55,
+        65,
+        45,
+        45,
+        45
+      ],
+      "total": 300,
+      "source": {
+        "name": "Jangmo-o",
+        "dex": "782",
+        "confidence": "name"
+      }
+    },
+    "789": {
+      "dex": "789",
+      "name": "cosmog",
+      "stats": [
+        43,
+        29,
+        31,
+        29,
+        31,
+        37
+      ],
+      "total": 200,
+      "source": {
+        "name": "Cosmog",
+        "dex": "789",
+        "confidence": "name"
+      }
+    },
+    "793": {
+      "dex": "793",
+      "name": "nihilego",
+      "stats": [
+        109,
+        53,
+        47,
+        127,
+        131,
+        103
+      ],
+      "total": 570,
+      "source": {
+        "name": "Nihilego",
+        "dex": "793",
+        "confidence": "name"
+      }
+    },
+    "794": {
+      "dex": "794",
+      "name": "buzzwole",
+      "stats": [
+        107,
+        139,
+        139,
+        53,
+        53,
+        79
+      ],
+      "total": 570,
+      "source": {
+        "name": "Buzzwole",
+        "dex": "794",
+        "confidence": "name"
+      }
+    },
+    "795": {
+      "dex": "795",
+      "name": "pheromosa",
+      "stats": [
+        71,
+        137,
+        37,
+        137,
+        37,
+        151
+      ],
+      "total": 570,
+      "source": {
+        "name": "Pheromosa",
+        "dex": "795",
+        "confidence": "name"
+      }
+    },
+    "796": {
+      "dex": "796",
+      "name": "xurkitree",
+      "stats": [
+        83,
+        89,
+        71,
+        173,
+        71,
+        83
+      ],
+      "total": 570,
+      "source": {
+        "name": "Xurkitree",
+        "dex": "796",
+        "confidence": "name"
+      }
+    },
+    "797": {
+      "dex": "797",
+      "name": "celesteela",
+      "stats": [
+        97,
+        101,
+        103,
+        107,
+        101,
+        61
+      ],
+      "total": 570,
+      "source": {
+        "name": "Celesteela",
+        "dex": "797",
+        "confidence": "name"
+      }
+    },
+    "798": {
+      "dex": "798",
+      "name": "kartana",
+      "stats": [
+        59,
+        181,
+        131,
+        59,
+        31,
+        109
+      ],
+      "total": 570,
+      "source": {
+        "name": "Kartana",
+        "dex": "798",
+        "confidence": "name"
+      }
+    },
+    "799": {
+      "dex": "799",
+      "name": "guzzlord",
+      "stats": [
+        223,
+        101,
+        53,
+        97,
+        53,
+        43
+      ],
+      "total": 570,
+      "source": {
+        "name": "Guzzlord",
+        "dex": "799",
+        "confidence": "name"
+      }
+    },
+    "800": {
+      "dex": "800",
+      "name": "necrozma",
+      "stats": [
+        97,
+        167,
+        97,
+        167,
+        97,
+        129
+      ],
+      "total": 754,
+      "source": {
+        "name": "Necrozma",
+        "dex": "800",
+        "confidence": "name"
+      }
+    },
+    "801": {
+      "dex": "801",
+      "name": "magearna",
+      "stats": [
+        80,
+        95,
+        115,
+        130,
+        115,
+        65
+      ],
+      "total": 600,
+      "source": {
+        "name": "Magearna",
+        "dex": "801",
+        "confidence": "name"
+      }
+    },
+    "802": {
+      "dex": "802",
+      "name": "marshadow",
+      "stats": [
+        90,
+        125,
+        80,
+        90,
+        90,
+        125
+      ],
+      "total": 600,
+      "source": {
+        "name": "Marshadow",
+        "dex": "802",
+        "confidence": "name"
+      }
+    },
+    "803": {
+      "dex": "803",
+      "name": "poipole",
+      "stats": [
+        67,
+        73,
+        67,
+        73,
+        67,
+        73
+      ],
+      "total": 420,
+      "source": {
+        "name": "Poipole",
+        "dex": "803",
+        "confidence": "name"
+      }
+    },
+    "805": {
+      "dex": "805",
+      "name": "stakataka",
+      "stats": [
+        61,
+        131,
+        211,
+        53,
+        101,
+        13
+      ],
+      "total": 570,
+      "source": {
+        "name": "Stakataka",
+        "dex": "805",
+        "confidence": "name"
+      }
+    },
+    "806": {
+      "dex": "806",
+      "name": "blacephalon",
+      "stats": [
+        53,
+        127,
+        53,
+        151,
+        79,
+        107
+      ],
+      "total": 570,
+      "source": {
+        "name": "Blacephalon",
+        "dex": "806",
+        "confidence": "name"
+      }
+    },
+    "807": {
+      "dex": "807",
+      "name": "zeraora",
+      "stats": [
+        88,
+        112,
+        75,
+        102,
+        80,
+        143
+      ],
+      "total": 600,
+      "source": {
+        "name": "Zeraora",
+        "dex": "807",
+        "confidence": "name"
+      }
+    },
+    "808": {
+      "dex": "808",
+      "name": "meltan",
+      "stats": [
+        46,
+        65,
+        65,
+        55,
+        35,
+        34
+      ],
+      "total": 300,
+      "source": {
+        "name": "Meltan",
+        "dex": "808",
+        "confidence": "name"
+      }
+    },
+    "810": {
+      "dex": "810",
+      "name": "grookey",
+      "stats": [
+        50,
+        65,
+        50,
+        40,
+        40,
+        65
+      ],
+      "total": 310,
+      "source": {
+        "name": "Grookey",
+        "dex": "810",
+        "confidence": "name"
+      }
+    },
+    "813": {
+      "dex": "813",
+      "name": "scorbunny",
+      "stats": [
+        50,
+        71,
+        40,
+        40,
+        40,
+        69
+      ],
+      "total": 310,
+      "source": {
+        "name": "Scorbunny",
+        "dex": "813",
+        "confidence": "name"
+      }
+    },
+    "816": {
+      "dex": "816",
+      "name": "sobble",
+      "stats": [
+        50,
+        40,
+        40,
+        70,
+        40,
+        70
+      ],
+      "total": 310,
+      "source": {
+        "name": "Sobble",
+        "dex": "816",
+        "confidence": "name"
+      }
+    },
+    "819": {
+      "dex": "819",
+      "name": "skwovet",
+      "stats": [
+        70,
+        55,
+        55,
+        35,
+        35,
+        25
+      ],
+      "total": 275,
+      "source": {
+        "name": "Skwovet",
+        "dex": "819",
+        "confidence": "name"
+      }
+    },
+    "821": {
+      "dex": "821",
+      "name": "rookidee",
+      "stats": [
+        38,
+        47,
+        35,
+        33,
+        35,
+        57
+      ],
+      "total": 245,
+      "source": {
+        "name": "Rookidee",
+        "dex": "821",
+        "confidence": "name"
+      }
+    },
+    "824": {
+      "dex": "824",
+      "name": "blipbug",
+      "stats": [
+        25,
+        20,
+        20,
+        25,
+        45,
+        45
+      ],
+      "total": 180,
+      "source": {
+        "name": "Blipbug",
+        "dex": "824",
+        "confidence": "name"
+      }
+    },
+    "827": {
+      "dex": "827",
+      "name": "nickit",
+      "stats": [
+        40,
+        28,
+        28,
+        47,
+        52,
+        50
+      ],
+      "total": 245,
+      "source": {
+        "name": "Nickit",
+        "dex": "827",
+        "confidence": "name"
+      }
+    },
+    "829": {
+      "dex": "829",
+      "name": "gossifleur",
+      "stats": [
+        40,
+        40,
+        60,
+        40,
+        60,
+        10
+      ],
+      "total": 250,
+      "source": {
+        "name": "Gossifleur",
+        "dex": "829",
+        "confidence": "name"
+      }
+    },
+    "831": {
+      "dex": "831",
+      "name": "wooloo",
+      "stats": [
+        42,
+        40,
+        55,
+        40,
+        45,
+        48
+      ],
+      "total": 270,
+      "source": {
+        "name": "Wooloo",
+        "dex": "831",
+        "confidence": "name"
+      }
+    },
+    "833": {
+      "dex": "833",
+      "name": "chewtle",
+      "stats": [
+        50,
+        64,
+        50,
+        38,
+        38,
+        44
+      ],
+      "total": 284,
+      "source": {
+        "name": "Chewtle",
+        "dex": "833",
+        "confidence": "name"
+      }
+    },
+    "835": {
+      "dex": "835",
+      "name": "yamper",
+      "stats": [
+        59,
+        45,
+        50,
+        40,
+        50,
+        26
+      ],
+      "total": 270,
+      "source": {
+        "name": "Yamper",
+        "dex": "835",
+        "confidence": "name"
+      }
+    },
+    "837": {
+      "dex": "837",
+      "name": "rolycoly",
+      "stats": [
+        30,
+        40,
+        50,
+        40,
+        50,
+        30
+      ],
+      "total": 240,
+      "source": {
+        "name": "Rolycoly",
+        "dex": "837",
+        "confidence": "name"
+      }
+    },
+    "840": {
+      "dex": "840",
+      "name": "applin",
+      "stats": [
+        40,
+        40,
+        80,
+        40,
+        40,
+        20
+      ],
+      "total": 260,
+      "source": {
+        "name": "Applin",
+        "dex": "840",
+        "confidence": "name"
+      }
+    },
+    "843": {
+      "dex": "843",
+      "name": "silicobra",
+      "stats": [
+        52,
+        57,
+        75,
+        35,
+        50,
+        46
+      ],
+      "total": 315,
+      "source": {
+        "name": "Silicobra",
+        "dex": "843",
+        "confidence": "name"
+      }
+    },
+    "845": {
+      "dex": "845",
+      "name": "cramorant",
+      "stats": [
+        70,
+        85,
+        55,
+        85,
+        95,
+        85
+      ],
+      "total": 475,
+      "source": {
+        "name": "Cramorant",
+        "dex": "845",
+        "confidence": "name"
+      }
+    },
+    "846": {
+      "dex": "846",
+      "name": "arrokuda",
+      "stats": [
+        41,
+        63,
+        40,
+        40,
+        30,
+        66
+      ],
+      "total": 280,
+      "source": {
+        "name": "Arrokuda",
+        "dex": "846",
+        "confidence": "name"
+      }
+    },
+    "848": {
+      "dex": "848",
+      "name": "toxel",
+      "stats": [
+        40,
+        38,
+        35,
+        54,
+        35,
+        40
+      ],
+      "total": 242,
+      "source": {
+        "name": "Toxel",
+        "dex": "848",
+        "confidence": "name"
+      }
+    },
+    "850": {
+      "dex": "850",
+      "name": "sizzlipede",
+      "stats": [
+        50,
+        65,
+        45,
+        50,
+        50,
+        45
+      ],
+      "total": 305,
+      "source": {
+        "name": "Sizzlipede",
+        "dex": "850",
+        "confidence": "name"
+      }
+    },
+    "852": {
+      "dex": "852",
+      "name": "clobbopus",
+      "stats": [
+        50,
+        68,
+        60,
+        50,
+        50,
+        32
+      ],
+      "total": 310,
+      "source": {
+        "name": "Clobbopus",
+        "dex": "852",
+        "confidence": "name"
+      }
+    },
+    "854": {
+      "dex": "854",
+      "name": "sinistea",
+      "stats": [
+        40,
+        45,
+        45,
+        74,
+        54,
+        50
+      ],
+      "total": 308,
+      "source": {
+        "name": "Sinistea",
+        "dex": "854",
+        "confidence": "name"
+      }
+    },
+    "856": {
+      "dex": "856",
+      "name": "hatenna",
+      "stats": [
+        42,
+        30,
+        45,
+        56,
+        53,
+        39
+      ],
+      "total": 265,
+      "source": {
+        "name": "Hatenna",
+        "dex": "856",
+        "confidence": "name"
+      }
+    },
+    "859": {
+      "dex": "859",
+      "name": "impidimp",
+      "stats": [
+        45,
+        45,
+        30,
+        55,
+        40,
+        50
+      ],
+      "total": 265,
+      "source": {
+        "name": "Impidimp",
+        "dex": "859",
+        "confidence": "name"
+      }
+    },
+    "868": {
+      "dex": "868",
+      "name": "milcery",
+      "stats": [
+        45,
+        40,
+        40,
+        50,
+        61,
+        34
+      ],
+      "total": 270,
+      "source": {
+        "name": "Milcery",
+        "dex": "868",
+        "confidence": "name"
+      }
+    },
+    "870": {
+      "dex": "870",
+      "name": "falinks",
+      "stats": [
+        65,
+        100,
+        100,
+        70,
+        60,
+        75
+      ],
+      "total": 470,
+      "source": {
+        "name": "Falinks",
+        "dex": "870",
+        "confidence": "name"
+      }
+    },
+    "871": {
+      "dex": "871",
+      "name": "pincurchin",
+      "stats": [
+        48,
+        101,
+        95,
+        91,
+        85,
+        15
+      ],
+      "total": 435,
+      "source": {
+        "name": "Pincurchin",
+        "dex": "871",
+        "confidence": "name"
+      }
+    },
+    "872": {
+      "dex": "872",
+      "name": "snom",
+      "stats": [
+        30,
+        25,
+        35,
+        45,
+        30,
+        20
+      ],
+      "total": 185,
+      "source": {
+        "name": "Snom",
+        "dex": "872",
+        "confidence": "name"
+      }
+    },
+    "874": {
+      "dex": "874",
+      "name": "stonjourner",
+      "stats": [
+        100,
+        125,
+        135,
+        20,
+        20,
+        70
+      ],
+      "total": 470,
+      "source": {
+        "name": "Stonjourner",
+        "dex": "874",
+        "confidence": "name"
+      }
+    },
+    "878": {
+      "dex": "878",
+      "name": "cufant",
+      "stats": [
+        72,
+        80,
+        49,
+        40,
+        49,
+        40
+      ],
+      "total": 330,
+      "source": {
+        "name": "Cufant",
+        "dex": "878",
+        "confidence": "name"
+      }
+    },
+    "880": {
+      "dex": "880",
+      "name": "dracozolt",
+      "stats": [
+        90,
+        100,
+        90,
+        80,
+        70,
+        75
+      ],
+      "total": 505,
+      "source": {
+        "name": "Dracozolt",
+        "dex": "880",
+        "confidence": "name"
+      }
+    },
+    "881": {
+      "dex": "881",
+      "name": "arctozolt",
+      "stats": [
+        90,
+        100,
+        90,
+        90,
+        80,
+        55
+      ],
+      "total": 505,
+      "source": {
+        "name": "Arctozolt",
+        "dex": "881",
+        "confidence": "name"
+      }
+    },
+    "882": {
+      "dex": "882",
+      "name": "dracovish",
+      "stats": [
+        90,
+        90,
+        100,
+        70,
+        80,
+        75
+      ],
+      "total": 505,
+      "source": {
+        "name": "Dracovish",
+        "dex": "882",
+        "confidence": "name"
+      }
+    },
+    "883": {
+      "dex": "883",
+      "name": "arctovish",
+      "stats": [
+        90,
+        90,
+        100,
+        80,
+        90,
+        55
+      ],
+      "total": 505,
+      "source": {
+        "name": "Arctovish",
+        "dex": "883",
+        "confidence": "name"
+      }
+    },
+    "884": {
+      "dex": "884",
+      "name": "duraludon",
+      "stats": [
+        70,
+        95,
+        115,
+        120,
+        50,
+        85
+      ],
+      "total": 535,
+      "source": {
+        "name": "Duraludon",
+        "dex": "884",
+        "confidence": "name"
+      }
+    },
+    "885": {
+      "dex": "885",
+      "name": "dreepy",
+      "stats": [
+        28,
+        60,
+        30,
+        40,
+        30,
+        82
+      ],
+      "total": 270,
+      "source": {
+        "name": "Dreepy",
+        "dex": "885",
+        "confidence": "name"
+      }
+    },
+    "888": {
+      "dex": "888",
+      "name": "zacian",
+      "stats": [
+        92,
+        150,
+        115,
+        80,
+        115,
+        148
+      ],
+      "total": 700,
+      "source": {
+        "name": "Zacian",
+        "dex": "888",
+        "confidence": "name"
+      }
+    },
+    "889": {
+      "dex": "889",
+      "name": "zamazenta",
+      "stats": [
+        92,
+        120,
+        140,
+        80,
+        140,
+        128
+      ],
+      "total": 700,
+      "source": {
+        "name": "Zamazenta",
+        "dex": "889",
+        "confidence": "name"
+      }
+    },
+    "890": {
+      "dex": "890",
+      "name": "eternatus",
+      "stats": [
+        255,
+        115,
+        250,
+        125,
+        250,
+        130
+      ],
+      "total": 1125,
+      "source": {
+        "name": "Eternatus",
+        "dex": "890",
+        "confidence": "name"
+      }
+    },
+    "891": {
+      "dex": "891",
+      "name": "kubfu",
+      "stats": [
+        60,
+        90,
+        60,
+        53,
+        50,
+        72
+      ],
+      "total": 385,
+      "source": {
+        "name": "Kubfu",
+        "dex": "891",
+        "confidence": "name"
+      }
+    },
+    "893": {
+      "dex": "893",
+      "name": "zarude",
+      "stats": [
+        105,
+        120,
+        105,
+        70,
+        95,
+        105
+      ],
+      "total": 600,
+      "source": {
+        "name": "Zarude",
+        "dex": "893",
+        "confidence": "name"
+      }
+    },
+    "894": {
+      "dex": "894",
+      "name": "regieleki",
+      "stats": [
+        80,
+        100,
+        50,
+        100,
+        50,
+        200
+      ],
+      "total": 580,
+      "source": {
+        "name": "Regieleki",
+        "dex": "894",
+        "confidence": "name"
+      }
+    },
+    "895": {
+      "dex": "895",
+      "name": "regidrago",
+      "stats": [
+        200,
+        100,
+        50,
+        100,
+        50,
+        80
+      ],
+      "total": 580,
+      "source": {
+        "name": "Regidrago",
+        "dex": "895",
+        "confidence": "name"
+      }
+    },
+    "896": {
+      "dex": "896",
+      "name": "glastrier",
+      "stats": [
+        100,
+        145,
+        130,
+        65,
+        110,
+        30
+      ],
+      "total": 580,
+      "source": {
+        "name": "Glastrier",
+        "dex": "896",
+        "confidence": "name"
+      }
+    },
+    "897": {
+      "dex": "897",
+      "name": "spectrier",
+      "stats": [
+        100,
+        65,
+        60,
+        145,
+        80,
+        130
+      ],
+      "total": 580,
+      "source": {
+        "name": "Spectrier",
+        "dex": "897",
+        "confidence": "name"
+      }
+    },
+    "898": {
+      "dex": "898",
+      "name": "calyrex",
+      "stats": [
+        100,
+        85,
+        80,
+        165,
+        100,
+        150
+      ],
+      "total": 680,
+      "source": {
+        "name": "Calyrex",
+        "dex": "898",
+        "confidence": "name"
+      }
+    },
+    "906": {
+      "dex": "906",
+      "name": "sprigatito",
+      "stats": [
+        40,
+        61,
+        54,
+        45,
+        45,
+        65
+      ],
+      "total": 310,
+      "source": {
+        "name": "Sprigatito",
+        "dex": "906",
+        "confidence": "name"
+      }
+    },
+    "909": {
+      "dex": "909",
+      "name": "fuecoco",
+      "stats": [
+        67,
+        45,
+        59,
+        63,
+        40,
+        36
+      ],
+      "total": 310,
+      "source": {
+        "name": "Fuecoco",
+        "dex": "909",
+        "confidence": "name"
+      }
+    },
+    "912": {
+      "dex": "912",
+      "name": "quaxly",
+      "stats": [
+        55,
+        65,
+        45,
+        50,
+        45,
+        50
+      ],
+      "total": 310,
+      "source": {
+        "name": "Quaxly",
+        "dex": "912",
+        "confidence": "name"
+      }
+    },
+    "915": {
+      "dex": "915",
+      "name": "lechonk",
+      "stats": [
+        54,
+        45,
+        40,
+        35,
+        45,
+        35
+      ],
+      "total": 254,
+      "source": {
+        "name": "Lechonk",
+        "dex": "915",
+        "confidence": "name"
+      }
+    },
+    "917": {
+      "dex": "917",
+      "name": "tarountula",
+      "stats": [
+        35,
+        41,
+        45,
+        29,
+        40,
+        20
+      ],
+      "total": 210,
+      "source": {
+        "name": "Tarountula",
+        "dex": "917",
+        "confidence": "name"
+      }
+    },
+    "919": {
+      "dex": "919",
+      "name": "nymble",
+      "stats": [
+        33,
+        46,
+        40,
+        21,
+        25,
+        45
+      ],
+      "total": 210,
+      "source": {
+        "name": "Nymble",
+        "dex": "919",
+        "confidence": "name"
+      }
+    },
+    "921": {
+      "dex": "921",
+      "name": "pawmi",
+      "stats": [
+        45,
+        50,
+        20,
+        40,
+        25,
+        60
+      ],
+      "total": 240,
+      "source": {
+        "name": "Pawmi",
+        "dex": "921",
+        "confidence": "name"
+      }
+    },
+    "924": {
+      "dex": "924",
+      "name": "tandemaus",
+      "stats": [
+        50,
+        50,
+        45,
+        40,
+        45,
+        75
+      ],
+      "total": 305,
+      "source": {
+        "name": "Tandemaus",
+        "dex": "924",
+        "confidence": "name"
+      }
+    },
+    "926": {
+      "dex": "926",
+      "name": "fidough",
+      "stats": [
+        37,
+        55,
+        70,
+        30,
+        55,
+        65
+      ],
+      "total": 312,
+      "source": {
+        "name": "Fidough",
+        "dex": "926",
+        "confidence": "name"
+      }
+    },
+    "928": {
+      "dex": "928",
+      "name": "smoliv",
+      "stats": [
+        41,
+        35,
+        45,
+        58,
+        51,
+        30
+      ],
+      "total": 260,
+      "source": {
+        "name": "Smoliv",
+        "dex": "928",
+        "confidence": "name"
+      }
+    },
+    "931": {
+      "dex": "931",
+      "name": "squawkabilly",
+      "stats": [
+        82,
+        96,
+        51,
+        45,
+        51,
+        92
+      ],
+      "total": 417,
+      "source": {
+        "name": "Squawkabilly",
+        "dex": "931",
+        "confidence": "name"
+      }
+    },
+    "932": {
+      "dex": "932",
+      "name": "nacli",
+      "stats": [
+        55,
+        55,
+        75,
+        35,
+        35,
+        25
+      ],
+      "total": 280,
+      "source": {
+        "name": "Nacli",
+        "dex": "932",
+        "confidence": "name"
+      }
+    },
+    "935": {
+      "dex": "935",
+      "name": "charcadet",
+      "stats": [
+        40,
+        50,
+        40,
+        50,
+        40,
+        35
+      ],
+      "total": 255,
+      "source": {
+        "name": "Charcadet",
+        "dex": "935",
+        "confidence": "name"
+      }
+    },
+    "938": {
+      "dex": "938",
+      "name": "tadbulb",
+      "stats": [
+        61,
+        31,
+        41,
+        59,
+        35,
+        45
+      ],
+      "total": 272,
+      "source": {
+        "name": "Tadbulb",
+        "dex": "938",
+        "confidence": "name"
+      }
+    },
+    "940": {
+      "dex": "940",
+      "name": "wattrel",
+      "stats": [
+        40,
+        40,
+        35,
+        55,
+        40,
+        70
+      ],
+      "total": 280,
+      "source": {
+        "name": "Wattrel",
+        "dex": "940",
+        "confidence": "name"
+      }
+    },
+    "942": {
+      "dex": "942",
+      "name": "maschiff",
+      "stats": [
+        60,
+        78,
+        60,
+        40,
+        51,
+        51
+      ],
+      "total": 340,
+      "source": {
+        "name": "Maschiff",
+        "dex": "942",
+        "confidence": "name"
+      }
+    },
+    "944": {
+      "dex": "944",
+      "name": "shroodle",
+      "stats": [
+        40,
+        65,
+        35,
+        40,
+        35,
+        75
+      ],
+      "total": 290,
+      "source": {
+        "name": "Shroodle",
+        "dex": "944",
+        "confidence": "name"
+      }
+    },
+    "946": {
+      "dex": "946",
+      "name": "bramblin",
+      "stats": [
+        40,
+        65,
+        30,
+        45,
+        35,
+        60
+      ],
+      "total": 275,
+      "source": {
+        "name": "Bramblin",
+        "dex": "946",
+        "confidence": "name"
+      }
+    },
+    "948": {
+      "dex": "948",
+      "name": "toedscool",
+      "stats": [
+        40,
+        40,
+        35,
+        50,
+        100,
+        70
+      ],
+      "total": 335,
+      "source": {
+        "name": "Toedscool",
+        "dex": "948",
+        "confidence": "name"
+      }
+    },
+    "950": {
+      "dex": "950",
+      "name": "klawf",
+      "stats": [
+        70,
+        100,
+        115,
+        35,
+        55,
+        75
+      ],
+      "total": 450,
+      "source": {
+        "name": "Klawf",
+        "dex": "950",
+        "confidence": "name"
+      }
+    },
+    "951": {
+      "dex": "951",
+      "name": "capsakid",
+      "stats": [
+        50,
+        62,
+        40,
+        62,
+        40,
+        50
+      ],
+      "total": 304,
+      "source": {
+        "name": "Capsakid",
+        "dex": "951",
+        "confidence": "name"
+      }
+    },
+    "953": {
+      "dex": "953",
+      "name": "rellor",
+      "stats": [
+        41,
+        50,
+        60,
+        31,
+        58,
+        30
+      ],
+      "total": 270,
+      "source": {
+        "name": "Rellor",
+        "dex": "953",
+        "confidence": "name"
+      }
+    },
+    "955": {
+      "dex": "955",
+      "name": "flittle",
+      "stats": [
+        30,
+        35,
+        30,
+        55,
+        30,
+        75
+      ],
+      "total": 255,
+      "source": {
+        "name": "Flittle",
+        "dex": "955",
+        "confidence": "name"
+      }
+    },
+    "957": {
+      "dex": "957",
+      "name": "tinkatink",
+      "stats": [
+        50,
+        45,
+        45,
+        35,
+        64,
+        58
+      ],
+      "total": 297,
+      "source": {
+        "name": "Tinkatink",
+        "dex": "957",
+        "confidence": "name"
+      }
+    },
+    "960": {
+      "dex": "960",
+      "name": "wiglett",
+      "stats": [
+        10,
+        55,
+        25,
+        35,
+        25,
+        95
+      ],
+      "total": 245,
+      "source": {
+        "name": "Wiglett",
+        "dex": "960",
+        "confidence": "name"
+      }
+    },
+    "962": {
+      "dex": "962",
+      "name": "bombirdier",
+      "stats": [
+        70,
+        103,
+        85,
+        60,
+        85,
+        82
+      ],
+      "total": 485,
+      "source": {
+        "name": "Bombirdier",
+        "dex": "962",
+        "confidence": "name"
+      }
+    },
+    "963": {
+      "dex": "963",
+      "name": "finizen",
+      "stats": [
+        70,
+        45,
+        40,
+        45,
+        40,
+        75
+      ],
+      "total": 315,
+      "source": {
+        "name": "Finizen",
+        "dex": "963",
+        "confidence": "name"
+      }
+    },
+    "965": {
+      "dex": "965",
+      "name": "varoom",
+      "stats": [
+        45,
+        70,
+        63,
+        30,
+        45,
+        47
+      ],
+      "total": 300,
+      "source": {
+        "name": "Varoom",
+        "dex": "965",
+        "confidence": "name"
+      }
+    },
+    "967": {
+      "dex": "967",
+      "name": "cyclizar",
+      "stats": [
+        70,
+        95,
+        65,
+        85,
+        65,
+        121
+      ],
+      "total": 501,
+      "source": {
+        "name": "Cyclizar",
+        "dex": "967",
+        "confidence": "name"
+      }
+    },
+    "968": {
+      "dex": "968",
+      "name": "orthworm",
+      "stats": [
+        70,
+        85,
+        145,
+        60,
+        55,
+        65
+      ],
+      "total": 480,
+      "source": {
+        "name": "Orthworm",
+        "dex": "968",
+        "confidence": "name"
+      }
+    },
+    "969": {
+      "dex": "969",
+      "name": "glimmet",
+      "stats": [
+        48,
+        35,
+        42,
+        105,
+        60,
+        60
+      ],
+      "total": 350,
+      "source": {
+        "name": "Glimmet",
+        "dex": "969",
+        "confidence": "name"
+      }
+    },
+    "971": {
+      "dex": "971",
+      "name": "greavard",
+      "stats": [
+        50,
+        61,
+        60,
+        30,
+        55,
+        34
+      ],
+      "total": 290,
+      "source": {
+        "name": "Greavard",
+        "dex": "971",
+        "confidence": "name"
+      }
+    },
+    "973": {
+      "dex": "973",
+      "name": "flamigo",
+      "stats": [
+        82,
+        115,
+        74,
+        75,
+        64,
+        90
+      ],
+      "total": 500,
+      "source": {
+        "name": "Flamigo",
+        "dex": "973",
+        "confidence": "name"
+      }
+    },
+    "974": {
+      "dex": "974",
+      "name": "cetoddle",
+      "stats": [
+        108,
+        68,
+        45,
+        30,
+        40,
+        43
+      ],
+      "total": 334,
+      "source": {
+        "name": "Cetoddle",
+        "dex": "974",
+        "confidence": "name"
+      }
+    },
+    "976": {
+      "dex": "976",
+      "name": "veluza",
+      "stats": [
+        90,
+        102,
+        73,
+        78,
+        65,
+        70
+      ],
+      "total": 478,
+      "source": {
+        "name": "Veluza",
+        "dex": "976",
+        "confidence": "name"
+      }
+    },
+    "977": {
+      "dex": "977",
+      "name": "dondozo",
+      "stats": [
+        150,
+        100,
+        115,
+        65,
+        65,
+        35
+      ],
+      "total": 530,
+      "source": {
+        "name": "Dondozo",
+        "dex": "977",
+        "confidence": "name"
+      }
+    },
+    "978": {
+      "dex": "978",
+      "name": "tatsugiri",
+      "stats": [
+        68,
+        50,
+        60,
+        120,
+        95,
+        82
+      ],
+      "total": 475,
+      "source": {
+        "name": "Tatsugiri",
+        "dex": "978",
+        "confidence": "name"
+      }
+    },
+    "996": {
+      "dex": "996",
+      "name": "frigibax",
+      "stats": [
+        65,
+        75,
+        45,
+        35,
+        45,
+        55
+      ],
+      "total": 320,
+      "source": {
+        "name": "Frigibax",
+        "dex": "996",
+        "confidence": "name"
+      }
+    },
+    "999": {
+      "dex": "999",
+      "name": "gimmighoul",
+      "stats": [
+        45,
+        30,
+        25,
+        75,
+        45,
+        80
+      ],
+      "total": 300,
+      "source": {
+        "name": "Gimmighoul",
+        "dex": "999",
+        "confidence": "name"
+      }
+    },
+    "1001": {
+      "dex": "1001",
+      "name": "wo-chien",
+      "stats": [
+        85,
+        85,
+        100,
+        95,
+        135,
+        70
+      ],
+      "total": 570,
+      "source": {
+        "name": "Wo-Chien",
+        "dex": "1001",
+        "confidence": "name"
+      }
+    },
+    "1002": {
+      "dex": "1002",
+      "name": "chien-pao",
+      "stats": [
+        80,
+        120,
+        80,
+        90,
+        65,
+        135
+      ],
+      "total": 570,
+      "source": {
+        "name": "Chien-Pao",
+        "dex": "1002",
+        "confidence": "name"
+      }
+    },
+    "1003": {
+      "dex": "1003",
+      "name": "ting-lu",
+      "stats": [
+        155,
+        110,
+        125,
+        55,
+        80,
+        45
+      ],
+      "total": 570,
+      "source": {
+        "name": "Ting-Lu",
+        "dex": "1003",
+        "confidence": "name"
+      }
+    },
+    "1004": {
+      "dex": "1004",
+      "name": "chi-yu",
+      "stats": [
+        55,
+        80,
+        80,
+        135,
+        120,
+        100
+      ],
+      "total": 570,
+      "source": {
+        "name": "Chi-Yu",
+        "dex": "1004",
+        "confidence": "name"
+      }
+    },
+    "1007": {
+      "dex": "1007",
+      "name": "koraidon",
+      "stats": [
+        100,
+        135,
+        115,
+        85,
+        100,
+        135
+      ],
+      "total": 670,
+      "source": {
+        "name": "Koraidon",
+        "dex": "1007",
+        "confidence": "name"
+      }
+    },
+    "1008": {
+      "dex": "1008",
+      "name": "miraidon",
+      "stats": [
+        100,
+        85,
+        100,
+        135,
+        115,
+        135
+      ],
+      "total": 670,
+      "source": {
+        "name": "Miraidon",
+        "dex": "1008",
+        "confidence": "name"
+      }
+    },
+    "1012": {
+      "dex": "1012",
+      "name": "poltchageist",
+      "stats": [
+        40,
+        45,
+        45,
+        74,
+        54,
+        50
+      ],
+      "total": 308,
+      "source": {
+        "name": "Poltchageist",
+        "dex": "1012",
+        "confidence": "name"
+      }
+    },
+    "1014": {
+      "dex": "1014",
+      "name": "okidogi",
+      "stats": [
+        88,
+        128,
+        115,
+        58,
+        86,
+        80
+      ],
+      "total": 555,
+      "source": {
+        "name": "Okidogi",
+        "dex": "1014",
+        "confidence": "name"
+      }
+    },
+    "1015": {
+      "dex": "1015",
+      "name": "munkidori",
+      "stats": [
+        88,
+        75,
+        66,
+        130,
+        90,
+        106
+      ],
+      "total": 555,
+      "source": {
+        "name": "Munkidori",
+        "dex": "1015",
+        "confidence": "name"
+      }
+    },
+    "1016": {
+      "dex": "1016",
+      "name": "fezandipiti",
+      "stats": [
+        88,
+        91,
+        82,
+        70,
+        125,
+        99
+      ],
+      "total": 555,
+      "source": {
+        "name": "Fezandipiti",
+        "dex": "1016",
+        "confidence": "name"
+      }
+    },
+    "1017": {
+      "dex": "1017",
+      "name": "ogerpon",
+      "stats": [
+        80,
+        120,
+        84,
+        60,
+        96,
+        110
+      ],
+      "total": 550,
+      "source": {
+        "name": "Ogerpon",
+        "dex": "1017",
+        "confidence": "name"
+      }
+    },
+    "1024": {
+      "dex": "1024",
+      "name": "terapagos",
+      "stats": [
+        160,
+        105,
+        110,
+        130,
+        110,
+        85
+      ],
+      "total": 700,
+      "source": {
+        "name": "Terapagos",
+        "dex": "1024",
+        "confidence": "name"
+      }
+    },
+    "1025": {
+      "dex": "1025",
+      "name": "pecharunt",
+      "stats": [
+        88,
+        88,
+        160,
+        88,
+        88,
+        88
+      ],
+      "total": 600,
+      "source": {
+        "name": "Pecharunt",
+        "dex": "1025",
+        "confidence": "name"
+      }
+    }
+  },
+  "source": {
+    "file": "List of Pokémon by base stats.xlsx",
+    "generated_at": "2025-09-10T14:55:39.826880Z"
+  }
+}
