@@ -75,7 +75,8 @@ class App(ttk.Frame):
         root = self.winfo_toplevel()
         try:
             root.title("rogueEditor GUI")
-            root.geometry("1000x850")
+            # Slightly wider default to avoid rightmost button cutoff
+            root.geometry("1050x800")
             root.minsize(720, 600)
         except Exception:
             pass
