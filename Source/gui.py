@@ -279,31 +279,36 @@ class App(ttk.Frame):
         ttk.Checkbutton(box4, text="Unlocked", variable=self.p_unlocked).grid(row=2, column=1, sticky=tk.W, padx=4)
         ttk.Checkbutton(box4, text="Enabled", variable=self.p_enabled).grid(row=2, column=2, sticky=tk.W, padx=4)
 
-        ttk.Label(box4, text="valueReduction:").grid(row=3, column=0, sticky=tk.W, padx=4, pady=2)
+        ttk.Label(box4, text="Cost Reduction (valueReduction):").grid(row=3, column=0, sticky=tk.W, padx=4, pady=2)
         self.starter_value_reduction = ttk.Entry(box4, width=8)
         self.starter_value_reduction.insert(0, "0")
         self.starter_value_reduction.grid(row=3, column=1, sticky=tk.W, padx=4, pady=2)
 
         btn_row = ttk.Frame(box4)
         btn_row.grid(row=4, column=1, columnspan=3, sticky=tk.W)
-        ttk.Button(btn_row, text="Apply Attributes", command=self._safe(self._apply_starter_attrs)).pack(side=tk.LEFT, padx=4, pady=4)
-        ttk.Button(btn_row, text="Unlock Starter...", command=self._safe(self._unlock_starter_dialog)).pack(side=tk.LEFT, padx=4, pady=4)
-        ttk.Button(btn_row, text="Unlock All Starters", command=self._safe(self._unlock_all_starters)).pack(side=tk.LEFT, padx=4, pady=4)
-        ttk.Button(btn_row, text="Pokedex IDs", command=self._safe(self._pokedex_list)).pack(side=tk.LEFT, padx=4, pady=4)
+        ttk.Button(btn_row, text="Apply Attributes", command=self._safe(self._apply_starter_attrs)).grid(row=0, column=0, padx=4, pady=4, sticky=tk.W)
+        ttk.Button(btn_row, text="Unlock Starter...", command=self._safe(self._unlock_starter_dialog)).grid(row=0, column=1, padx=4, pady=4, sticky=tk.W)
+        ttk.Button(btn_row, text="Unlock All Starters", command=self._safe(self._unlock_all_starters)).grid(row=0, column=2, padx=4, pady=4, sticky=tk.W)
+        ttk.Button(btn_row, text="Pokedex IDs", command=self._safe(self._pokedex_list)).grid(row=0, column=3, padx=4, pady=4, sticky=tk.W)
 
         # Candies increment
         ttk.Label(box4, text="Candies Î” (selected):").grid(row=5, column=0, sticky=tk.W, padx=4, pady=2)
         self.starter_candy_delta = ttk.Entry(box4, width=8)
         self.starter_candy_delta.insert(0, "0")
         self.starter_candy_delta.grid(row=5, column=1, sticky=tk.W, padx=4, pady=2)
-        ttk.Button(box4, text="Increment Candies", command=self._safe(self._inc_starter_candies)).grid(row=5, column=2, sticky=tk.W, padx=4, pady=2)
+        # Secondary actions aligned under the primary actions row
+        btn_row2 = ttk.Frame(box4)
+        btn_row2.grid(row=6, column=1, columnspan=3, sticky=tk.W)
+        ttk.Button(btn_row2, text="Increment Candies", command=self._safe(self._inc_starter_candies)).grid(row=0, column=1, padx=4, pady=2, sticky=tk.W)
+        ttk.Button(btn_row2, text="Unlock All Passives (mask=7)", command=self._safe(self._unlock_all_passives)).grid(row=0, column=2, padx=4, pady=2, sticky=tk.W)
+        # moved: Increment Candies button now appears below under secondary actions
 
         # Passives unlock near candies
-        ttk.Button(box4, text="Unlock All Passives (mask=7)", command=self._safe(self._unlock_all_passives)).grid(row=5, column=3, sticky=tk.W, padx=4, pady=2)
+        # moved: Unlock All Passives button now appears below under secondary actions
 
         # Subsection: Eggs & Tickets
         s2 = ttk.LabelFrame(box4, text="Eggs & Tickets")
-        s2.grid(row=6, column=0, columnspan=5, sticky=tk.W+tk.E, padx=4, pady=6)
+        s2.grid(row=7, column=0, columnspan=5, sticky=tk.W+tk.E, padx=4, pady=6)
         ttk.Label(s2, text="Gacha Î” C/R/E/L:").grid(row=0, column=0, sticky=tk.W, padx=4, pady=2)
         self.gacha_d0 = ttk.Entry(s2, width=5); self.gacha_d0.insert(0, "0"); self.gacha_d0.grid(row=0, column=1, sticky=tk.W, padx=2)
         self.gacha_d1 = ttk.Entry(s2, width=5); self.gacha_d1.insert(0, "0"); self.gacha_d1.grid(row=0, column=2, sticky=tk.W, padx=2)
@@ -1391,6 +1396,8 @@ class App(ttk.Frame):
 
     def _unlock_all_starters(self):
         # Strong warning + typed confirmation
+        if not messagebox.askyesno('Warning', 'This will UNLOCK ALL STARTERS with perfect IVs and shiny variants. Proceed?'):
+            return
         top = tk.Toplevel(self)
         top.title('Unlock ALL Starters - Confirmation')
         msg = (
@@ -1430,13 +1437,33 @@ class App(ttk.Frame):
         if not ident:
             messagebox.showwarning('Missing', 'Select a Pokemon in the Starters section first.')
             return
-        if not messagebox.askyesno('Confirm', f'Unlock all passives for {ident}?'):
+        if not messagebox.askyesno('Warning', f'This will unlock ALL passives for {ident}. Proceed?'):
             return
-        try:
-            self.editor.unlock_all_passives(ident, mask=7)
-            self._log(f'Unlocked all passives for {ident}.')
-        except Exception as e:
-            messagebox.showerror('Failed', str(e))
+        # Phrase confirmation
+        top = tk.Toplevel(self)
+        top.title('Unlock All Passives - Confirmation')
+        msg = (
+            'WARNING:\n\nThis action will set passiveAttr to an unlocked mask for the selected starter.\n'
+            'It may impact progression. To confirm, type the phrase exactly:'
+        )
+        ttk.Label(top, text=msg, justify=tk.LEFT, wraplength=520).grid(row=0, column=0, columnspan=2, padx=8, pady=8, sticky=tk.W)
+        expected = 'UNLOCK ALL PASSIVES'
+        ttk.Label(top, text=f"Type: {expected}").grid(row=1, column=0, padx=8, pady=4, sticky=tk.W)
+        phrase_var = tk.StringVar()
+        ttk.Entry(top, textvariable=phrase_var, width=34).grid(row=1, column=1, padx=8, pady=4, sticky=tk.W)
+        def proceed():
+            text = (phrase_var.get() or '').strip()
+            if text != expected:
+                messagebox.showwarning('Not confirmed', 'Phrase does not match. Action cancelled.')
+                return
+            try:
+                self.editor.unlock_all_passives(ident, mask=7)
+                self._log(f'Unlocked all passives for {ident}.')
+                top.destroy()
+            except Exception as e:
+                messagebox.showerror('Failed', str(e))
+        ttk.Button(top, text='Cancel', command=top.destroy).grid(row=2, column=0, padx=8, pady=10, sticky=tk.W)
+        ttk.Button(top, text='Proceed', command=proceed).grid(row=2, column=1, padx=8, pady=10, sticky=tk.E)
 
     def _pokedex_list(self):
         if not self.editor:
@@ -1492,7 +1519,7 @@ class App(ttk.Frame):
         # StarterData properties
         ttk.Label(top, text='Candy Count:').grid(row=3, column=0, sticky=tk.E)
         candy_e = ttk.Entry(top, width=8); candy_e.insert(0, '0'); candy_e.grid(row=3, column=1, sticky=tk.W)
-        ttk.Label(top, text='valueReduction:').grid(row=3, column=2, sticky=tk.E)
+        ttk.Label(top, text='Cost Reduction (valueReduction):').grid(row=3, column=2, sticky=tk.E)
         vr_e = ttk.Entry(top, width=8); vr_e.insert(0, '0'); vr_e.grid(row=3, column=3, sticky=tk.W)
 
         # abilityAttr mask
@@ -1527,7 +1554,7 @@ class App(ttk.Frame):
                 candy = int(candy_e.get().strip() or '0')
                 vr = int(vr_e.get().strip() or '0')
             except ValueError:
-                messagebox.showwarning('Invalid', 'Counts and valueReduction must be integers')
+                messagebox.showwarning('Invalid', 'Counts and cost reduction must be integers')
                 return
             # Compose trainer update
             data = self.api.get_trainer()
@@ -1572,9 +1599,25 @@ class App(ttk.Frame):
 
         ttk.Button(top, text='Apply', command=do_apply).grid(row=10, column=1, padx=6, pady=8, sticky=tk.W)
         def do_apply_and_upload():
-            if not messagebox.askyesno('Confirm Unlock', 'This will unlock the starter with the selected properties and is final. Proceed?'):
+            if not messagebox.askyesno('Warning', 'This will unlock the selected starter and update your account on the server. Proceed?'):
                 return
-            do_apply()
+            # Phrase confirmation
+            confirm = tk.Toplevel(self)
+            confirm.title('Unlock Starter - Confirmation')
+            msg = 'Type the phrase to confirm:'
+            ttk.Label(confirm, text=msg, justify=tk.LEFT, wraplength=420).grid(row=0, column=0, columnspan=2, padx=8, pady=8, sticky=tk.W)
+            expected = 'UNLOCK STARTER'
+            ttk.Label(confirm, text=f"Type: {expected}").grid(row=1, column=0, padx=8, pady=4, sticky=tk.W)
+            pv = tk.StringVar()
+            ttk.Entry(confirm, textvariable=pv, width=30).grid(row=1, column=1, padx=8, pady=4, sticky=tk.W)
+            def proceed_unlock():
+                if (pv.get() or '').strip() != expected:
+                    messagebox.showwarning('Not confirmed', 'Phrase does not match. Action cancelled.')
+                    return
+                confirm.destroy()
+                do_apply()
+            ttk.Button(confirm, text='Cancel', command=confirm.destroy).grid(row=2, column=0, padx=8, pady=8, sticky=tk.W)
+            ttk.Button(confirm, text='Proceed', command=proceed_unlock).grid(row=2, column=1, padx=8, pady=8, sticky=tk.E)
         ttk.Button(top, text='Apply and Upload', command=do_apply_and_upload).grid(row=10, column=2, padx=6, pady=8, sticky=tk.W)
         ttk.Button(top, text='Close', command=top.destroy).grid(row=10, column=3, padx=6, pady=8, sticky=tk.W)
 
@@ -1702,7 +1745,7 @@ class App(ttk.Frame):
         try:
             value_reduction = int(self.starter_value_reduction.get().strip() or "0")
         except ValueError:
-            messagebox.showwarning("Invalid", "valueReduction must be integer")
+            messagebox.showwarning("Invalid", "Cost reduction must be integer")
             return
         if not messagebox.askyesno("Confirm", f"Apply attrs to dex {sid} (save locally)?"):
             return
