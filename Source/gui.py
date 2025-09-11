@@ -101,13 +101,13 @@ class App(ttk.Frame):
         banner.grid(row=0, column=0, columnspan=2, sticky=tk.EW)
         banner.columnconfigure(0, weight=1)
         warn_text = (
-            "WARNING: Use at your own risk. The author is not responsible for "
+            "⚠️ WARNING: Use at your own risk. The author is not responsible for "
             "data loss or account bans. No data is collected; only data is "
             "exchanged between your local computer and the official game server.\n"
-            "Tip: Going overboard can trivialize the game and reduce enjoyment.\n"
+            "❕Tip: Going overboard can trivialize the game and reduce enjoyment. "
             "Intended uses include backing up/restoring your own data, recovering from desync/corruption, "
             "and safe personal experimentation. Always back up before editing.\n"
-            "Note: This is a side project — some features (e.g., Items/Modifiers) may not be fully functional yet, "
+            "❕Note: This is a side project, so some features (e.g., Items/Modifiers) may be partially functional, "
             "and data catalogs may contain inaccuracies (for example, certain move data)."
         )
         self.banner_label = ttk.Label(
@@ -118,6 +118,16 @@ class App(ttk.Frame):
             justify=tk.LEFT,
         )
         self.banner_label.grid(row=0, column=0, sticky=tk.W, padx=8, pady=(6, 2))
+        # Reflow banner text based on available width
+        try:
+            banner.bind(
+                "<Configure>",
+                lambda e: self._update_banner_wraplength(e.width)
+            )
+            # Also set an initial wrap length after layout
+            self.after(0, lambda: self._update_banner_wraplength(banner.winfo_width()))
+        except Exception:
+            pass
         # Compact mode toggle (top-right)
         ttk.Checkbutton(
             banner,
@@ -238,7 +248,7 @@ class App(ttk.Frame):
         local_f.grid(row=2, column=0, columnspan=3, sticky=tk.W+tk.E, padx=4, pady=4)
         ttk.Button(local_f, text="Open Local Dump...", command=self._safe(self._open_local_dump_dialog)).grid(row=0, column=0, padx=4, pady=4, sticky=tk.W)
         ttk.Label(local_f, text=(
-            "Manual edits may corrupt saves. Proceed at your own risk."),
+            "⚠️ Manual edits may corrupt saves. Proceed at your own risk."),
             foreground="red",
         ).grid(row=0, column=1, sticky=tk.W, padx=4, pady=4)
 
@@ -394,6 +404,14 @@ class App(ttk.Frame):
                     self.banner_label.grid()
                 except Exception:
                     pass
+        except Exception:
+            pass
+
+    def _update_banner_wraplength(self, width: int):
+        try:
+            # Leave space for the toggle on the right and padding
+            wrap = max(300, int(width) - 220)
+            self.banner_label.configure(wraplength=wrap)
         except Exception:
             pass
 
