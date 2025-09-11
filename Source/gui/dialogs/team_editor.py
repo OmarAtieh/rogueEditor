@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 import math
 import tkinter as tk
@@ -104,6 +104,8 @@ class TeamEditorDialog(tk.Toplevel):
         ttk.Button(parent, text="Pick", command=lambda: self._pick_from_catalog(self.ability_ac, abil_name_to_id, 'Select Ability')).grid(row=1, column=2, sticky=tk.W)
         self.ability_label = ttk.Label(parent, text="", width=28)
         self.ability_label.grid(row=1, column=5, sticky=tk.W, padx=6)
+        self.ability_active_label = ttk.Label(parent, text="", foreground='gray50')
+        self.ability_active_label.grid(row=1, column=6, sticky=tk.W, padx=(6,0))
         try:
             self.ability_ac.bind('<KeyRelease>', lambda e: self._update_ability_label())
             self.ability_ac.bind('<FocusOut>', lambda e: self._update_ability_label())
@@ -132,7 +134,7 @@ class TeamEditorDialog(tk.Toplevel):
             effect = _effect_text(nid)
             disp = f"{_pretty(raw_name)} ({effect}) ({nid})"
             nature_items.append(disp)
-        self.nature_cb = ttk.Combobox(parent, values=nature_items, width=28)
+        self.nature_cb = ttk.Combobox(parent, values=nature_items, width=28, state='readonly')
         self.nature_cb.grid(row=2, column=1, sticky=tk.W)
         self.nature_cb.bind('<<ComboboxSelected>>', lambda e: self._on_nature_change())
         # Nature effect hint label
