@@ -1,10 +1,32 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 import os
 import sys
 import subprocess
-import tkinter as tk
-from tkinter import ttk, messagebox
+try:
+    import tkinter as tk
+    from tkinter import ttk, messagebox, filedialog
+except Exception:
+    # Ensure we can capture import-time Tk errors in the log
+    try:
+        from rogueeditor.logging_utils import (
+            setup_logging,
+            attach_stderr_tee,
+            install_excepthook,
+            log_environment,
+            log_exception_context,
+            crash_hint,
+        )
+        logger = setup_logging()
+        attach_stderr_tee(logger)
+        install_excepthook(logger)
+        log_environment(logger)
+        log_exception_context("Failed to import tkinter")
+        print("[ERROR] Failed to import tkinter.")
+        print(crash_hint())
+    except Exception:
+        pass
+    raise
 import threading
 import math
 
@@ -26,25 +48,89 @@ from rogueeditor.catalog import (
     load_ability_attr_mask,
     load_item_catalog,
 )
+from gui.common.widgets import AutoCompleteEntry
+from gui.common.catalog_select import CatalogSelectDialog
+from gui.dialogs.team_editor import TeamEditorDialog
+from gui.sections.slots import build as build_slots_section
+from gui.dialogs.item_manager import ItemManagerDialog
+from rogueeditor.logging_utils import (
+    setup_logging,
+    install_excepthook,
+    log_environment,
+    log_exception_context,
+    crash_hint,
+    attach_stderr_tee,
+)
+from rogueeditor.healthcheck import (
+    is_first_run,
+    last_run_success,
+    run_healthcheck,
+    record_run_result,
+)
 
 
-class App(tk.Tk):
-    def __init__(self):
-        super().__init__()
-        self.title("rogueEditor GUI")
-        self.geometry("900x600")
-        self.minsize(700, 480)
+class App(ttk.Frame):
+    def __init__(self, master: tk.Misc):
+        super().__init__(master)
+        root = self.winfo_toplevel()
+        try:
+            root.title("rogueEditor GUI")
+            root.geometry("1000x800")
+            root.minsize(720, 600)
+        except Exception:
+            pass
         self.api: PokerogueAPI | None = None
         self.editor: Editor | None = None
         self.username: str | None = None
 
+        # Global style + compact mode state
+        self.style = ttk.Style(self)
+        self.compact_mode = tk.BooleanVar(value=False)
+
+        # Top warning banner (disclaimer)
+        banner = ttk.Frame(self)
+        banner.grid(row=0, column=0, columnspan=2, sticky=tk.EW)
+        banner.columnconfigure(0, weight=1)
+        warn_text = (
+            "WARNING: Use at your own risk. The author is not responsible for "
+            "data loss or account bans. No data is collected; only data is "
+            "exchanged between your local computer and the official game server."
+        )
+        ttk.Label(
+            banner,
+            text=warn_text,
+            foreground="red",
+            wraplength=900,
+            justify=tk.LEFT,
+        ).grid(row=0, column=0, sticky=tk.W, padx=8, pady=(6, 2))
+        # Compact mode toggle (top-right)
+        ttk.Checkbutton(
+            banner,
+            text="Compact mode",
+            variable=self.compact_mode,
+            command=lambda: self._apply_compact_mode(self.compact_mode.get()),
+        ).grid(row=0, column=1, sticky=tk.E, padx=8)
+
+        # Layout: left (controls), right (console)
+        # Reserve row 0 for top banner
+        self.grid_rowconfigure(0, weight=0)
+        self.grid_rowconfigure(1, weight=1)
+        self.grid_columnconfigure(0, weight=3)
+        self.grid_columnconfigure(1, weight=1)
+        self.left_col = ttk.Frame(self)
+        self.right_col = ttk.Frame(self)
+        self.left_col.grid(row=1, column=0, sticky=tk.NSEW)
+        self.right_col.grid(row=1, column=1, sticky=tk.NSEW)
+
         self._build_login()
         self._build_actions()
         self._build_console()
+        # Mount root container
+        self.pack(fill=tk.BOTH, expand=True)
 
     # --- UI builders ---
     def _build_login(self):
-        frm = ttk.LabelFrame(self, text="Login")
+        frm = ttk.LabelFrame(self.left_col, text="Login")
         frm.pack(fill=tk.X, padx=8, pady=8)
 
         ttk.Label(frm, text="User:").grid(row=0, column=0, sticky=tk.W, padx=4, pady=4)
@@ -61,23 +147,33 @@ class App(tk.Tk):
         self.csid_entry = ttk.Entry(frm, width=50)
         self.csid_entry.grid(row=2, column=1, columnspan=2, sticky=tk.W, padx=4, pady=4)
 
-        ttk.Button(frm, text="Login", command=self._login).grid(row=3, column=1, pady=6)
+        # Row of buttons (keep within 4 side-by-side)
+        ttk.Button(frm, text="Login", command=self._login).grid(row=3, column=1, padx=4, pady=6, sticky=tk.W)
+        ttk.Button(frm, text="Refresh Session", command=self._refresh_session).grid(row=3, column=2, padx=4, pady=6, sticky=tk.W)
 
         self.status_var = tk.StringVar(value="Status: Not logged in")
         ttk.Label(frm, textvariable=self.status_var).grid(row=4, column=0, columnspan=3, sticky=tk.W, padx=4, pady=4)
+        # Session last updated label (persisted per user)
+        self.session_updated_var = tk.StringVar(value="Last session update: -")
+        ttk.Label(frm, textvariable=self.session_updated_var).grid(row=5, column=0, columnspan=3, sticky=tk.W, padx=4, pady=2)
         # Quick Actions toolbar (prominent backup/restore)
         qa = ttk.Frame(frm)
-        qa.grid(row=5, column=0, columnspan=3, sticky=tk.W, padx=4, pady=4)
+        qa.grid(row=6, column=0, columnspan=3, sticky=tk.W, padx=4, pady=4)
         self.btn_backup = ttk.Button(qa, text="Backup All", command=self._safe(self._backup), state=tk.DISABLED)
         self.btn_backup.pack(side=tk.LEFT, padx=4)
         self.btn_restore = ttk.Button(qa, text="Restore Backup", command=self._safe(self._restore_dialog2), state=tk.DISABLED)
         self.btn_restore.pack(side=tk.LEFT, padx=4)
         self.backup_status_var = tk.StringVar(value="Last backup: none")
         ttk.Label(qa, textvariable=self.backup_status_var).pack(side=tk.LEFT, padx=8)
+        # Update session label when user changes selection
+        try:
+            self.user_combo.bind('<<ComboboxSelected>>', lambda e: self._update_session_label_from_store())
+        except Exception:
+            pass
 
     def _build_actions(self):
         # Scrollable container for actions
-        container = ttk.LabelFrame(self, text="Actions")
+        container = ttk.LabelFrame(self.left_col, text="Actions")
         container.pack(fill=tk.BOTH, expand=True, padx=8, pady=4)
         canvas = tk.Canvas(container, highlightthickness=0)
         vsb = ttk.Scrollbar(container, orient="vertical", command=canvas.yview)
@@ -94,7 +190,7 @@ class App(tk.Tk):
         # Data IO
         box1 = ttk.LabelFrame(inner, text="Data IO")
         box1.pack(fill=tk.X, padx=6, pady=6)
-        ttk.Button(box1, text="Verify System Session", command=self._safe(self._verify)).grid(row=0, column=0, padx=4, pady=4, sticky=tk.W)
+        ttk.Button(box1, text="Dump All", command=self._safe(self._dump_all)).grid(row=0, column=0, padx=4, pady=4, sticky=tk.W)
         ttk.Button(box1, text="Dump Trainer", command=self._safe(self._dump_trainer)).grid(row=0, column=1, padx=4, pady=4, sticky=tk.W)
         # Slot selection dropdown for dump/update
         ttk.Label(box1, text="Slot:").grid(row=0, column=2, sticky=tk.E)
@@ -103,28 +199,25 @@ class App(tk.Tk):
         self.slot_combo.grid(row=0, column=3, sticky=tk.W)
         ttk.Button(box1, text="Dump Slot", command=self._safe(self._dump_slot_selected)).grid(row=0, column=4, padx=4, pady=4, sticky=tk.W)
         # Upload actions
-        ttk.Button(box1, text="Upload Trainer (trainer.json)", command=self._safe(self._update_trainer)).grid(row=1, column=0, padx=4, pady=4, sticky=tk.W)
-        ttk.Button(box1, text="Upload Slot (slot N.json)", command=self._safe(self._update_slot_selected)).grid(row=1, column=1, padx=4, pady=4, sticky=tk.W)
-        ttk.Button(box1, text="Restore from Backup", command=self._safe(self._restore_dialog2)).grid(row=1, column=2, padx=4, pady=4, sticky=tk.W)
+        ttk.Button(box1, text="Upload All", command=self._safe(self._upload_all)).grid(row=1, column=0, padx=4, pady=4, sticky=tk.W)
+        ttk.Button(box1, text="Upload Trainer (trainer.json)", command=self._safe(self._update_trainer)).grid(row=1, column=1, padx=4, pady=4, sticky=tk.W)
+        ttk.Button(box1, text="Upload Slot (slot N.json)", command=self._safe(self._update_slot_selected)).grid(row=1, column=2, padx=4, pady=4, sticky=tk.W)
         # Tools
-        ttk.Button(box1, text="Upload Local Changes...", command=self._safe(self._upload_local_dialog)).grid(row=2, column=0, padx=4, pady=4, sticky=tk.W)
-        ttk.Button(box1, text="Open Local Dump...", command=self._safe(self._open_local_dump_dialog)).grid(row=2, column=1, padx=4, pady=4, sticky=tk.W)
+        ttk.Button(box1, text="Open Local Dump...", command=self._safe(self._open_local_dump_dialog)).grid(row=2, column=0, padx=4, pady=2, sticky=tk.W)
+        ttk.Label(
+            box1,
+            text=(
+                "Use with caution. Manual edits may corrupt saves. "
+                "Proceed at your own risk."
+            ),
+            foreground="red",
+        ).grid(row=2, column=1, columnspan=3, sticky=tk.W, padx=4, pady=2)
+        ttk.Button(box1, text="Upload Local Changes...", command=self._safe(self._upload_local_dialog)).grid(row=3, column=0, padx=4, pady=4, sticky=tk.W)
+        ttk.Button(box1, text="Restore from Backup", command=self._safe(self._restore_dialog2)).grid(row=3, column=1, padx=4, pady=4, sticky=tk.W)
 
-        # Slots summary
-        boxS = ttk.LabelFrame(inner, text="Slots")
-        boxS.pack(fill=tk.BOTH, padx=6, pady=6)
-        cols = ("slot", "party", "playtime", "local")
-        self.slot_tree = ttk.Treeview(boxS, columns=cols, show="headings", height=6)
-        for c, w in (("slot", 60), ("party", 80), ("playtime", 120), ("local", 220)):
-            self.slot_tree.heading(c, text=c.capitalize())
-            self.slot_tree.column(c, width=w, anchor=tk.W)
-        self.slot_tree.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
-        sb = ttk.Scrollbar(boxS, orient="vertical", command=self.slot_tree.yview)
-        self.slot_tree.configure(yscrollcommand=sb.set)
-        sb.pack(side=tk.RIGHT, fill=tk.Y)
-        self.slot_tree.tag_configure('empty', foreground='grey')
-        self.slot_tree.bind('<<TreeviewSelect>>', self._on_slot_select)
-        ttk.Button(boxS, text="Refresh Slots", command=self._safe(self._refresh_slots)).pack(anchor=tk.W, padx=4, pady=4)
+                # Slots summary
+        handle = build_slots_section(inner, self)
+        self.slot_tree = handle["slot_tree"]
 
         # Team
         box2 = ttk.LabelFrame(inner, text="Active Run Team")
@@ -140,11 +233,8 @@ class App(tk.Tk):
         # Modifiers manager
         mod_btns = ttk.Frame(box3)
         mod_btns.pack(fill=tk.X)
-        ttk.Button(mod_btns, text="Open Modifiers Manager", command=self._safe(self._open_mod_mgr)).pack(side=tk.LEFT, padx=4, pady=4)
-        ttk.Button(mod_btns, text="List Modifiers", command=self._list_mods_dialog).pack(side=tk.LEFT, padx=4, pady=4)
+        ttk.Button(mod_btns, text="Open Modifiers & Items Manager", command=self._safe(self._open_item_mgr)).pack(side=tk.LEFT, padx=4, pady=4)
         ttk.Button(mod_btns, text="Analyze Modifiers", command=self._analyze_mods_dialog).pack(side=tk.LEFT, padx=4, pady=4)
-        ttk.Button(mod_btns, text="Add Item to Mon", command=self._safe(self._add_item_dialog)).pack(side=tk.LEFT, padx=4, pady=4)
-        ttk.Button(mod_btns, text="Remove Item from Mon", command=self._safe(self._remove_item_dialog)).pack(side=tk.LEFT, padx=4, pady=4)
 
         # Starters
         box4 = ttk.LabelFrame(inner, text="Starters")
@@ -159,6 +249,15 @@ class App(tk.Tk):
         self.starter_ac = AutoCompleteEntry(box4, name_to_id, width=30)
         self.starter_ac.grid(row=0, column=1, sticky=tk.W, padx=4, pady=2)
         ttk.Button(box4, text="Pick...", command=self._pick_starter_from_catalog).grid(row=0, column=2, sticky=tk.W, padx=4, pady=2)
+        # Label to show chosen Pokemon name and id
+        self.starter_label = ttk.Label(box4, text="")
+        self.starter_label.grid(row=0, column=3, sticky=tk.W, padx=6, pady=2)
+        # Update label as the entry changes
+        try:
+            self.starter_ac.bind('<KeyRelease>', lambda e: self._update_starter_label())
+            self.starter_ac.bind('<FocusOut>', lambda e: self._update_starter_label())
+        except Exception:
+            pass
         # Attributes
         ttk.Label(box4, text="abilityAttr:").grid(row=1, column=0, sticky=tk.W, padx=4, pady=2)
         # abilityAttr presets via checkboxes
@@ -182,44 +281,38 @@ class App(tk.Tk):
         self.starter_value_reduction.insert(0, "0")
         self.starter_value_reduction.grid(row=3, column=1, sticky=tk.W, padx=4, pady=2)
 
-        ttk.Button(box4, text="Apply Starter Attributes", command=self._safe(self._apply_starter_attrs)).grid(row=4, column=1, sticky=tk.W, padx=4, pady=4)
-        ttk.Button(box4, text="Unlock All Starters", command=self._safe(self._unlock_all_starters)).grid(row=4, column=2, sticky=tk.W, padx=4, pady=4)
-        ttk.Button(box4, text="Unlock Starter...", command=self._safe(self._unlock_starter_dialog)).grid(row=4, column=3, sticky=tk.W, padx=4, pady=4)
+        btn_row = ttk.Frame(box4)
+        btn_row.grid(row=4, column=1, columnspan=3, sticky=tk.W)
+        ttk.Button(btn_row, text="Apply Attributes", command=self._safe(self._apply_starter_attrs)).pack(side=tk.LEFT, padx=4, pady=4)
+        ttk.Button(btn_row, text="Unlock Starter...", command=self._safe(self._unlock_starter_dialog)).pack(side=tk.LEFT, padx=4, pady=4)
+        ttk.Button(btn_row, text="Unlock All Starters", command=self._safe(self._unlock_all_starters)).pack(side=tk.LEFT, padx=4, pady=4)
+        ttk.Button(btn_row, text="Pokedex IDs", command=self._safe(self._pokedex_list)).pack(side=tk.LEFT, padx=4, pady=4)
 
         # Candies increment
-        ttk.Label(box4, text="Candies Δ:").grid(row=5, column=0, sticky=tk.W, padx=4, pady=2)
+        ttk.Label(box4, text="Candies Î” (selected):").grid(row=5, column=0, sticky=tk.W, padx=4, pady=2)
         self.starter_candy_delta = ttk.Entry(box4, width=8)
         self.starter_candy_delta.insert(0, "0")
         self.starter_candy_delta.grid(row=5, column=1, sticky=tk.W, padx=4, pady=2)
         ttk.Button(box4, text="Increment Candies", command=self._safe(self._inc_starter_candies)).grid(row=5, column=2, sticky=tk.W, padx=4, pady=2)
 
-        # Gacha tickets increment
-        ttk.Label(box4, text="Gacha Δ C/R/E/L:").grid(row=6, column=0, sticky=tk.W, padx=4, pady=2)
-        self.gacha_d0 = ttk.Entry(box4, width=5); self.gacha_d0.insert(0, "0"); self.gacha_d0.grid(row=6, column=1, sticky=tk.W, padx=2)
-        self.gacha_d1 = ttk.Entry(box4, width=5); self.gacha_d1.insert(0, "0"); self.gacha_d1.grid(row=6, column=1, sticky=tk.W, padx=2, columnspan=1)
-        self.gacha_d1.place(x=self.gacha_d0.winfo_x()+60, y=self.gacha_d0.winfo_y())
-        self.gacha_d2 = ttk.Entry(box4, width=5); self.gacha_d2.insert(0, "0")
-        self.gacha_d3 = ttk.Entry(box4, width=5); self.gacha_d3.insert(0, "0")
-        # Simpler layout vertically
-        ttk.Label(box4, text="Common Δ:").grid(row=7, column=0, sticky=tk.W, padx=4)
-        self.gacha_d0.grid(row=7, column=1, sticky=tk.W)
-        ttk.Label(box4, text="Rare Δ:").grid(row=8, column=0, sticky=tk.W, padx=4)
-        self.gacha_d1.grid(row=8, column=1, sticky=tk.W)
-        ttk.Label(box4, text="Epic Δ:").grid(row=9, column=0, sticky=tk.W, padx=4)
-        self.gacha_d2.grid(row=9, column=1, sticky=tk.W)
-        ttk.Label(box4, text="Legendary Δ:").grid(row=10, column=0, sticky=tk.W, padx=4)
-        self.gacha_d3.grid(row=10, column=1, sticky=tk.W)
-        ttk.Button(box4, text="Apply Gacha Δ", command=self._safe(self._apply_gacha_delta)).grid(row=11, column=1, sticky=tk.W, padx=4, pady=4)
-        # Passives unlock + Pokedex list
-        ttk.Button(box4, text="Unlock All Passives (mask=7)", command=self._safe(self._unlock_all_passives)).grid(row=11, column=2, sticky=tk.W, padx=4, pady=4)
-        ttk.Button(box4, text="Show Pokedex (names→IDs)", command=self._safe(self._pokedex_list)).grid(row=11, column=3, sticky=tk.W, padx=4, pady=4)
-        # Eggs
-        ttk.Button(box4, text="Hatch All Eggs After Next Fight", command=self._safe(self._hatch_eggs)).grid(row=12, column=1, sticky=tk.W, padx=4, pady=4)
+        # Passives unlock near candies
+        ttk.Button(box4, text="Unlock All Passives (mask=7)", command=self._safe(self._unlock_all_passives)).grid(row=5, column=3, sticky=tk.W, padx=4, pady=2)
+
+        # Subsection: Eggs & Tickets
+        s2 = ttk.LabelFrame(box4, text="Eggs & Tickets")
+        s2.grid(row=6, column=0, columnspan=5, sticky=tk.W+tk.E, padx=4, pady=6)
+        ttk.Label(s2, text="Gacha Î” C/R/E/L:").grid(row=0, column=0, sticky=tk.W, padx=4, pady=2)
+        self.gacha_d0 = ttk.Entry(s2, width=5); self.gacha_d0.insert(0, "0"); self.gacha_d0.grid(row=0, column=1, sticky=tk.W, padx=2)
+        self.gacha_d1 = ttk.Entry(s2, width=5); self.gacha_d1.insert(0, "0"); self.gacha_d1.grid(row=0, column=2, sticky=tk.W, padx=2)
+        self.gacha_d2 = ttk.Entry(s2, width=5); self.gacha_d2.insert(0, "0"); self.gacha_d2.grid(row=0, column=3, sticky=tk.W, padx=2)
+        self.gacha_d3 = ttk.Entry(s2, width=5); self.gacha_d3.insert(0, "0"); self.gacha_d3.grid(row=0, column=4, sticky=tk.W, padx=2)
+        ttk.Button(s2, text="Apply Gacha Î”", command=self._safe(self._apply_gacha_delta)).grid(row=0, column=5, sticky=tk.W, padx=4, pady=2)
+        ttk.Button(s2, text="Hatch All Eggs After Next Fight", command=self._safe(self._hatch_eggs)).grid(row=1, column=1, columnspan=3, sticky=tk.W, padx=4, pady=4)
 
     def _build_console(self):
-        frm = ttk.LabelFrame(self, text="Console")
+        frm = ttk.LabelFrame(self.right_col, text="Console")
         frm.pack(fill=tk.BOTH, expand=True, padx=8, pady=8)
-        self.console = tk.Text(frm, height=12)
+        self.console = tk.Text(frm, height=30, width=40)
         self.console.pack(fill=tk.BOTH, expand=True)
         # Busy progress bar
         self.progress = ttk.Progressbar(frm, mode='indeterminate')
@@ -238,6 +331,29 @@ class App(tk.Tk):
         self.bind_all('<MouseWheel>', _on_mousewheel)
         self.bind_all('<Button-4>', _on_mousewheel)
         self.bind_all('<Button-5>', _on_mousewheel)
+
+    def _apply_compact_mode(self, enabled: bool):
+        try:
+            if enabled:
+                # Reduce paddings and row heights
+                self.style.configure('TButton', padding=(4, 2))
+                self.style.configure('TLabel', padding=(0, 0))
+                self.style.configure('TEntry', padding=(1, 1))
+                self.style.configure('Treeview', rowheight=18)
+            else:
+                # Revert to defaults (let theme decide reasonable padding)
+                # Use None to clear explicit overrides
+                for name in ('TButton', 'TLabel', 'TEntry'):
+                    try:
+                        self.style.configure(name, padding=None)
+                    except Exception:
+                        pass
+                try:
+                    self.style.configure('Treeview', rowheight=None)
+                except Exception:
+                    pass
+        except Exception:
+            pass
 
     # --- Helpers ---
     def _log(self, text: str):
@@ -283,10 +399,21 @@ class App(tk.Tk):
             self._run_async("Working...", fn)
         return wrapper
 
+    def _modalize(self, top: tk.Toplevel, focus_widget: tk.Widget | None = None):
+        try:
+            top.transient(self)
+            top.grab_set()
+        except Exception:
+            pass
+        try:
+            (focus_widget or top).focus_set()
+        except Exception:
+            pass
+
     def _show_text_dialog(self, title: str, content: str):
         top = tk.Toplevel(self)
         top.title(title)
-        top.geometry('600x400')
+        top.geometry('700x450')
         frm = ttk.Frame(top)
         frm.pack(fill=tk.BOTH, expand=True)
         txt = tk.Text(frm, wrap='word')
@@ -296,7 +423,21 @@ class App(tk.Tk):
         sb.pack(side=tk.RIGHT, fill=tk.Y)
         txt.insert(tk.END, content)
         txt.config(state='disabled')
-        ttk.Button(top, text='Close', command=top.destroy).pack(pady=6)
+        btns = ttk.Frame(top)
+        btns.pack(fill=tk.X, pady=6)
+        def do_save():
+            path = filedialog.asksaveasfilename(title='Save Report', defaultextension='.txt', filetypes=[('Text Files','*.txt'), ('All Files','*.*')])
+            if not path:
+                return
+            try:
+                with open(path, 'w', encoding='utf-8') as f:
+                    f.write(content)
+                messagebox.showinfo('Saved', f'Saved to {path}')
+            except Exception as e:
+                messagebox.showerror('Save failed', str(e))
+        ttk.Button(btns, text='Save...', command=do_save).pack(side=tk.LEFT, padx=6)
+        ttk.Button(btns, text='Close', command=top.destroy).pack(side=tk.RIGHT, padx=6)
+        self._modalize(top)
 
     def _run_and_show_output(self, title: str, func):
         import io
@@ -332,7 +473,46 @@ class App(tk.Tk):
                 chosen = n
                 break
         if chosen:
-            self.starter_ac.set_value(chosen)
+            # Set numeric id into the field, and update label text to chosen name
+            self.starter_ac.set_value(str(sel))
+            try:
+                self.starter_label.configure(text=f"{chosen} (#{sel})")
+            except Exception:
+                pass
+    def _update_starter_label(self):
+        try:
+            raw = (self.starter_ac.get() or '').strip()
+            if not raw:
+                self.starter_label.configure(text="")
+                return
+            if raw.isdigit():
+                did = str(int(raw))
+                # Map id to canonical name from current dex
+                try:
+                    from rogueeditor.utils import load_pokemon_index, invert_dex_map
+                    inv = invert_dex_map(load_pokemon_index())
+                    name = inv.get(did)
+                except Exception:
+                    name = None
+                if name:
+                    disp = name.replace('-', ' ').title()
+                    self.starter_label.configure(text=f"{disp} (#{did})")
+                else:
+                    self.starter_label.configure(text=f"#{did}")
+            else:
+                # Not a pure id; try resolve via mapping
+                key = raw.lower().replace(' ', '_')
+                mid = getattr(self, '_starter_name_to_id', {}).get(key)
+                if isinstance(mid, int):
+                    disp = raw.replace('_', ' ').title()
+                    self.starter_label.configure(text=f"{disp} (#{mid})")
+                else:
+                    self.starter_label.configure(text=raw)
+        except Exception:
+            try:
+                self.starter_label.configure(text="")
+            except Exception:
+                pass
 
     def _analyze_mods_dialog(self):
         if not self.editor:
@@ -398,6 +578,7 @@ class App(tk.Tk):
             self.user_combo.set(user)
             top.destroy()
         ttk.Button(top, text="OK", command=ok).pack(pady=6)
+        self._modalize(top, ent)
 
     def _login(self):
         user = self.user_combo.get().strip()
@@ -408,24 +589,44 @@ class App(tk.Tk):
         if not pwd:
             messagebox.showwarning("Missing", "Enter password")
             return
-        csid_input = self.csid_entry.get().strip()
+        # Intentionally ignore any prefilled clientSessionId; always establish a fresh session per login
         def work():
             api = PokerogueAPI(user, pwd)
             api.login()
-            csid = csid_input or load_client_session_id() or None
-            if csid:
+            # Prefer server-provided clientSessionId; otherwise generate a new one for this session
+            try:
+                from rogueeditor.utils import generate_client_session_id
+                csid = api.client_session_id or generate_client_session_id()
                 api.client_session_id = csid
+                # Persist for convenience/debug; UI shows current csid
                 try:
                     save_client_session_id(csid)
                     set_user_csid(user, csid)
                 except Exception:
                     pass
+            except Exception:
+                pass
             self.api = api
             self.editor = Editor(api)
             self.username = user
         def done():
             self.status_var.set(f"Status: Logged in as {user}")
             self._log(f"Logged in as {user}")
+            # Reflect the active clientSessionId in the UI field
+            try:
+                self.csid_entry.delete(0, tk.END)
+                self.csid_entry.insert(0, str(self.api.client_session_id or ""))
+            except Exception:
+                pass
+            # Persist and show last session update time
+            try:
+                from datetime import datetime
+                from rogueeditor.utils import set_user_last_session_update
+                ts = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                set_user_last_session_update(user, ts)
+                self.session_updated_var.set(f"Last session update: {ts}")
+            except Exception:
+                pass
             # Enable backup/restore and update backup status
             try:
                 self.btn_backup.configure(state=tk.NORMAL)
@@ -439,30 +640,128 @@ class App(tk.Tk):
         self.editor.system_verify()
         self._log("System verify executed.")
 
+    def _refresh_session(self):
+        if not self.user_combo.get().strip() or not self.pass_entry.get():
+            messagebox.showwarning("Missing", "Enter user and password first")
+            return
+        user = self.user_combo.get().strip()
+        pwd = self.pass_entry.get()
+        def work():
+            try:
+                # Re-login to obtain a fresh token and possibly server-provided clientSessionId
+                self.api.username = user
+                self.api.password = pwd
+                self.api.login()
+                # If server did not send csid, generate a fresh one
+                try:
+                    from rogueeditor.utils import generate_client_session_id
+                    csid = self.api.client_session_id or generate_client_session_id()
+                    self.api.client_session_id = csid
+                    try:
+                        save_client_session_id(csid)
+                        set_user_csid(user, csid)
+                    except Exception:
+                        pass
+                except Exception:
+                    pass
+            except Exception as e:
+                raise e
+        def done():
+            self.status_var.set(f"Status: Session refreshed for {user}")
+            try:
+                self.csid_entry.delete(0, tk.END)
+                self.csid_entry.insert(0, str(self.api.client_session_id or ""))
+            except Exception:
+                pass
+            self._log("Session refreshed.")
+            # Persist and reflect last session update time
+            try:
+                from datetime import datetime
+                from rogueeditor.utils import set_user_last_session_update
+                ts = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                set_user_last_session_update(user, ts)
+                self.session_updated_var.set(f"Last session update: {ts}")
+            except Exception:
+                pass
+        self._run_async("Refreshing session...", work, done)
+
+    def _update_session_label_from_store(self):
+        user = self.user_combo.get().strip()
+        if not user:
+            self.session_updated_var.set("Last session update: -")
+            return
+        try:
+            from rogueeditor.utils import get_user_last_session_update
+            ts = get_user_last_session_update(user)
+            self.session_updated_var.set(f"Last session update: {ts}" if ts else "Last session update: -")
+        except Exception:
+            self.session_updated_var.set("Last session update: -")
+
     def _dump_trainer(self):
+        p = trainer_save_path(self.username)
+        if os.path.exists(p):
+            if not messagebox.askyesno("Overwrite?", f"{p} exists. Overwrite with a fresh dump?"):
+                return
         self.editor.dump_trainer()
-        self._log(f"Dumped trainer to {trainer_save_path(self.username)}")
+        self._log(f"Dumped trainer to {p}")
 
     def _dump_slot_dialog(self):
         slot = self._ask_slot()
         if slot:
+            p = slot_save_path(self.username, slot)
+            if os.path.exists(p):
+                if not messagebox.askyesno("Overwrite?", f"{p} exists. Overwrite with a fresh dump?"):
+                    return
             self.editor.dump_slot(slot)
-            self._log(f"Dumped slot {slot} to {slot_save_path(self.username, slot)}")
+            self._log(f"Dumped slot {slot} to {p}")
     def _dump_slot_selected(self):
         try:
             slot = int(self.slot_var.get())
         except Exception:
             messagebox.showwarning("Invalid", "Invalid slot")
             return
+        p = slot_save_path(self.username, slot)
+        if os.path.exists(p):
+            if not messagebox.askyesno("Overwrite?", f"{p} exists. Overwrite with a fresh dump?"):
+                return
         self.editor.dump_slot(slot)
-        self._log(f"Dumped slot {slot} to {slot_save_path(self.username, slot)}")
+        self._log(f"Dumped slot {slot} to {p}")
+
+    def _dump_all(self):
+        if not messagebox.askyesno("Confirm", "Dump trainer and all slots to local files? Existing files will be overwritten."):
+            return
+        try:
+            self.editor.dump_trainer()
+        except Exception as e:
+            self._log(f"Trainer dump failed: {e}")
+        for i in range(1, 6):
+            try:
+                self.editor.dump_slot(i)
+            except Exception as e:
+                self._log(f"Slot {i} dump failed: {e}")
+        messagebox.showinfo("Dump All", "Completed dump of trainer and slots 1-5.")
+        self._log("Dumped trainer and slots 1-5")
 
     def _update_trainer(self):
         if messagebox.askyesno("Confirm", "Update trainer from file?"):
             try:
-                self.editor.update_trainer_from_file()
+                # Pre-validate JSON
+                from rogueeditor.utils import trainer_save_path, load_json
+                p = trainer_save_path(self.username)
+                try:
+                    data = load_json(p)
+                except Exception as e:
+                    messagebox.showerror("Invalid trainer.json", f"{p}\n\n{e}")
+                    return
+                if not isinstance(data, dict):
+                    messagebox.showerror("Invalid trainer.json", "Top-level must be a JSON object.")
+                    return
+                self.api.update_trainer(data)
                 self._log("Trainer updated from file.")
                 messagebox.showinfo("Upload", "Trainer uploaded successfully.")
+                # Offer verification
+                if messagebox.askyesno("Verify", "Verify trainer on server matches local changes (key fields)?"):
+                    self._verify_trainer_against_local()
             except Exception as e:
                 messagebox.showerror("Upload failed", str(e))
 
@@ -479,12 +778,72 @@ class App(tk.Tk):
             return
         if messagebox.askyesno("Confirm", f"Update slot {slot} from file?"):
             try:
-                self.editor.update_slot_from_file(slot)
+                from rogueeditor.utils import slot_save_path, load_json
+                p = slot_save_path(self.username, slot)
+                try:
+                    data = load_json(p)
+                except Exception as e:
+                    messagebox.showerror("Invalid slot file", f"{p}\n\n{e}")
+                    return
+                if not isinstance(data, dict):
+                    messagebox.showerror("Invalid slot file", "Top-level must be a JSON object.")
+                    return
+                self.api.update_slot(slot, data)
                 self._log(f"Slot {slot} updated from file.")
                 messagebox.showinfo("Upload", f"Slot {slot} uploaded successfully.")
+                # Offer verification
+                if messagebox.askyesno("Verify", f"Verify slot {slot} on server matches local changes (party/modifiers)?"):
+                    self._verify_slot_against_local(slot)
             except Exception as e:
                 messagebox.showerror("Upload failed", str(e))
                 return
+
+    def _upload_all(self):
+        # Upload trainer.json and all present slot files (1-5) to the server
+        from rogueeditor.utils import trainer_save_path, slot_save_path, load_json
+        if not self.username:
+            messagebox.showwarning("Not logged in", "Please login first")
+            return
+        if not messagebox.askyesno(
+            "Confirm",
+            "Upload trainer.json and all available slot files (1-5) to the server?\n\nThis overwrites server state.",
+        ):
+            return
+        successes: list[str] = []
+        errors: list[str] = []
+        # Trainer
+        try:
+            tp = trainer_save_path(self.username)
+            if os.path.exists(tp):
+                data = load_json(tp)
+                if not isinstance(data, dict):
+                    raise ValueError("trainer.json must contain a JSON object")
+                self.api.update_trainer(data)
+                successes.append("trainer")
+            else:
+                self._log(f"trainer.json not found at {tp}; skipping trainer upload")
+        except Exception as e:
+            errors.append(f"trainer: {e}")
+        # Slots 1..5
+        for i in range(1, 6):
+            try:
+                sp = slot_save_path(self.username, i)
+                if not os.path.exists(sp):
+                    continue
+                data = load_json(sp)
+                if not isinstance(data, dict):
+                    raise ValueError(f"slot {i}.json must contain a JSON object")
+                self.api.update_slot(i, data)
+                successes.append(f"slot {i}")
+            except Exception as e:
+                errors.append(f"slot {i}: {e}")
+        # Summary
+        if successes:
+            self._log("Uploaded: " + ", ".join(successes))
+        if errors:
+            messagebox.showwarning("Upload completed with errors", "\n".join(errors))
+        else:
+            messagebox.showinfo("Upload All", "Upload completed successfully.")
 
     def _hatch_eggs(self):
         try:
@@ -493,6 +852,57 @@ class App(tk.Tk):
             messagebox.showinfo("Eggs", "All eggs will hatch after the next fight.")
         except Exception as e:
             messagebox.showerror("Hatch failed", str(e))
+
+    # --- Verification helpers ---
+    def _verify_slot_against_local(self, slot: int) -> None:
+        try:
+            from rogueeditor.utils import slot_save_path, load_json
+            local_path = slot_save_path(self.username, slot)
+            if not os.path.exists(local_path):
+                messagebox.showwarning("No local dump", f"{local_path} not found. Dump first.")
+                return
+            local = load_json(local_path)
+            remote = self.api.get_slot(slot)
+            report_lines = [f"Verify slot {slot}", ""]
+            keys = ['party', 'modifiers']
+            all_ok = True
+            for k in keys:
+                l = local.get(k)
+                r = remote.get(k)
+                ok = (l == r)
+                all_ok = all_ok and ok
+                report_lines.append(f"[{k}] -> {'OK' if ok else 'MISMATCH'}")
+            if all_ok:
+                messagebox.showinfo("Verify", f"Slot {slot} matches local for keys: {', '.join(keys)}.")
+            else:
+                self._show_text_dialog(f"Verify Slot {slot}", "\n".join(report_lines))
+        except Exception as e:
+            messagebox.showerror("Verify failed", str(e))
+
+    def _verify_trainer_against_local(self) -> None:
+        try:
+            from rogueeditor.utils import trainer_save_path, load_json
+            local_path = trainer_save_path(self.username)
+            if not os.path.exists(local_path):
+                messagebox.showwarning("No local dump", f"{local_path} not found. Dump first.")
+                return
+            local = load_json(local_path)
+            remote = self.api.get_trainer()
+            report_lines = ["Verify trainer", ""]
+            keys = ['voucherCounts', 'starterData', 'dexData', 'money']
+            all_ok = True
+            for k in keys:
+                l = local.get(k)
+                r = remote.get(k)
+                ok = (l == r)
+                all_ok = all_ok and ok
+                report_lines.append(f"[{k}] -> {'OK' if ok else 'MISMATCH'}")
+            if all_ok:
+                messagebox.showinfo("Verify", "Trainer matches local for key fields.")
+            else:
+                self._show_text_dialog("Verify Trainer", "\n".join(report_lines))
+        except Exception as e:
+            messagebox.showerror("Verify failed", str(e))
 
     def _open_local_dump_dialog(self):
         # Opens trainer.json or slot N.json in the OS default editor
@@ -546,6 +956,7 @@ class App(tk.Tk):
 
         ttk.Button(top, text="Open", command=do_open).grid(row=3, column=0, padx=6, pady=10, sticky=tk.W)
         ttk.Button(top, text="Close", command=top.destroy).grid(row=3, column=1, padx=6, pady=10, sticky=tk.W)
+        self._modalize(top)
 
     def _on_slot_select(self, event=None):
         sel = self.slot_tree.selection()
@@ -558,31 +969,31 @@ class App(tk.Tk):
 
     def _refresh_slots(self):
         import time
-        from rogueeditor.utils import slot_save_path
+        from rogueeditor.utils import slot_save_path, load_json
         def work():
             rows = []
             for i in range(1, 6):
                 party_ct = '-'
                 playtime = '-'
-                empty = False
-                try:
-                    data = self.api.get_slot(i)
-                    party = data.get('party') or []
-                    party_ct = len(party)
-                    pt = data.get('playTime') or 0
-                    h = int(pt) // 3600
-                    m = (int(pt) % 3600) // 60
-                    s = int(pt) % 60
-                    playtime = f"{h:02d}:{m:02d}:{s:02d}"
-                    empty = (party_ct == 0 and pt == 0)
-                except Exception:
-                    empty = True
-                    party_ct = 0
-                    playtime = '-'
-                # Local dump time
+                empty = True
                 local = '-'
                 p = slot_save_path(self.username, i)
                 if os.path.exists(p):
+                    try:
+                        data = load_json(p)
+                        party = data.get('party') or []
+                        party_ct = len(party)
+                        pt = data.get('playTime') or 0
+                        try:
+                            h = int(pt) // 3600
+                            m = (int(pt) % 3600) // 60
+                            s = int(pt) % 60
+                            playtime = f"{h:02d}:{m:02d}:{s:02d}"
+                        except Exception:
+                            playtime = '-'
+                        empty = (party_ct == 0 and (int(pt) if isinstance(pt, int) else 0) == 0)
+                    except Exception:
+                        empty = True
                     ts = os.path.getmtime(p)
                     local = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(ts))
                 rows.append((i, party_ct, playtime, local, empty))
@@ -593,7 +1004,7 @@ class App(tk.Tk):
                     tags = ('empty',) if empty else ()
                     self.slot_tree.insert('', 'end', values=(slot, party_ct, playtime, local), tags=tags)
             self.after(0, update)
-        self._run_async("Loading slots...", work)
+        self._run_async("Loading local slots...", work)
 
     def _backup(self):
         def work():
@@ -781,6 +1192,11 @@ class App(tk.Tk):
                     self._run_async("Restoring slot...", work, lambda: self._log(f"Restored slot {s} from {name}"))
                 opt.destroy(); top.destroy()
             ttk.Button(opt, text="Restore", command=do_restore).grid(row=3, column=0, columnspan=3, pady=8)
+            try:
+                opt.transient(self)
+                opt.grab_set()
+            except Exception:
+                pass
         def delete_backup():
             sel = lb.curselection()
             if not sel:
@@ -809,6 +1225,7 @@ class App(tk.Tk):
         btns.pack(fill=tk.X, padx=6, pady=6)
         ttk.Button(btns, text="Restore", command=restore).pack(side=tk.LEFT, padx=4)
         ttk.Button(btns, text="Delete", command=delete_backup).pack(side=tk.LEFT, padx=4)
+        self._modalize(top)
 
     def _upload_local_dialog(self):
         # A simple dialog to upload trainer.json and/or selected slot file to server.
@@ -960,14 +1377,14 @@ class App(tk.Tk):
         if slot:
             self._run_and_show_output(f"Modifiers - Slot {slot}", lambda: self.editor.list_modifiers(slot))
 
-    def _open_mod_mgr(self):
+    def _open_item_mgr(self):
         try:
             slot = int(self.slot_var.get())
         except Exception:
             slot = self._ask_slot()
         if slot:
-            ModifiersManagerDialog(self, self.api, self.editor, slot)
-            self._log(f"Opened modifiers manager for slot {slot}")
+            ItemManagerDialog(self, self.api, self.editor, slot)
+            self._log(f"Opened item manager for slot {slot}")
 
     def _unlock_all_starters(self):
         # Strong warning + typed confirmation
@@ -1363,95 +1780,81 @@ class App(tk.Tk):
 
 
 def run():
-    app = App()
-    app.mainloop()
+    # Initialize logging early so startup issues are captured
+    logger = setup_logging()
+    attach_stderr_tee(logger)
+    install_excepthook(logger)
+    log_environment(logger)
 
+    # Ensure GUI starts from the main thread to avoid Tcl/Tk notifier errors on Windows
+    try:
+        import threading as _th
+        if _th.current_thread() is not _th.main_thread():
+            raise RuntimeError('GUI must be launched from the main thread')
+    except Exception as e:
+        log_exception_context("Main-thread check failed", logger)
+        print("[ERROR] GUI must be launched from the main thread.")
+        print(crash_hint())
+        return 2
 
-class AutoCompleteEntry(ttk.Entry):
-    def __init__(self, master, name_to_id: dict[str, int], **kwargs):
-        super().__init__(master, **kwargs)
-        self._name_to_id = name_to_id
-        self._popup = None
-        self._var = tk.StringVar()
-        self.config(textvariable=self._var)
-        self._var.trace_add('write', self._on_change)
-        self.bind('<Down>', self._move_down)
-        self._selected_id = None
-
-    def get_id(self):
-        v = self._var.get().strip()
-        if v.isdigit():
-            return int(v)
-        key = v.lower().replace(' ', '_')
-        if key in self._name_to_id:
-            return self._name_to_id[key]
-        return self._selected_id
-
-    def set_value(self, text: str):
-        self._var.set(text)
-
-    def _on_change(self, *args):
-        text = self._var.get().strip().lower().replace(' ', '_')
-        if not text:
-            self._hide_popup()
-            return
-        matches = [n for n in self._name_to_id.keys() if text in n][:10]
-        if not matches:
-            self._hide_popup()
-            return
-        if not self._popup:
-            self._popup = tk.Toplevel(self)
-            self._popup.wm_overrideredirect(True)
-            self._list = tk.Listbox(self._popup)
-            self._list.pack()
-            self._list.bind('<Double-Button-1>', self._select)
-            self._list.bind('<Return>', self._select)
-        self._list.delete(0, tk.END)
-        for m in matches:
-            disp = f"{m} ({self._name_to_id.get(m)})"
-            self._list.insert(tk.END, disp)
-        x = self.winfo_rootx()
-        y = self.winfo_rooty() + self.winfo_height()
-        self._popup.geometry(f"300x180+{x}+{y}")
-        self._popup.deiconify()
-
-    def _move_down(self, event):
-        if self._popup:
-            self._list.focus_set()
-            if self._list.size() > 0:
-                self._list.selection_set(0)
-        return 'break'
-
-    def _select(self, event=None):
-        if not self._popup:
-            return
+    # Optional proactive healthcheck on first run or after a failed run
+    try:
+        should_check = is_first_run() or (last_run_success() is False)
+    except Exception:
+        should_check = False
+    if should_check:
         try:
-            sel = self._list.get(self._list.curselection())
+            run_healthcheck(trigger="startup")
         except Exception:
-            return
-        # sel could be 'name (id)'; extract name
-        name = sel.split(' (', 1)[0]
-        self._var.set(name)
-        self._selected_id = self._name_to_id.get(name)
-        self._hide_popup()
+            log_exception_context("Healthcheck failed", logger)
 
-    def _hide_popup(self):
-        if self._popup:
-            self._popup.destroy()
-            self._popup = None
-
-
-class TeamEditorDialog(tk.Toplevel):
+    # Create a single Tk root and host App as a Frame to avoid multiple Tk instances
+    try:
+        # On Windows, help Tk find the correct bundled Tcl/Tk if env vars are unset
+        import sys as _sys, os as _os
+        if _os.name == 'nt' and not _os.environ.get('TCL_LIBRARY') and not _os.environ.get('TK_LIBRARY'):
+            base = getattr(_sys, 'base_prefix', _sys.exec_prefix)
+            tcl_dir = _os.path.join(base, 'tcl', 'tcl8.6')
+            tk_dir = _os.path.join(base, 'tcl', 'tk8.6')
+            if _os.path.isdir(tcl_dir) and _os.path.isdir(tk_dir):
+                _os.environ['TCL_LIBRARY'] = tcl_dir
+                _os.environ['TK_LIBRARY'] = tk_dir
+                try:
+                    logger.info('Set TCL_LIBRARY to %s and TK_LIBRARY to %s', tcl_dir, tk_dir)
+                except Exception:
+                    pass
+        root = tk.Tk()
+    except Exception:
+        log_exception_context("Failed to initialize Tk root", logger)
+        print("[ERROR] Failed to initialize GUI (Tk).")
+        print(crash_hint())
+        record_run_result(3, trigger="gui")
+        return 3
+    try:
+        app = App(root)
+        root.mainloop()
+    except Exception:
+        log_exception_context("Unhandled error in GUI mainloop", logger)
+        print("[ERROR] Unhandled GUI error.")
+        print(crash_hint())
+        record_run_result(4, trigger="gui")
+        return 4
+    record_run_result(0, trigger="gui")
+    return 0
     def __init__(self, master: App, api: PokerogueAPI, editor: Editor, slot: int):
         super().__init__(master)
         self.title(f"Team Editor - Slot {slot}")
-        self.geometry("900x500")
+        self.geometry("1000x600")
         self.api = api
         self.editor = editor
         self.slot = slot
         self.data = self.api.get_slot(slot)
         self.party = self.data.get("party") or []
         self._build()
+        try:
+            master._modalize(self)
+        except Exception:
+            pass
 
     def _build(self):
         frame = ttk.Frame(self)
@@ -1483,9 +1886,12 @@ class TeamEditorDialog(tk.Toplevel):
         self.move_name_to_id = move_name_to_id
         self.move_id_to_name = move_id_to_name
 
-        ttk.Label(parent, text="Level:").grid(row=0, column=0, sticky=tk.W)
+        # Section: Identity
+        ident = ttk.LabelFrame(parent, text="Identity")
+        ident.grid(row=0, column=0, columnspan=6, sticky=tk.W+tk.E, padx=2, pady=2)
+        ttk.Label(ident, text="Level:").grid(row=0, column=0, sticky=tk.W, padx=4, pady=2)
         self.level_var = tk.StringVar()
-        ttk.Entry(parent, textvariable=self.level_var, width=6).grid(row=0, column=1, sticky=tk.W)
+        ttk.Entry(ident, textvariable=self.level_var, width=6).grid(row=0, column=1, sticky=tk.W, padx=2, pady=2)
         # Recalculate stats when level changes
         def _on_level_change(*args):
             try:
@@ -1499,12 +1905,12 @@ class TeamEditorDialog(tk.Toplevel):
             pass
         self.level_var._lvl_trace = self.level_var.trace_add('write', _on_level_change)
 
-        ttk.Label(parent, text="Ability:").grid(row=1, column=0, sticky=tk.W)
-        self.ability_ac = AutoCompleteEntry(parent, abil_name_to_id)
-        self.ability_ac.grid(row=1, column=1, sticky=tk.W)
-        ttk.Button(parent, text="Pick", command=lambda: self._pick_from_catalog(self.ability_ac, abil_name_to_id, 'Select Ability')).grid(row=1, column=2, sticky=tk.W)
+        ttk.Label(ident, text="Ability:").grid(row=0, column=2, sticky=tk.W, padx=8)
+        self.ability_ac = AutoCompleteEntry(ident, abil_name_to_id, width=24)
+        self.ability_ac.grid(row=0, column=3, sticky=tk.W, padx=2)
+        ttk.Button(ident, text="Pick", command=lambda: self._pick_from_catalog(self.ability_ac, abil_name_to_id, 'Select Ability')).grid(row=0, column=4, sticky=tk.W, padx=2)
 
-        ttk.Label(parent, text="Nature:").grid(row=2, column=0, sticky=tk.W)
+        ttk.Label(ident, text="Nature:").grid(row=1, column=0, sticky=tk.W, padx=4)
         # Nature combobox with effect hints (e.g., Adamant +Atk/-SpA)
         from rogueeditor.catalog import nature_multipliers_by_id
         mults_map = nature_multipliers_by_id()
@@ -1524,35 +1930,39 @@ class TeamEditorDialog(tk.Toplevel):
             effect = _effect_text(nid)
             disp = f"{_pretty(raw_name)} ({effect}) ({nid})"
             nature_items.append(disp)
-        self.nature_cb = ttk.Combobox(parent, values=nature_items, width=28)
-        self.nature_cb.grid(row=2, column=1, sticky=tk.W)
+        self.nature_cb = ttk.Combobox(ident, values=nature_items, width=28)
+        self.nature_cb.grid(row=1, column=1, sticky=tk.W, padx=2)
         self.nature_cb.bind('<<ComboboxSelected>>', lambda e: self._on_nature_change())
         # Nature effect hint label
-        self.nature_hint = ttk.Label(parent, text="")
-        self.nature_hint.grid(row=2, column=5, sticky=tk.W)
+        self.nature_hint = ttk.Label(ident, text="")
+        self.nature_hint.grid(row=1, column=5, sticky=tk.W, padx=6)
 
-        # Held Item
-        ttk.Label(parent, text="Held Item:").grid(row=2, column=2, sticky=tk.W)
+        # Held Item(s)
+        ttk.Label(ident, text="Held Item(s):").grid(row=1, column=2, sticky=tk.W, padx=8)
         try:
             item_name_to_id, item_id_to_name = load_item_catalog()
         except Exception:
             item_name_to_id = {}
             item_id_to_name = {}
         if item_name_to_id:
-            self.held_item_ac = AutoCompleteEntry(parent, item_name_to_id, width=20)
-            self.held_item_ac.grid(row=2, column=3, sticky=tk.W)
-            ttk.Button(parent, text="Pick", command=lambda: self._pick_from_catalog(self.held_item_ac, item_name_to_id, 'Select Item')).grid(row=2, column=4, sticky=tk.W)
+            self.held_item_ac = AutoCompleteEntry(ident, item_name_to_id, width=20)
+            self.held_item_ac.grid(row=1, column=3, sticky=tk.W, padx=2)
+            ttk.Button(ident, text="Pick", command=lambda: self._pick_from_catalog(self.held_item_ac, item_name_to_id, 'Select Item')).grid(row=1, column=4, sticky=tk.W, padx=2)
+            ttk.Button(ident, text="Manage Items...", command=self._open_item_manager_for_current).grid(row=1, column=6, sticky=tk.W, padx=6)
             self.held_item_var = None
         else:
             self.held_item_var = tk.StringVar()
-            ttk.Entry(parent, textvariable=self.held_item_var, width=8).grid(row=2, column=3, sticky=tk.W)
+            ttk.Entry(ident, textvariable=self.held_item_var, width=8).grid(row=1, column=3, sticky=tk.W, padx=2)
+            ttk.Button(ident, text="Manage Items...", command=self._open_item_manager_for_current).grid(row=1, column=6, sticky=tk.W, padx=6)
 
-        # IVs in two columns of three
-        ttk.Label(parent, text="IVs:").grid(row=3, column=0, sticky=tk.NW)
+        # Section: IVs and Calculated Stats
+        stats_sec = ttk.LabelFrame(parent, text="IVs & Stats")
+        stats_sec.grid(row=1, column=0, columnspan=6, sticky=tk.W+tk.E, padx=2, pady=4)
+        ttk.Label(stats_sec, text="IVs:").grid(row=0, column=0, sticky=tk.NW, padx=4)
         self.iv_vars = [tk.StringVar() for _ in range(6)]
         iv_labels = ["HP", "Atk", "Def", "SpA", "SpD", "Spe"]
-        iv_frame = ttk.Frame(parent)
-        iv_frame.grid(row=3, column=1, columnspan=3, sticky=tk.W)
+        iv_frame = ttk.Frame(stats_sec)
+        iv_frame.grid(row=0, column=1, columnspan=3, sticky=tk.W)
         # Left column (HP/Atk/Def)
         for i, lab in enumerate(iv_labels[:3]):
             ttk.Label(iv_frame, text=lab+":").grid(row=i, column=0, sticky=tk.E, padx=2, pady=1)
@@ -1563,9 +1973,9 @@ class TeamEditorDialog(tk.Toplevel):
             ttk.Entry(iv_frame, textvariable=self.iv_vars[j], width=4).grid(row=j-3, column=3, sticky=tk.W)
 
         # Calculated Stats (derived from Level + IVs, EV=0)
-        ttk.Label(parent, text="Calculated Stats:").grid(row=4, column=0, sticky=tk.NW)
-        stats_frame = ttk.Frame(parent)
-        stats_frame.grid(row=4, column=1, columnspan=3, sticky=tk.W)
+        ttk.Label(stats_sec, text="Calculated Stats:").grid(row=1, column=0, sticky=tk.NW, padx=4)
+        stats_frame = ttk.Frame(stats_sec)
+        stats_frame.grid(row=1, column=1, columnspan=3, sticky=tk.W)
         self.stat_lbls = []
         for i, lab in enumerate(["HP", "Atk", "Def", "SpA", "SpD", "Spe"]):
             ttk.Label(stats_frame, text=lab+":").grid(row=i//3, column=(i%3)*2, sticky=tk.W, padx=(0, 4))
@@ -1573,22 +1983,34 @@ class TeamEditorDialog(tk.Toplevel):
             val.grid(row=i//3, column=(i%3)*2+1, sticky=tk.W, padx=(0, 12))
             self.stat_lbls.append(val)
 
-        ttk.Label(parent, text="Moves:").grid(row=5, column=0, sticky=tk.W)
+        # Section: Moves
+        moves_sec = ttk.LabelFrame(parent, text="Moves")
+        moves_sec.grid(row=2, column=0, columnspan=6, sticky=tk.W+tk.E, padx=2, pady=4)
+        ttk.Label(moves_sec, text="Moves:").grid(row=0, column=0, sticky=tk.W, padx=4)
         self.move_acs = []
         self.move_lbls = []
         for i in range(4):
-            ac = AutoCompleteEntry(parent, move_name_to_id, width=30)
-            ac.grid(row=5+i, column=1, sticky=tk.W, pady=1)
+            ac = AutoCompleteEntry(moves_sec, move_name_to_id, width=30)
+            ac.grid(row=i, column=1, sticky=tk.W, pady=1, padx=2)
             ac.bind('<KeyRelease>', lambda e, j=i: self._on_move_ac_change(j))
             ac.bind('<FocusOut>', lambda e, j=i: self._on_move_ac_change(j))
-            ttk.Button(parent, text="Pick", command=lambda j=i: self._pick_from_catalog(self.move_acs[j], move_name_to_id, f'Select Move {j+1}')).grid(row=5+i, column=2, sticky=tk.W)
-            lbl = ttk.Label(parent, text="", width=28)
-            lbl.grid(row=5+i, column=3, sticky=tk.W, padx=6)
+            ttk.Button(moves_sec, text="Pick", command=lambda j=i: self._pick_from_catalog(self.move_acs[j], move_name_to_id, f'Select Move {j+1}')).grid(row=i, column=2, sticky=tk.W, padx=2)
+            lbl = ttk.Label(moves_sec, text="", width=28)
+            lbl.grid(row=i, column=3, sticky=tk.W, padx=6)
             self.move_lbls.append(lbl)
             self.move_acs.append(ac)
 
-        ttk.Button(parent, text="Save to file", command=self._save).grid(row=10, column=0, pady=8)
-        ttk.Button(parent, text="Upload", command=self._upload).grid(row=10, column=1, pady=8)
+        # Section: Items & Modifiers preview
+        itm_sec = ttk.LabelFrame(parent, text="Items & Modifiers")
+        itm_sec.grid(row=3, column=0, columnspan=6, sticky=tk.W+tk.E, padx=2, pady=4)
+        ttk.Label(itm_sec, text="Item effects (preview):").grid(row=0, column=0, sticky=tk.W, padx=4)
+        self.item_effects_lbl = ttk.Label(itm_sec, text="-", width=60)
+        self.item_effects_lbl.grid(row=0, column=1, sticky=tk.W)
+        ttk.Button(itm_sec, text="Adjust Item Stacks...", command=self._edit_item_stacks).grid(row=0, column=2, sticky=tk.W, padx=4)
+
+        # Actions
+        ttk.Button(parent, text="Save to file", command=self._save).grid(row=4, column=0, pady=8, padx=2, sticky=tk.W)
+        ttk.Button(parent, text="Upload", command=self._upload).grid(row=4, column=1, pady=8, padx=2, sticky=tk.W)
 
     def _on_select(self, event=None):
         if not self.team_list.curselection():
@@ -1662,6 +2084,8 @@ class TeamEditorDialog(tk.Toplevel):
         except Exception:
             arr = [1.0]*6
         self._update_nature_hint(arr)
+        # Update item effects preview
+        self._update_item_effects()
 
     def _apply_form_changes(self) -> bool:
         # Applies UI fields to current mon in self.data; returns True if applied
@@ -1843,6 +2267,17 @@ class TeamEditorDialog(tk.Toplevel):
             mults = nature_multipliers_by_id().get(nid or -1, [1.0] * 6)
         except Exception:
             mults = [1.0] * 6
+        # Divide out item multipliers first
+        try:
+            sel = self.team_list.curselection()[0]
+            mon = self.party[sel]
+            item_mults = self._item_stat_multipliers(mon)
+            for i in range(6):
+                m = item_mults[i] if 0 <= i < len(item_mults) else 1.0
+                if m and abs(m - 1.0) > 1e-6:
+                    actual[i] = max(1, round(actual[i] / m))
+        except Exception:
+            pass
         base: list[int] = []
         # HP (no nature)
         hp = actual[0]
@@ -1876,6 +2311,14 @@ class TeamEditorDialog(tk.Toplevel):
             m = mults[i] if i < len(mults) else 1.0
             val = math.floor(val * m + 1e-6)
             out.append(val)
+        # Apply item-based stat multipliers (10% per stack)
+        try:
+            sel = self.team_list.curselection()[0]
+            mon = self.party[sel]
+            item_mults = self._item_stat_multipliers(mon)
+            out = [math.floor(out[i] * item_mults[i] + 1e-6) for i in range(6)]
+        except Exception:
+            pass
         return out
 
     def _init_base_and_update(self):
@@ -1888,11 +2331,23 @@ class TeamEditorDialog(tk.Toplevel):
         if not ivs:
             return
         lvl = self._get_level()
-        actual = self._extract_actual_stats(mon)
-        if actual:
-            self._base_stats = self._infer_base_stats(lvl, ivs, actual)
+        # Prefer catalog base stats if available (from Source/data/base_stats.json)
+        base_from_catalog = None
+        try:
+            did = mon.get('species') or mon.get('dexId') or mon.get('speciesId')
+            if did is not None:
+                from rogueeditor.base_stats import get_base_stats_by_species_id
+                base_from_catalog = get_base_stats_by_species_id(int(did))
+        except Exception:
+            base_from_catalog = None
+        if base_from_catalog and len(base_from_catalog) == 6:
+            self._base_stats = base_from_catalog
         else:
-            self._base_stats = [50, 50, 50, 50, 50, 50]
+            actual = self._extract_actual_stats(mon)
+            if actual:
+                self._base_stats = self._infer_base_stats(lvl, ivs, actual)
+            else:
+                self._base_stats = [50, 50, 50, 50, 50, 50]
         self._update_calculated_stats()
 
     def _update_calculated_stats(self):
@@ -1978,6 +2433,24 @@ class TeamEditorDialog(tk.Toplevel):
                 label = f"{name} (#{mid})"
             self.move_lbls[idx].configure(text=label)
 
+    def _open_item_manager_for_current(self):
+        # Open the item/modifier manager with the currently selected Pokemon pre-selected
+        try:
+            if not self.team_list.curselection():
+                messagebox.showwarning("No selection", "Select a team member first")
+                return
+            sel = self.team_list.curselection()[0]
+            mon = self.party[sel]
+            mon_id = mon.get('id')
+        except Exception:
+            mon_id = None
+        try:
+            # Instantiate with optional preselect id
+            ItemManagerDialog(self, self.api, self.editor, self.slot, preselect_mon_id=mon_id)
+        except TypeError:
+            # Fallback if constructor signature not updated
+            ItemManagerDialog(self, self.api, self.editor, self.slot)
+
     def _pick_from_catalog(self, ac: AutoCompleteEntry, name_to_id: dict[str, int], title: str):
         sel = CatalogSelectDialog.select(self, name_to_id, title)
         if sel is not None:
@@ -1989,208 +2462,645 @@ class TeamEditorDialog(tk.Toplevel):
                     break
             ac.set_value(name or str(sel))
 
+    def _update_item_effects(self):
+        # Inspect modifiers targeting current mon and show multipliers summary
+        try:
+            if not self.team_list.curselection():
+                self.item_effects_lbl.configure(text='-')
+                return
+            idx = self.team_list.curselection()[0]
+            mon = self.party[idx]
+            mults = self._item_stat_multipliers(mon)
+            labels = ["HP","Atk","Def","SpA","SpD","Spe"]
+            parts = []
+            for i, m in enumerate(mults):
+                if abs(m - 1.0) > 1e-6:
+                    parts.append(f"{labels[i]} x{m:.2f}")
+            text = ', '.join(parts) if parts else 'None'
+            self.item_effects_lbl.configure(text=text)
+        except Exception:
+            self.item_effects_lbl.configure(text='-')
 
-class ModifiersManagerDialog(tk.Toplevel):
-    def __init__(self, master: App, api: PokerogueAPI, editor: Editor, slot: int):
+    def _item_stat_multipliers(self, mon: dict) -> list[float]:
+        # Returns per-stat multipliers [HP, Atk, Def, SpA, SpD, Spe]
+        out = [1.0] * 6
+        try:
+            mon_id = mon.get('id')
+            mods = self.data.get('modifiers') or []
+            # Map typeId -> affected stat indices
+            type_to_indices = {
+                'CHOICE_BAND': [1],
+                'MUSCLE_BAND': [1],
+                'CHOICE_SPECS': [3],
+                'WISE_GLASSES': [3],
+                'CHOICE_SCARF': [5],
+                'EVIOLITE': [2, 4],
+            }
+            # Build stat id -> index mapping for BASE_STAT_BOOSTER
+            from rogueeditor.catalog import load_stat_catalog
+            _, stat_id_to_name = load_stat_catalog()
+            name_to_idx = {
+                'hp': 0,
+                'attack': 1,
+                'defense': 2,
+                'sp_attack': 3,
+                'sp_defense': 4,
+                'speed': 5,
+            }
+            for m in mods:
+                if not isinstance(m, dict):
+                    continue
+                args = m.get('args') or []
+                if not (args and isinstance(args, list) and isinstance(args[0], int) and args[0] == mon_id):
+                    continue
+                tid = str(m.get('typeId') or '').upper()
+                stacks = 0
+                try:
+                    stacks = int(m.get('stackCount') or 0)
+                except Exception:
+                    stacks = 0
+                if stacks <= 0:
+                    continue
+                indices = []
+                if tid == 'BASE_STAT_BOOSTER':
+                    sid = None
+                    if len(args) >= 2 and isinstance(args[1], int):
+                        sid = args[1]
+                    elif m.get('typePregenArgs') and isinstance(m.get('typePregenArgs'), list):
+                        try:
+                            sid = int(m.get('typePregenArgs')[0])
+                        except Exception:
+                            sid = None
+                    if isinstance(sid, int):
+                        name = stat_id_to_name.get(int(sid), '').strip().lower()
+                        name = name.replace(' ', '_')
+                        if name in name_to_idx:
+                            indices = [name_to_idx[name]]
+                else:
+                    indices = type_to_indices.get(tid, [])
+                if not indices:
+                    continue
+                factor = (1.1) ** stacks
+                for i in indices:
+                    if 0 <= i < 6:
+                        out[i] *= factor
+        except Exception:
+            return [1.0] * 6
+        return out
+
+    def _edit_item_stacks(self):
+        # Dialog to adjust stackCount for stat-boosting modifiers on current mon
+        if not self.team_list.curselection():
+            return
+        idx = self.team_list.curselection()[0]
+        mon = self.party[idx]
+        mon_id = mon.get('id')
+        mods = self.data.get('modifiers') or []
+        # Collect indexes for recognized modifiers
+        recognized = []
+        rec_types = {'CHOICE_BAND','MUSCLE_BAND','CHOICE_SPECS','WISE_GLASSES','CHOICE_SCARF','EVIOLITE','BASE_STAT_BOOSTER'}
+        for i, m in enumerate(mods):
+            if not isinstance(m, dict):
+                continue
+            args = m.get('args') or []
+            if args and isinstance(args, list) and isinstance(args[0], int) and args[0] == mon_id:
+                tid = str(m.get('typeId') or '').upper()
+                if tid in rec_types:
+                    recognized.append((i, m))
+        if not recognized:
+            messagebox.showinfo('No items', 'No recognized stat-boosting modifiers found for this PokÃ©mon.')
+            return
+        top = tk.Toplevel(self)
+        top.title('Adjust Item Stacks')
+        rows = []
+        for r, (i, m) in enumerate(recognized):
+            tid = str(m.get('typeId') or '')
+            ttk.Label(top, text=f"[{i}] {tid}").grid(row=r, column=0, sticky=tk.W, padx=6, pady=4)
+            var = tk.StringVar(value=str(m.get('stackCount') or 1))
+            ttk.Entry(top, textvariable=var, width=6).grid(row=r, column=1, sticky=tk.W)
+            rows.append((i, var))
+        def apply_changes():
+            changed = False
+            for i, var in rows:
+                try:
+                    val = int(var.get().strip())
+                except Exception:
+                    continue
+                if val < 0:
+                    val = 0
+                if mods[i].get('stackCount') != val:
+                    mods[i]['stackCount'] = val
+                    changed = True
+            if changed:
+                from rogueeditor.utils import slot_save_path, dump_json
+                p = slot_save_path(self.api.username, self.slot)
+                dump_json(p, self.data)
+                if messagebox.askyesno('Upload', 'Upload changes to server now?'):
+                    from rogueeditor.utils import load_json
+                    payload = load_json(p)
+                    try:
+                        self.api.update_slot(self.slot, payload)
+                        messagebox.showinfo('Uploaded', 'Server updated.')
+                    except Exception as e:
+                        messagebox.showerror('Upload failed', str(e))
+                # Refresh previews and stats
+                self._update_item_effects()
+                self._update_calculated_stats()
+            top.destroy()
+        ttk.Button(top, text='Apply', command=apply_changes).grid(row=len(rows), column=0, columnspan=2, pady=8)
+
+
+
+class _ItemManagerDialog_Legacy(tk.Toplevel):
+    def __init__(self, master: App, api: PokerogueAPI, editor: Editor, slot: int, preselect_mon_id: int | None = None):
         super().__init__(master)
-        self.title(f"Modifiers Manager - Slot {slot}")
-        self.geometry("900x500")
+        self.title(f"Modifiers & Items Manager - Slot {slot}")
+        self.geometry('900x520')
         self.api = api
         self.editor = editor
         self.slot = slot
+        self._preselect_mon_id = preselect_mon_id
+        # Load slot data once
+        self.data = self.api.get_slot(slot)
+        self.party = self.data.get('party') or []
+        # Dirty state flags
+        self._dirty_local = False
+        self._dirty_server = False
         self._build()
         self._refresh()
+        self._preselect_party()
+        try:
+            master._modalize(self)
+        except Exception:
+            pass
 
     def _build(self):
         top = ttk.Frame(self)
         top.pack(fill=tk.BOTH, expand=True, padx=6, pady=6)
-        # Player modifiers
-        left = ttk.LabelFrame(top, text="Player Modifiers")
+        # Left: target selector, party list, and current modifiers
+        left = ttk.LabelFrame(top, text='Target')
         left.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=4, pady=4)
-        cols = ("idx", "typeId", "className", "args", "stack")
-        self.player_tree = ttk.Treeview(left, columns=cols, show="headings", height=10)
-        for c, w in (("idx", 50), ("typeId", 150), ("className", 200), ("args", 200), ("stack", 60)):
-            self.player_tree.heading(c, text=c)
-            self.player_tree.column(c, width=w, anchor=tk.W)
-        self.player_tree.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
-        sb1 = ttk.Scrollbar(left, orient="vertical", command=self.player_tree.yview)
-        self.player_tree.configure(yscrollcommand=sb1.set)
-        sb1.pack(side=tk.RIGHT, fill=tk.Y)
-        btns1 = ttk.Frame(left)
-        btns1.pack(fill=tk.X)
-        ttk.Button(btns1, text="Add Player Modifier", command=self._add_player_mod).pack(side=tk.LEFT, padx=4, pady=4)
-        ttk.Button(btns1, text="Remove Selected", command=self._remove_player_mod).pack(side=tk.LEFT, padx=4, pady=4)
+        ttk.Label(left, text='Apply to:').pack(anchor=tk.W, padx=4, pady=(2,0))
+        self.target_var = tk.StringVar(value='Pokemon')
+        target_row = ttk.Frame(left)
+        target_row.pack(fill=tk.X, padx=4, pady=2)
+        ttk.Radiobutton(target_row, text='Pokemon', variable=self.target_var, value='Pokemon', command=self._on_target_change).pack(side=tk.LEFT)
+        ttk.Radiobutton(target_row, text='Trainer', variable=self.target_var, value='Trainer', command=self._on_target_change).pack(side=tk.LEFT, padx=8)
+        ttk.Label(left, text='Party:').pack(anchor=tk.W, padx=4)
+        self.party_list = tk.Listbox(left, height=10)
+        self.party_list.pack(fill=tk.BOTH, expand=True, padx=4, pady=4)
+        self.party_list.bind('<<ListboxSelect>>', lambda e: self._refresh_mods())
+        self.mod_list = tk.Listbox(left, height=10)
+        self.mod_list.pack(fill=tk.BOTH, expand=True, padx=4, pady=4)
+        self.mod_list.bind('<Double-Button-1>', lambda e: self._show_selected_detail())
+        btns = ttk.Frame(left)
+        btns.pack(fill=tk.X)
+        ttk.Button(btns, text='Edit Stacks...', command=self._edit_selected_stacks).pack(side=tk.LEFT, padx=4, pady=4)
+        ttk.Button(btns, text='Remove Selected', command=self._remove_selected).pack(side=tk.LEFT, padx=4, pady=4)
+        ttk.Button(btns, text='Refresh', command=self._refresh_mods).pack(side=tk.LEFT, padx=4, pady=4)
 
-        # Pokemon modifiers
-        right = ttk.LabelFrame(top, text="Pokemon Modifiers")
+        # Right: pickers to add items/modifiers
+        right = ttk.LabelFrame(top, text='Add Item / Modifier')
         right.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=4, pady=4)
-        cols2 = ("idx", "typeId", "className", "args", "target")
-        self.pokemon_tree = ttk.Treeview(right, columns=cols2, show="headings", height=10)
-        for c, w in (("idx", 50), ("typeId", 150), ("className", 200), ("args", 200), ("target", 120)):
-            self.pokemon_tree.heading(c, text=c)
-            self.pokemon_tree.column(c, width=w, anchor=tk.W)
-        self.pokemon_tree.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
-        sb2 = ttk.Scrollbar(right, orient="vertical", command=self.pokemon_tree.yview)
-        self.pokemon_tree.configure(yscrollcommand=sb2.set)
-        sb2.pack(side=tk.RIGHT, fill=tk.Y)
-        btns2 = ttk.Frame(right)
-        btns2.pack(fill=tk.X)
-        ttk.Button(btns2, text="Remove Selected", command=self._remove_pokemon_mod).pack(side=tk.LEFT, padx=4, pady=4)
-        ttk.Button(btns2, text="Refresh", command=self._refresh).pack(side=tk.LEFT, padx=4, pady=4)
+        row = 0
+        ttk.Label(right, text='Category:').grid(row=row, column=0, sticky=tk.W)
+        self.cat_var = tk.StringVar(value='Common')
+        cat_opts = ['Common', 'Accuracy', 'Berries', 'Base Stat Booster', 'Observed', 'Player (Trainer)']
+        self.cat_cb = ttk.Combobox(right, textvariable=self.cat_var, values=cat_opts, state='readonly', width=24)
+        self.cat_cb.grid(row=row, column=1, sticky=tk.W, padx=4, pady=2)
+        self.cat_cb.bind('<<ComboboxSelected>>', lambda e: self._on_cat_change())
+        row += 1
 
-        # Upload/save
-        bottom = ttk.Frame(self)
-        bottom.pack(fill=tk.X, padx=6, pady=6)
-        ttk.Button(bottom, text="Upload Changes", command=self._upload).pack(side=tk.LEFT)
+        # Common one-arg items
+        self.common_var = tk.StringVar()
+        self.common_cb = ttk.Combobox(right, textvariable=self.common_var, values=sorted(list(self._common_items())), width=28)
+        ttk.Label(right, text='Common:').grid(row=row, column=0, sticky=tk.W)
+        self.common_cb.grid(row=row, column=1, sticky=tk.W, padx=4, pady=2)
+        row += 1
+
+        # Accuracy items with boost
+        self.acc_var = tk.StringVar()
+        self.acc_cb = ttk.Combobox(right, textvariable=self.acc_var, values=['WIDE_LENS', 'MULTI_LENS'], width=28)
+        ttk.Label(right, text='Accuracy item:').grid(row=row, column=0, sticky=tk.W)
+        self.acc_cb.grid(row=row, column=1, sticky=tk.W, padx=4, pady=2)
+        ttk.Label(right, text='Boost:').grid(row=row, column=2, sticky=tk.E)
+        self.acc_boost = ttk.Entry(right, width=6)
+        self.acc_boost.insert(0, '5')
+        self.acc_boost.grid(row=row, column=3, sticky=tk.W)
+        row += 1
+
+        # Berries
+        from rogueeditor.catalog import load_berry_catalog
+        berry_n2i, berry_i2n = load_berry_catalog()
+        self.berry_var = tk.StringVar()
+        self.berry_cb = ttk.Combobox(right, textvariable=self.berry_var, values=sorted([f"{k} ({v})" for k,v in berry_n2i.items()]), width=28)
+        ttk.Label(right, text='Berry:').grid(row=row, column=0, sticky=tk.W)
+        self.berry_cb.grid(row=row, column=1, sticky=tk.W, padx=4, pady=2)
+        row += 1
+
+        # Base Stat Booster
+        from rogueeditor.catalog import load_stat_catalog
+        stat_n2i, stat_i2n = load_stat_catalog()
+        self.stat_var = tk.StringVar()
+        self.stat_cb = ttk.Combobox(right, textvariable=self.stat_var, values=sorted([f"{k} ({v})" for k,v in stat_n2i.items()]), width=28)
+        ttk.Label(right, text='Base stat:').grid(row=row, column=0, sticky=tk.W)
+        self.stat_cb.grid(row=row, column=1, sticky=tk.W, padx=4, pady=2)
+        # Hint about stat boosters per stack
+        try:
+            self.stat_hint = ttk.Label(right, text='')
+            self.stat_hint.grid(row=row, column=2, columnspan=2, sticky=tk.W)
+        except Exception:
+            pass
+        row += 1
+
+        # Observed from dumps
+        self.obs_var = tk.StringVar()
+        self.obs_cb = ttk.Combobox(right, textvariable=self.obs_var, values=[], width=28)
+        ttk.Label(right, text='Observed typeId:').grid(row=row, column=0, sticky=tk.W)
+        self.obs_cb.grid(row=row, column=1, sticky=tk.W, padx=4, pady=2)
+        row += 1
+
+        # Player (trainer) modifiers
+        ttk.Label(right, text='Player mod typeId:').grid(row=row, column=0, sticky=tk.W)
+        self.player_type_var = tk.StringVar()
+        self.player_type_cb = ttk.Combobox(right, textvariable=self.player_type_var, values=['EXP_CHARM','SUPER_EXP_CHARM','EXP_SHARE','MAP','IV_SCANNER','GOLDEN_POKEBALL'], width=28)
+        self.player_type_cb.grid(row=row, column=1, sticky=tk.W, padx=4, pady=2)
+        ttk.Label(right, text='Args (ints, comma-separated):').grid(row=row, column=2, sticky=tk.E)
+        self.player_args_var = tk.StringVar()
+        ttk.Entry(right, textvariable=self.player_args_var, width=18).grid(row=row, column=3, sticky=tk.W)
+        row += 1
+
+        ttk.Label(right, text='Stacks:').grid(row=row, column=2, sticky=tk.E)
+        self.stack_var = tk.StringVar(value='1')
+        ttk.Entry(right, textvariable=self.stack_var, width=6).grid(row=row, column=3, sticky=tk.W)
+        row += 1
+        self.btn_add = ttk.Button(right, text='Add', command=self._add, state=tk.DISABLED)
+        self.btn_add.grid(row=row, column=1, sticky=tk.W, padx=4, pady=6)
+        self.btn_save = ttk.Button(right, text='Save to file', command=self._save, state=tk.DISABLED)
+        self.btn_save.grid(row=row, column=2, sticky=tk.W, padx=4, pady=6)
+        self.btn_upload = ttk.Button(right, text='Upload', command=self._upload, state=tk.DISABLED)
+        self.btn_upload.grid(row=row, column=3, sticky=tk.W, padx=4, pady=6)
+
+    def _common_items(self) -> set[str]:
+        return {
+            "FOCUS_BAND", "MYSTICAL_ROCK", "SOOTHE_BELL", "SCOPE_LENS", "LEEK", "EVIOLITE",
+            "SOUL_DEW", "GOLDEN_PUNCH", "GRIP_CLAW", "QUICK_CLAW", "KINGS_ROCK", "LEFTOVERS",
+            "SHELL_BELL", "TOXIC_ORB", "FLAME_ORB", "BATON"
+        }
+
+    def _on_cat_change(self):
+        # Adjust available categories and hint text when switching contexts
+        try:
+            if hasattr(self, 'stat_hint'):
+                self.stat_hint.configure(text='')
+        except Exception:
+            pass
+        # When target changes, restrict categories accordingly
+        tgt = self.target_var.get()
+        if tgt == 'Trainer':
+            vals = ['Player (Trainer)']
+        else:
+            vals = ['Common', 'Accuracy', 'Berries', 'Base Stat Booster', 'Observed']
+        try:
+            self.cat_cb['values'] = vals
+            if self.cat_var.get() not in vals:
+                self.cat_var.set(vals[0])
+        except Exception:
+            pass
 
     def _refresh(self):
-        # Populate trees
-        det = self.editor.list_modifiers_detailed(self.slot)
-        player_mods, by_mon = self.editor.group_modifiers(self.slot)
-        for t in (self.player_tree, self.pokemon_tree):
-            for r in t.get_children():
-                t.delete(r)
-        # Player
-        for idx, m in player_mods:
-            self.player_tree.insert('', 'end', values=(idx, m.get('typeId'), m.get('className'), m.get('args'), m.get('stackCount')))
-        # Pokemon
-        # Map mon id -> display label
-        party = (self.api.get_slot(self.slot).get('party') or [])
-        party_map = {p.get('id'): p for p in party if isinstance(p, dict) and 'id' in p}
+        # Populate party list and preserve selection
+        try:
+            prev = self.party_list.curselection()[0]
+        except Exception:
+            prev = None
+        self.party_list.delete(0, tk.END)
         from rogueeditor.utils import invert_dex_map, load_pokemon_index
         inv = invert_dex_map(load_pokemon_index())
-        for mon_id, mods in by_mon.items():
-            label = 'unknown'
-            mon = party_map.get(mon_id)
-            if mon:
-                did = str(mon.get('species') or mon.get('dexId') or mon.get('speciesId') or '?')
-                name = inv.get(did, did)
-                label = f"{name} (id {mon_id})"
-            for idx, m in mods:
-                self.pokemon_tree.insert('', 'end', values=(idx, m.get('typeId'), m.get('className'), m.get('args'), label))
+        for i, mon in enumerate(self.party, start=1):
+            did = str(mon.get('species') or mon.get('dexId') or mon.get('speciesId') or '?')
+            name = inv.get(did, did)
+            mid = mon.get('id')
+            self.party_list.insert(tk.END, f"{i}. {name} (id {mid})")
+        # Observed modifiers
+        self._reload_observed()
+        # Restore selection
+        try:
+            if prev is not None:
+                self.party_list.selection_set(prev)
+                self.party_list.activate(prev)
+                self.party_list.see(prev)
+        except Exception:
+            pass
+        self._refresh_mods()
 
-    def _add_player_mod(self):
-        top = tk.Toplevel(self)
-        top.title("Add Player Modifier")
-        ttk.Label(top, text="TypeId:").grid(row=0, column=0, padx=4, pady=4)
-        type_var = tk.StringVar()
-        ttk.Entry(top, textvariable=type_var, width=30).grid(row=0, column=1, padx=4, pady=4)
-        ttk.Label(top, text="Args (comma ints, optional):").grid(row=1, column=0, padx=4, pady=4)
-        args_var = tk.StringVar()
-        ttk.Entry(top, textvariable=args_var, width=30).grid(row=1, column=1, padx=4, pady=4)
-        ttk.Label(top, text="Stack count:").grid(row=2, column=0, padx=4, pady=4)
-        stack_var = tk.StringVar(value='1')
-        ttk.Entry(top, textvariable=stack_var, width=6).grid(row=2, column=1, padx=4, pady=4, sticky=tk.W)
-        def ok():
-            tid = type_var.get().strip()
-            if not tid:
+    def _preselect_party(self):
+        try:
+            if not isinstance(self._preselect_mon_id, int):
                 return
-            args_text = args_var.get().strip()
-            args = None
-            if args_text:
+            # Find index in party by mon id
+            for idx, mon in enumerate(self.party):
                 try:
-                    args = [int(x.strip()) for x in args_text.split(',') if x.strip()]
+                    if int(mon.get('id')) == int(self._preselect_mon_id):
+                        self.party_list.selection_clear(0, tk.END)
+                        self.party_list.selection_set(idx)
+                        self.party_list.activate(idx)
+                        self.party_list.see(idx)
+                        self._refresh_mods()
+                        break
                 except Exception:
-                    messagebox.showwarning('Invalid', 'Args must be comma-separated integers')
-                    return
+                    continue
+        except Exception:
+            pass
+
+    def _reload_observed(self):
+        # Collect typeIds from this slot and local dumps
+        obs: set[str] = set()
+        mods = self.data.get('modifiers') or []
+        for m in mods:
+            if isinstance(m, dict) and m.get('typeId'):
+                obs.add(str(m.get('typeId')))
+        try:
+            from rogueeditor.utils import user_save_dir
+            base = user_save_dir(self.api.username)
+            for fname in os.listdir(base):
+                if not fname.endswith('.json'):
+                    continue
+                try:
+                    from rogueeditor.utils import load_json
+                    d = load_json(os.path.join(base, fname))
+                    for m in d.get('modifiers') or []:
+                        if isinstance(m, dict) and m.get('typeId'):
+                            obs.add(str(m.get('typeId')))
+                except Exception:
+                    continue
+        except Exception:
+            pass
+        # Merge with curated sets
+        obs |= self._common_items() | { 'WIDE_LENS', 'MULTI_LENS', 'BERRY', 'BASE_STAT_BOOSTER' }
+        self.obs_cb['values'] = sorted(list(obs))
+
+    def _current_mon(self):
+        try:
+            idx = self.party_list.curselection()[0]
+            return self.party[idx]
+        except Exception:
+            return None
+
+    def _refresh_mods(self):
+        self.mod_list.delete(0, tk.END)
+        target = self.target_var.get()
+        mods = self.data.get('modifiers') or []
+        if target == 'Trainer':
+            # Show player-level mods
+            party_ids = set(int((p.get('id'))) for p in self.party if isinstance(p.get('id'), int))
+            for i, m in enumerate(mods):
+                if not isinstance(m, dict):
+                    continue
+                args = m.get('args') or []
+                first = args[0] if (isinstance(args, list) and args) else None
+                if not (isinstance(first, int) and first in party_ids):
+                    self.mod_list.insert(tk.END, f"[{i}] {m.get('typeId')} args={m.get('args')} stack={m.get('stackCount')}")
+        else:
+            mon = self._current_mon()
+            if not mon:
+                return
+            mon_id = mon.get('id')
+            for i, m in enumerate(mods):
+                if not isinstance(m, dict):
+                    continue
+                args = m.get('args') or []
+                if args and isinstance(args, list) and isinstance(args[0], int) and args[0] == mon_id:
+                    self.mod_list.insert(tk.END, f"[{i}] {m.get('typeId')} args={m.get('args')} stack={m.get('stackCount')}")
+        # Adjust category and button states after refresh
+        try:
+            self._on_cat_change()
+        except Exception:
+            pass
+        try:
+            # Enable Save/Upload only if dirty flags say so
+            self.btn_save.configure(state=(tk.NORMAL if getattr(self, '_dirty_local', False) or getattr(self, '_dirty_server', False) else tk.DISABLED))
+            self.btn_upload.configure(state=(tk.NORMAL if getattr(self, '_dirty_server', False) else tk.DISABLED))
+        except Exception:
+            pass
+
+    def _remove_selected(self):
+        try:
+            sel = self.mod_list.get(self.mod_list.curselection())
+        except Exception:
+            return
+        if not sel.startswith('['):
+            return
+        try:
+            idx = int(sel.split(']',1)[0][1:])
+        except Exception:
+            return
+        if messagebox.askyesno('Confirm', f'Remove modifier index {idx}?'):
+            ok = self.editor.remove_modifier_by_index(self.slot, idx)
+            if ok:
+                # Reload latest slot snapshot
+                self.data = self.api.get_slot(self.slot)
+                self.party = self.data.get('party') or []
+                self._refresh_mods()
+            else:
+                messagebox.showwarning('Failed', 'Unable to remove modifier')
+
+    def _show_selected_detail(self):
+        try:
+            sel = self.mod_list.get(self.mod_list.curselection())
+        except Exception:
+            return
+        if not sel.startswith('['):
+            return
+        try:
+            idx = int(sel.split(']',1)[0][1:])
+        except Exception:
+            return
+        mods = self.data.get('modifiers') or []
+        if 0 <= idx < len(mods):
+            import json as _json
+            content = _json.dumps(mods[idx], ensure_ascii=False, indent=2)
+            self.master._show_text_dialog(f"Modifier Detail [{idx}]", content)
+
+    def _add(self):
+        target = self.target_var.get()
+        mon = self._current_mon()
+        mon_id = mon.get('id') if mon else None
+        cat = self.cat_var.get()
+        entry = None
+        try:
+            stacks = int((self.stack_var.get() or '1').strip())
+            if stacks < 0:
+                stacks = 0
+        except Exception:
+            stacks = 1
+        if cat == 'Player (Trainer)' or target == 'Trainer':
+            t = (self.player_type_var.get() or '').strip().upper()
+            if not t:
+                return
+            # Parse args as comma separated ints
+            s = (self.player_args_var.get() or '').strip()
+            args = None
+            if s:
+                try:
+                    args = [int(x.strip()) for x in s.split(',') if x.strip()]
+                except Exception:
+                    args = None
+            entry = { 'args': args, 'player': True, 'stackCount': stacks, 'typeId': t }
+        elif cat == 'Common':
+            t = (self.common_var.get() or '').strip().upper()
+            if not t:
+                return
+            entry = { 'args': [mon_id], 'player': True, 'stackCount': stacks, 'typeId': t }
+        elif cat == 'Accuracy':
+            t = (self.acc_var.get() or '').strip().upper()
+            if not t:
+                return
             try:
-                stack = int(stack_var.get().strip() or '1')
+                boost = int(self.acc_boost.get().strip() or '5')
             except ValueError:
-                stack = 1
-            self.editor.add_player_modifier(self.slot, tid, args, stack)
-            self._refresh()
-            top.destroy()
-        ttk.Button(top, text='Add', command=ok).grid(row=3, column=1, padx=4, pady=6, sticky=tk.W)
-
-    def _remove_player_mod(self):
-        sel = self.player_tree.selection()
-        if not sel:
+                boost = 5
+            entry = { 'args': [mon_id, boost], 'player': True, 'stackCount': stacks, 'typeId': t }
+        elif cat == 'Berries':
+            sel = (self.berry_var.get() or '').strip()
+            bid = None
+            if sel.endswith(')') and '(' in sel:
+                try:
+                    bid = int(sel.rsplit('(',1)[1].rstrip(')'))
+                except Exception:
+                    bid = None
+            if bid is None:
+                from rogueeditor.catalog import load_berry_catalog
+                n2i, _ = load_berry_catalog()
+                key = sel.lower().replace(' ', '_')
+                bid = n2i.get(key)
+            if not isinstance(bid, int):
+                messagebox.showwarning('Invalid', 'Select a berry')
+                return
+            entry = { 'args': [mon_id, bid], 'player': True, 'stackCount': stacks, 'typeId': 'BERRY', 'typePregenArgs': [bid] }
+        elif cat == 'Base Stat Booster':
+            sel = (self.stat_var.get() or '').strip()
+            sid = None
+            if sel.endswith(')') and '(' in sel:
+                try:
+                    sid = int(sel.rsplit('(',1)[1].rstrip(')'))
+                except Exception:
+                    sid = None
+            if not isinstance(sid, int):
+                from rogueeditor.catalog import load_stat_catalog
+                n2i, _ = load_stat_catalog()
+                key = sel.lower().replace(' ', '_')
+                sid = n2i.get(key)
+            if not isinstance(sid, int):
+                messagebox.showwarning('Invalid', 'Select a stat')
+                return
+            entry = { 'args': [mon_id, sid], 'player': True, 'stackCount': stacks, 'typeId': 'BASE_STAT_BOOSTER', 'typePregenArgs': [sid] }
+        else: # Observed
+            t = (self.obs_var.get() or '').strip().upper()
+            if not t:
+                return
+            # Best effort: attach with one arg (mon id)
+            entry = { 'args': [mon_id], 'player': True, 'stackCount': stacks, 'typeId': t }
+        if not entry:
             return
-        item = self.player_tree.item(sel[0])
-        idx = item.get('values')[0]
+        mods = self.data.setdefault('modifiers', [])
+        mods.append(entry)
+        # Mark dirty and update UI (single add per submission)
         try:
-            idx = int(idx)
+            self._dirty_local = True
+            self._dirty_server = True
         except Exception:
-            return
-        if messagebox.askyesno('Confirm', f'Remove player modifier index {idx}?'):
-            if self.editor.remove_modifier_by_index(self.slot, idx):
-                self._refresh()
-            else:
-                messagebox.showwarning('Failed', 'Unable to remove modifier')
-
-    def _remove_pokemon_mod(self):
-        sel = self.pokemon_tree.selection()
-        if not sel:
-            return
-        item = self.pokemon_tree.item(sel[0])
-        idx = item.get('values')[0]
+            pass
+        self._refresh_mods()
         try:
-            idx = int(idx)
+            self.btn_save.configure(state=tk.NORMAL)
+            self.btn_upload.configure(state=tk.NORMAL)
         except Exception:
-            return
-        if messagebox.askyesno('Confirm', f'Remove pokemon modifier index {idx}?'):
-            if self.editor.remove_modifier_by_index(self.slot, idx):
-                self._refresh()
-            else:
-                messagebox.showwarning('Failed', 'Unable to remove modifier')
+            pass
+
+    def _save(self):
+        from rogueeditor.utils import slot_save_path, dump_json
+        p = slot_save_path(self.api.username, self.slot)
+        dump_json(p, self.data)
+        try:
+            self._dirty_local = False
+            self.btn_save.configure(state=(tk.NORMAL if self._dirty_server else tk.DISABLED))
+        except Exception:
+            pass
+        messagebox.showinfo('Saved', f'Wrote {p}')
 
     def _upload(self):
-        if not messagebox.askyesno('Confirm Upload', 'Upload all modifier changes for this slot to the server?'):
+        if not messagebox.askyesno('Confirm Upload', 'Upload item changes for this slot to the server?'):
             return
         try:
-            # Use current local file if present, else fetch live
             from rogueeditor.utils import slot_save_path, load_json
             p = slot_save_path(self.api.username, self.slot)
-            data = load_json(p) if os.path.exists(p) else self.api.get_slot(self.slot)
+            data = load_json(p) if os.path.exists(p) else self.data
             self.api.update_slot(self.slot, data)
-            messagebox.showinfo('Uploaded', 'Server updated successfully.')
+            messagebox.showinfo('Uploaded', 'Server updated successfully')
+            # Refresh snapshot and clear server dirty flag
+            try:
+                self.data = self.api.get_slot(self.slot)
+                self.party = self.data.get('party') or []
+                self._dirty_server = False
+                self.btn_upload.configure(state=tk.DISABLED)
+                if not self._dirty_local:
+                    self.btn_save.configure(state=tk.DISABLED)
+                self._refresh_mods()
+            except Exception:
+                pass
         except Exception as e:
             messagebox.showerror('Upload failed', str(e))
 
-
-class CatalogSelectDialog(tk.Toplevel):
-    def __init__(self, master, name_to_id: dict[str, int], title: str = 'Select'):
-        super().__init__(master)
-        self.title(title)
-        self.geometry('400x400')
-        self.name_to_id = name_to_id
-        self._build()
-
-    def _build(self):
-        ttk.Label(self, text='Search:').pack(padx=6, pady=6, anchor=tk.W)
-        self.var = tk.StringVar()
-        ent = ttk.Entry(self, textvariable=self.var)
-        ent.pack(fill=tk.X, padx=6)
-        self.list = tk.Listbox(self)
-        self.list.pack(fill=tk.BOTH, expand=True, padx=6, pady=6)
-        self.list.bind('<Double-Button-1>', lambda e: self._ok())
-        self.list.bind('<Return>', lambda e: self._ok())
-        ttk.Button(self, text='Select', command=self._ok).pack(pady=6)
-        self.var.trace_add('write', self._on_change)
-        self._all = sorted(self.name_to_id.items(), key=lambda kv: kv[0])
-        self._filter('')
-        ent.focus_set()
-
-    def _on_change(self, *args):
-        self._filter(self.var.get().strip().lower().replace(' ', '_'))
-
-    def _filter(self, key: str):
-        self.list.delete(0, tk.END)
-        for name, iid in self._all:
-            if key in name:
-                self.list.insert(tk.END, f"{name} ({iid})")
-
-    def _ok(self):
+    def _edit_selected_stacks(self):
         try:
-            sel = self.list.get(self.list.curselection())
+            sel = self.mod_list.get(self.mod_list.curselection())
         except Exception:
             return
-        name = sel.split(' (', 1)[0]
-        self.result = self.name_to_id.get(name)
-        self.destroy()
+        if not sel.startswith('['):
+            return
+        try:
+            idx = int(sel.split(']',1)[0][1:])
+        except Exception:
+            return
+        top = tk.Toplevel(self)
+        top.title(f'Edit Stacks [{idx}]')
+        ttk.Label(top, text='stackCount:').grid(row=0, column=0, padx=6, pady=6, sticky=tk.E)
+        var = tk.StringVar(value='1')
+        ttk.Entry(top, textvariable=var, width=8).grid(row=0, column=1, sticky=tk.W)
+        def apply():
+            try:
+                sc = int(var.get().strip())
+            except Exception:
+                sc = 1
+            if sc < 0:
+                sc = 0
+            mods = self.data.get('modifiers') or []
+            if 0 <= idx < len(mods):
+                mods[idx]['stackCount'] = sc
+                from rogueeditor.utils import slot_save_path, dump_json
+                p = slot_save_path(self.api.username, self.slot)
+                dump_json(p, self.data)
+                if messagebox.askyesno('Upload', 'Upload changes to server now?'):
+                    from rogueeditor.utils import load_json
+                    try:
+                        payload = load_json(p)
+                        self.api.update_slot(self.slot, payload)
+                        messagebox.showinfo('Uploaded', 'Server updated.')
+                    except Exception as e:
+                        messagebox.showerror('Upload failed', str(e))
+                self._refresh_mods()
+            top.destroy()
+        ttk.Button(top, text='Apply', command=apply).grid(row=1, column=0, columnspan=2, pady=8)
 
-    @classmethod
-    def select(cls, master, name_to_id: dict[str, int], title: str = 'Select') -> int | None:
-        dlg = cls(master, name_to_id, title)
-        master.wait_window(dlg)
-        return getattr(dlg, 'result', None)
+class _TeamEditorDialog_Legacy(tk.Toplevel):
+    pass
+
+
+    def _on_target_change(self):
+        # Refresh lists and adjust categories when switching target
+        try:
+            self._refresh_mods()
+            self._on_cat_change()
+        except Exception:
+            pass
