@@ -231,6 +231,10 @@ class App(ttk.Frame):
         # Team
         box2 = ttk.LabelFrame(inner, text="Active Run Team")
         box2.pack(fill=tk.X, padx=6, pady=6)
+        ttk.Label(
+            box2,
+            text="Works with the selected slot's ongoing run (slot file).",
+        ).pack(fill=tk.X, padx=6, pady=(2, 0))
         ttk.Button(box2, text="Analyze Team", command=self._analyze_team_dialog).pack(side=tk.LEFT, padx=4, pady=4)
         ttk.Button(box2, text="Edit Team", command=self._safe(self._edit_team_dialog)).pack(side=tk.LEFT, padx=4, pady=4)
         ttk.Button(box2, text="Analyze Run Conditions", command=self._analyze_run_conditions).pack(side=tk.LEFT, padx=4, pady=4)
@@ -239,6 +243,10 @@ class App(ttk.Frame):
         # Modifiers
         box3 = ttk.LabelFrame(inner, text="Modifiers / Items")
         box3.pack(fill=tk.BOTH, padx=6, pady=6)
+        ttk.Label(
+            box3,
+            text="Affects modifiers and items in the selected slot's current run (slot file).",
+        ).pack(fill=tk.X, padx=6, pady=(2, 0))
         # Modifiers manager
         mod_btns = ttk.Frame(box3)
         mod_btns.pack(fill=tk.X)
@@ -248,19 +256,23 @@ class App(ttk.Frame):
         # Starters
         box4 = ttk.LabelFrame(inner, text="Starters")
         box4.pack(fill=tk.X, padx=6, pady=6)
+        ttk.Label(
+            box4,
+            text="Edits trainer (account-wide) data — persists across runs (trainer.json).",
+        ).grid(row=0, column=0, columnspan=4, sticky=tk.W, padx=6, pady=(2, 2))
         # Pokemon selector
         from rogueeditor.utils import load_pokemon_index
         dex = (load_pokemon_index().get("dex") or {})
         # Map name->id (int), keys lower
         name_to_id = {k.lower(): int(v) for k, v in dex.items()}
         self._starter_name_to_id = name_to_id
-        ttk.Label(box4, text="Pokemon:").grid(row=0, column=0, sticky=tk.W, padx=4, pady=2)
+        ttk.Label(box4, text="Pokemon:").grid(row=1, column=0, sticky=tk.W, padx=4, pady=2)
         self.starter_ac = AutoCompleteEntry(box4, name_to_id, width=30)
-        self.starter_ac.grid(row=0, column=1, sticky=tk.W, padx=4, pady=2)
-        ttk.Button(box4, text="Pick...", command=self._pick_starter_from_catalog).grid(row=0, column=2, sticky=tk.W, padx=4, pady=2)
+        self.starter_ac.grid(row=1, column=1, sticky=tk.W, padx=4, pady=2)
+        ttk.Button(box4, text="Pick...", command=self._pick_starter_from_catalog).grid(row=1, column=2, sticky=tk.W, padx=4, pady=2)
         # Label to show chosen Pokemon name and id
         self.starter_label = ttk.Label(box4, text="")
-        self.starter_label.grid(row=0, column=3, sticky=tk.W, padx=6, pady=2)
+        self.starter_label.grid(row=1, column=3, sticky=tk.W, padx=6, pady=2)
         # Update label as the entry changes
         try:
             self.starter_ac.bind('<KeyRelease>', lambda e: self._update_starter_label())
