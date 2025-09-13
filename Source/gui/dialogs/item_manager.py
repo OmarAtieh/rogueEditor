@@ -609,6 +609,18 @@ class ItemManagerDialog(tk.Toplevel):
                 except Exception:
                     args = None
             entry = {"args": args, "player": True, "stackCount": stacks, "typeId": t}
+            # Optional className mapping for known trainer modifiers
+            class_map = {
+                "EXP_CHARM": "ExpBoosterModifier",
+                "SUPER_EXP_CHARM": "ExpBoosterModifier",
+                "EXP_SHARE": "ExpShareModifier",
+                "IV_SCANNER": "IvScannerModifier",
+                "MAP": "MapModifier",
+                "GOLDEN_POKEBALL": "ExtraModifierModifier",
+            }
+            cname = class_map.get(t)
+            if cname:
+                entry["className"] = cname
         elif cat == "Common":
             t = (self.common_var.get() or "").strip().upper()
             if not t:
@@ -622,7 +634,7 @@ class ItemManagerDialog(tk.Toplevel):
                 boost = int(self.acc_boost.get().strip() or "5")
             except ValueError:
                 boost = 5
-            entry = {"args": [mon_id, boost], "player": True, "stackCount": stacks, "typeId": t}
+            entry = {"args": [mon_id, boost], "player": True, "stackCount": stacks, "typeId": t, "className": "PokemonMoveAccuracyBoosterModifier"}
         elif cat == "Berries":
             sel = (self.berry_var.get() or "").strip()
             bid = None
@@ -646,6 +658,7 @@ class ItemManagerDialog(tk.Toplevel):
                 "stackCount": stacks,
                 "typeId": "BERRY",
                 "typePregenArgs": [bid],
+                "className": "BerryModifier",
             }
         elif cat == "Base Stat Booster":
             sel = (self.stat_var.get() or "").strip()
@@ -670,6 +683,7 @@ class ItemManagerDialog(tk.Toplevel):
                 "stackCount": stacks,
                 "typeId": "BASE_STAT_BOOSTER",
                 "typePregenArgs": [sid],
+                "className": "BaseStatModifier",
             }
         else:  # Observed
             t = (self.obs_var.get() or "").strip().upper()

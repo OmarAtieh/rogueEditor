@@ -1,6 +1,4436 @@
 {
-  "by_dex": {},
-  "source": {
-    "xlsx": "List of Pokémon by base stats.xlsx"
+  "by_dex": {
+    "1": {
+      "default": "data/thumbnails/0001-bulbasaur.png",
+      "forms": {}
+    },
+    "2": {
+      "default": "data/thumbnails/0002-ivysaur.png",
+      "forms": {}
+    },
+    "3": {
+      "default": "data/thumbnails/0003-venusaur.png",
+      "forms": {
+        "mega": "data/thumbnails/0003-venusaur-mega.png"
+      }
+    },
+    "4": {
+      "default": "data/thumbnails/0004-charmander.png",
+      "forms": {}
+    },
+    "5": {
+      "default": "data/thumbnails/0005-charmeleon.png",
+      "forms": {}
+    },
+    "6": {
+      "default": "data/thumbnails/0006-charizard.png",
+      "forms": {
+        "mega-x": "data/thumbnails/0006-charizard-mega-x.png",
+        "mega-y": "data/thumbnails/0006-charizard-mega-y.png"
+      }
+    },
+    "7": {
+      "default": "data/thumbnails/0007-squirtle.png",
+      "forms": {}
+    },
+    "8": {
+      "default": "data/thumbnails/0008-wartortle.png",
+      "forms": {}
+    },
+    "9": {
+      "default": "data/thumbnails/0009-blastoise.png",
+      "forms": {
+        "mega": "data/thumbnails/0009-blastoise-mega.png"
+      }
+    },
+    "10": {
+      "default": "data/thumbnails/0010-caterpie.png",
+      "forms": {}
+    },
+    "11": {
+      "default": "data/thumbnails/0011-metapod.png",
+      "forms": {}
+    },
+    "12": {
+      "default": "data/thumbnails/0012-butterfree.png",
+      "forms": {}
+    },
+    "13": {
+      "default": "data/thumbnails/0013-weedle.png",
+      "forms": {}
+    },
+    "14": {
+      "default": "data/thumbnails/0014-kakuna.png",
+      "forms": {}
+    },
+    "15": {
+      "default": "data/thumbnails/0015-beedrill.png",
+      "forms": {
+        "mega": "data/thumbnails/0015-beedrill-mega.png"
+      }
+    },
+    "16": {
+      "default": "data/thumbnails/0016-pidgey.png",
+      "forms": {}
+    },
+    "17": {
+      "default": "data/thumbnails/0017-pidgeotto.png",
+      "forms": {}
+    },
+    "18": {
+      "default": "data/thumbnails/0018-pidgeot.png",
+      "forms": {
+        "mega": "data/thumbnails/0018-pidgeot-mega.png"
+      }
+    },
+    "19": {
+      "default": "data/thumbnails/0019-rattata.png",
+      "forms": {
+        "alola": "data/thumbnails/2019-rattata-alola.png"
+      }
+    },
+    "20": {
+      "default": "data/thumbnails/0020-raticate.png",
+      "forms": {
+        "alola": "data/thumbnails/0020-raticate-alola.png"
+      }
+    },
+    "21": {
+      "default": "data/thumbnails/0021-spearow.png",
+      "forms": {}
+    },
+    "22": {
+      "default": "data/thumbnails/0022-fearow.png",
+      "forms": {}
+    },
+    "23": {
+      "default": "data/thumbnails/0023-ekans.png",
+      "forms": {}
+    },
+    "24": {
+      "default": "data/thumbnails/0024-arbok.png",
+      "forms": {}
+    },
+    "25": {
+      "default": "data/thumbnails/0025-pikachu.png",
+      "forms": {
+        "partner-pikachu": "data/thumbnails/0025-pikachu-partner-pikachu.png"
+      }
+    },
+    "26": {
+      "default": "data/thumbnails/0026-raichu.png",
+      "forms": {
+        "alola": "data/thumbnails/0026-raichu-alola.png"
+      }
+    },
+    "27": {
+      "default": "data/thumbnails/0027-sandshrew.png",
+      "forms": {
+        "alola": "data/thumbnails/2027-sandshrew-alola.png"
+      }
+    },
+    "28": {
+      "default": "data/thumbnails/0028-sandslash.png",
+      "forms": {
+        "alola": "data/thumbnails/0028-sandslash-alola.png"
+      }
+    },
+    "29": {
+      "default": "data/thumbnails/0029-nidoran.png",
+      "forms": {}
+    },
+    "30": {
+      "default": "data/thumbnails/0030-nidorina.png",
+      "forms": {}
+    },
+    "31": {
+      "default": "data/thumbnails/0031-nidoqueen.png",
+      "forms": {}
+    },
+    "32": {
+      "default": "data/thumbnails/0032-nidoran.png",
+      "forms": {}
+    },
+    "33": {
+      "default": "data/thumbnails/0033-nidorino.png",
+      "forms": {}
+    },
+    "34": {
+      "default": "data/thumbnails/0034-nidoking.png",
+      "forms": {}
+    },
+    "35": {
+      "default": "data/thumbnails/0035-clefairy.png",
+      "forms": {}
+    },
+    "36": {
+      "default": "data/thumbnails/0036-clefable.png",
+      "forms": {}
+    },
+    "37": {
+      "default": "data/thumbnails/0037-vulpix.png",
+      "forms": {
+        "alola": "data/thumbnails/2037-vulpix-alola.png"
+      }
+    },
+    "38": {
+      "default": "data/thumbnails/0038-ninetales.png",
+      "forms": {
+        "alola": "data/thumbnails/0038-ninetales-alola.png"
+      }
+    },
+    "39": {
+      "default": "data/thumbnails/0039-jigglypuff.png",
+      "forms": {}
+    },
+    "40": {
+      "default": "data/thumbnails/0040-wigglytuff.png",
+      "forms": {}
+    },
+    "41": {
+      "default": "data/thumbnails/0041-zubat.png",
+      "forms": {}
+    },
+    "42": {
+      "default": "data/thumbnails/0042-golbat.png",
+      "forms": {}
+    },
+    "43": {
+      "default": "data/thumbnails/0043-oddish.png",
+      "forms": {}
+    },
+    "44": {
+      "default": "data/thumbnails/0044-gloom.png",
+      "forms": {}
+    },
+    "45": {
+      "default": "data/thumbnails/0045-vileplume.png",
+      "forms": {}
+    },
+    "46": {
+      "default": "data/thumbnails/0046-paras.png",
+      "forms": {}
+    },
+    "47": {
+      "default": "data/thumbnails/0047-parasect.png",
+      "forms": {}
+    },
+    "48": {
+      "default": "data/thumbnails/0048-venonat.png",
+      "forms": {}
+    },
+    "49": {
+      "default": "data/thumbnails/0049-venomoth.png",
+      "forms": {}
+    },
+    "50": {
+      "default": "data/thumbnails/0050-diglett.png",
+      "forms": {
+        "alola": "data/thumbnails/2050-diglett-alola.png"
+      }
+    },
+    "51": {
+      "default": "data/thumbnails/0051-dugtrio.png",
+      "forms": {
+        "alola": "data/thumbnails/0051-dugtrio-alola.png"
+      }
+    },
+    "52": {
+      "default": "data/thumbnails/0052-meowth.png",
+      "forms": {
+        "alola": "data/thumbnails/2052-meowth-alola.png",
+        "galar": "data/thumbnails/4052-meowth-galar.png"
+      }
+    },
+    "53": {
+      "default": "data/thumbnails/0053-persian.png",
+      "forms": {
+        "alola": "data/thumbnails/0053-persian-alola.png"
+      }
+    },
+    "54": {
+      "default": "data/thumbnails/0054-psyduck.png",
+      "forms": {}
+    },
+    "55": {
+      "default": "data/thumbnails/0055-golduck.png",
+      "forms": {}
+    },
+    "56": {
+      "default": "data/thumbnails/0056-mankey.png",
+      "forms": {}
+    },
+    "57": {
+      "default": "data/thumbnails/0057-primeape.png",
+      "forms": {}
+    },
+    "58": {
+      "default": "data/thumbnails/0058-growlithe.png",
+      "forms": {
+        "hisui": "data/thumbnails/6058-growlithe-hisui.png"
+      }
+    },
+    "59": {
+      "default": "data/thumbnails/0059-arcanine.png",
+      "forms": {
+        "hisui": "data/thumbnails/0059-arcanine-hisui.png"
+      }
+    },
+    "60": {
+      "default": "data/thumbnails/0060-poliwag.png",
+      "forms": {}
+    },
+    "61": {
+      "default": "data/thumbnails/0061-poliwhirl.png",
+      "forms": {}
+    },
+    "62": {
+      "default": "data/thumbnails/0062-poliwrath.png",
+      "forms": {}
+    },
+    "63": {
+      "default": "data/thumbnails/0063-abra.png",
+      "forms": {}
+    },
+    "64": {
+      "default": "data/thumbnails/0064-kadabra.png",
+      "forms": {}
+    },
+    "65": {
+      "default": "data/thumbnails/0065-alakazam.png",
+      "forms": {
+        "mega": "data/thumbnails/0065-alakazam-mega.png"
+      }
+    },
+    "66": {
+      "default": "data/thumbnails/0066-machop.png",
+      "forms": {}
+    },
+    "67": {
+      "default": "data/thumbnails/0067-machoke.png",
+      "forms": {}
+    },
+    "68": {
+      "default": "data/thumbnails/0068-machamp.png",
+      "forms": {}
+    },
+    "69": {
+      "default": "data/thumbnails/0069-bellsprout.png",
+      "forms": {}
+    },
+    "70": {
+      "default": "data/thumbnails/0070-weepinbell.png",
+      "forms": {}
+    },
+    "71": {
+      "default": "data/thumbnails/0071-victreebel.png",
+      "forms": {}
+    },
+    "72": {
+      "default": "data/thumbnails/0072-tentacool.png",
+      "forms": {}
+    },
+    "73": {
+      "default": "data/thumbnails/0073-tentacruel.png",
+      "forms": {}
+    },
+    "74": {
+      "default": "data/thumbnails/0074-geodude.png",
+      "forms": {
+        "alola": "data/thumbnails/2074-geodude-alola.png"
+      }
+    },
+    "75": {
+      "default": "data/thumbnails/0075-graveler.png",
+      "forms": {
+        "alola": "data/thumbnails/0075-graveler-alola.png"
+      }
+    },
+    "76": {
+      "default": "data/thumbnails/0076-golem.png",
+      "forms": {
+        "alola": "data/thumbnails/0076-golem-alola.png"
+      }
+    },
+    "77": {
+      "default": "data/thumbnails/0077-ponyta.png",
+      "forms": {
+        "galar": "data/thumbnails/4077-ponyta-galar.png"
+      }
+    },
+    "78": {
+      "default": "data/thumbnails/0078-rapidash.png",
+      "forms": {
+        "galar": "data/thumbnails/0078-rapidash-galar.png"
+      }
+    },
+    "79": {
+      "default": "data/thumbnails/0079-slowpoke.png",
+      "forms": {
+        "galar": "data/thumbnails/4079-slowpoke-galar.png"
+      }
+    },
+    "80": {
+      "default": "data/thumbnails/0080-slowbro.png",
+      "forms": {
+        "galar": "data/thumbnails/0080-slowbro-galar.png",
+        "mega": "data/thumbnails/0080-slowbro-mega.png"
+      }
+    },
+    "81": {
+      "default": "data/thumbnails/0081-magnemite.png",
+      "forms": {}
+    },
+    "82": {
+      "default": "data/thumbnails/0082-magneton.png",
+      "forms": {}
+    },
+    "83": {
+      "default": "data/thumbnails/0083-farfetchd.png",
+      "forms": {
+        "galar": "data/thumbnails/4083-farfetchd-galar.png"
+      }
+    },
+    "84": {
+      "default": "data/thumbnails/0084-doduo.png",
+      "forms": {}
+    },
+    "85": {
+      "default": "data/thumbnails/0085-dodrio.png",
+      "forms": {}
+    },
+    "86": {
+      "default": "data/thumbnails/0086-seel.png",
+      "forms": {}
+    },
+    "87": {
+      "default": "data/thumbnails/0087-dewgong.png",
+      "forms": {}
+    },
+    "88": {
+      "default": "data/thumbnails/0088-grimer.png",
+      "forms": {
+        "alola": "data/thumbnails/2088-grimer-alola.png"
+      }
+    },
+    "89": {
+      "default": "data/thumbnails/0089-muk.png",
+      "forms": {
+        "alola": "data/thumbnails/0089-muk-alola.png"
+      }
+    },
+    "90": {
+      "default": "data/thumbnails/0090-shellder.png",
+      "forms": {}
+    },
+    "91": {
+      "default": "data/thumbnails/0091-cloyster.png",
+      "forms": {}
+    },
+    "92": {
+      "default": "data/thumbnails/0092-gastly.png",
+      "forms": {}
+    },
+    "93": {
+      "default": "data/thumbnails/0093-haunter.png",
+      "forms": {}
+    },
+    "94": {
+      "default": "data/thumbnails/0094-gengar.png",
+      "forms": {
+        "mega": "data/thumbnails/0094-gengar-mega.png"
+      }
+    },
+    "95": {
+      "default": "data/thumbnails/0095-onix.png",
+      "forms": {}
+    },
+    "96": {
+      "default": "data/thumbnails/0096-drowzee.png",
+      "forms": {}
+    },
+    "97": {
+      "default": "data/thumbnails/0097-hypno.png",
+      "forms": {}
+    },
+    "98": {
+      "default": "data/thumbnails/0098-krabby.png",
+      "forms": {}
+    },
+    "99": {
+      "default": "data/thumbnails/0099-kingler.png",
+      "forms": {}
+    },
+    "100": {
+      "default": "data/thumbnails/0100-voltorb.png",
+      "forms": {
+        "hisui": "data/thumbnails/6100-voltorb-hisui.png"
+      }
+    },
+    "101": {
+      "default": "data/thumbnails/0101-electrode.png",
+      "forms": {
+        "hisui": "data/thumbnails/0101-electrode-hisui.png"
+      }
+    },
+    "102": {
+      "default": "data/thumbnails/0102-exeggcute.png",
+      "forms": {}
+    },
+    "103": {
+      "default": "data/thumbnails/0103-exeggutor.png",
+      "forms": {
+        "alola": "data/thumbnails/0103-exeggutor-alola.png"
+      }
+    },
+    "104": {
+      "default": "data/thumbnails/0104-cubone.png",
+      "forms": {}
+    },
+    "105": {
+      "default": "data/thumbnails/0105-marowak.png",
+      "forms": {
+        "alola": "data/thumbnails/0105-marowak-alola.png"
+      }
+    },
+    "106": {
+      "default": "data/thumbnails/0106-hitmonlee.png",
+      "forms": {}
+    },
+    "107": {
+      "default": "data/thumbnails/0107-hitmonchan.png",
+      "forms": {}
+    },
+    "108": {
+      "default": "data/thumbnails/0108-lickitung.png",
+      "forms": {}
+    },
+    "109": {
+      "default": "data/thumbnails/0109-koffing.png",
+      "forms": {}
+    },
+    "110": {
+      "default": "data/thumbnails/0110-weezing.png",
+      "forms": {
+        "galar": "data/thumbnails/0110-weezing-galar.png"
+      }
+    },
+    "111": {
+      "default": "data/thumbnails/0111-rhyhorn.png",
+      "forms": {}
+    },
+    "112": {
+      "default": "data/thumbnails/0112-rhydon.png",
+      "forms": {}
+    },
+    "113": {
+      "default": "data/thumbnails/0113-chansey.png",
+      "forms": {}
+    },
+    "114": {
+      "default": "data/thumbnails/0114-tangela.png",
+      "forms": {}
+    },
+    "115": {
+      "default": "data/thumbnails/0115-kangaskhan.png",
+      "forms": {
+        "mega": "data/thumbnails/0115-kangaskhan-mega.png"
+      }
+    },
+    "116": {
+      "default": "data/thumbnails/0116-horsea.png",
+      "forms": {}
+    },
+    "117": {
+      "default": "data/thumbnails/0117-seadra.png",
+      "forms": {}
+    },
+    "118": {
+      "default": "data/thumbnails/0118-goldeen.png",
+      "forms": {}
+    },
+    "119": {
+      "default": "data/thumbnails/0119-seaking.png",
+      "forms": {}
+    },
+    "120": {
+      "default": "data/thumbnails/0120-staryu.png",
+      "forms": {}
+    },
+    "121": {
+      "default": "data/thumbnails/0121-starmie.png",
+      "forms": {}
+    },
+    "122": {
+      "default": "data/thumbnails/0122-mr-mime.png",
+      "forms": {
+        "galar": "data/thumbnails/4122-mr-mime-galar.png"
+      }
+    },
+    "123": {
+      "default": "data/thumbnails/0123-scyther.png",
+      "forms": {}
+    },
+    "124": {
+      "default": "data/thumbnails/0124-jynx.png",
+      "forms": {}
+    },
+    "125": {
+      "default": "data/thumbnails/0125-electabuzz.png",
+      "forms": {}
+    },
+    "126": {
+      "default": "data/thumbnails/0126-magmar.png",
+      "forms": {}
+    },
+    "127": {
+      "default": "data/thumbnails/0127-pinsir.png",
+      "forms": {
+        "mega": "data/thumbnails/0127-pinsir-mega.png"
+      }
+    },
+    "128": {
+      "default": "data/thumbnails/0128-tauros.png",
+      "forms": {
+        "paldea": "data/thumbnails/8128-tauros-paldea.png"
+      }
+    },
+    "129": {
+      "default": "data/thumbnails/0129-magikarp.png",
+      "forms": {}
+    },
+    "130": {
+      "default": "data/thumbnails/0130-gyarados.png",
+      "forms": {
+        "mega-y": "data/thumbnails/0130-gyarados-mega-y.png"
+      }
+    },
+    "131": {
+      "default": "data/thumbnails/0131-lapras.png",
+      "forms": {}
+    },
+    "132": {
+      "default": "data/thumbnails/0132-ditto.png",
+      "forms": {}
+    },
+    "133": {
+      "default": "data/thumbnails/0133-eevee.png",
+      "forms": {
+        "partner-eevee": "data/thumbnails/0133-eevee-partner-eevee.png"
+      }
+    },
+    "134": {
+      "default": "data/thumbnails/0134-vaporeon.png",
+      "forms": {}
+    },
+    "135": {
+      "default": "data/thumbnails/0135-jolteon.png",
+      "forms": {}
+    },
+    "136": {
+      "default": "data/thumbnails/0136-flareon.png",
+      "forms": {}
+    },
+    "137": {
+      "default": "data/thumbnails/0137-porygon.png",
+      "forms": {}
+    },
+    "138": {
+      "default": "data/thumbnails/0138-omanyte.png",
+      "forms": {}
+    },
+    "139": {
+      "default": "data/thumbnails/0139-omastar.png",
+      "forms": {}
+    },
+    "140": {
+      "default": "data/thumbnails/0140-kabuto.png",
+      "forms": {}
+    },
+    "141": {
+      "default": "data/thumbnails/0141-kabutops.png",
+      "forms": {}
+    },
+    "142": {
+      "default": "data/thumbnails/0142-aerodactyl.png",
+      "forms": {
+        "mega-y": "data/thumbnails/0142-aerodactyl-mega-y.png"
+      }
+    },
+    "143": {
+      "default": "data/thumbnails/0143-snorlax.png",
+      "forms": {}
+    },
+    "144": {
+      "default": "data/thumbnails/0144-articuno.png",
+      "forms": {
+        "galar": "data/thumbnails/4144-articuno-galar.png"
+      }
+    },
+    "145": {
+      "default": "data/thumbnails/0145-zapdos.png",
+      "forms": {
+        "galar": "data/thumbnails/4145-zapdos-galar.png"
+      }
+    },
+    "146": {
+      "default": "data/thumbnails/0146-moltres.png",
+      "forms": {
+        "galar": "data/thumbnails/4146-moltres-galar.png"
+      }
+    },
+    "147": {
+      "default": "data/thumbnails/0147-dratini.png",
+      "forms": {}
+    },
+    "148": {
+      "default": "data/thumbnails/0148-dragonair.png",
+      "forms": {}
+    },
+    "149": {
+      "default": "data/thumbnails/0149-dragonite.png",
+      "forms": {}
+    },
+    "150": {
+      "default": "data/thumbnails/0150-mewtwo.png",
+      "forms": {
+        "mega-x": "data/thumbnails/0150-mewtwo-mega-x.png",
+        "mega-y": "data/thumbnails/0150-mewtwo-mega-y.png"
+      }
+    },
+    "151": {
+      "default": "data/thumbnails/0151-mew.png",
+      "forms": {}
+    },
+    "152": {
+      "default": "data/thumbnails/0152-chikorita.png",
+      "forms": {}
+    },
+    "153": {
+      "default": "data/thumbnails/0153-bayleef.png",
+      "forms": {}
+    },
+    "154": {
+      "default": "data/thumbnails/0154-meganium.png",
+      "forms": {}
+    },
+    "155": {
+      "default": "data/thumbnails/0155-cyndaquil.png",
+      "forms": {}
+    },
+    "156": {
+      "default": "data/thumbnails/0156-quilava.png",
+      "forms": {}
+    },
+    "157": {
+      "default": "data/thumbnails/0157-typhlosion.png",
+      "forms": {
+        "hisui": "data/thumbnails/0157-typhlosion-hisui.png"
+      }
+    },
+    "158": {
+      "default": "data/thumbnails/0158-totodile.png",
+      "forms": {}
+    },
+    "159": {
+      "default": "data/thumbnails/0159-croconaw.png",
+      "forms": {}
+    },
+    "160": {
+      "default": "data/thumbnails/0160-feraligatr.png",
+      "forms": {}
+    },
+    "161": {
+      "default": "data/thumbnails/0161-sentret.png",
+      "forms": {}
+    },
+    "162": {
+      "default": "data/thumbnails/0162-furret.png",
+      "forms": {}
+    },
+    "163": {
+      "default": "data/thumbnails/0163-hoothoot.png",
+      "forms": {}
+    },
+    "164": {
+      "default": "data/thumbnails/0164-noctowl.png",
+      "forms": {}
+    },
+    "165": {
+      "default": "data/thumbnails/0165-ledyba.png",
+      "forms": {}
+    },
+    "166": {
+      "default": "data/thumbnails/0166-ledian.png",
+      "forms": {}
+    },
+    "167": {
+      "default": "data/thumbnails/0167-spinarak.png",
+      "forms": {}
+    },
+    "168": {
+      "default": "data/thumbnails/0168-ariados.png",
+      "forms": {}
+    },
+    "169": {
+      "default": "data/thumbnails/0169-crobat.png",
+      "forms": {}
+    },
+    "170": {
+      "default": "data/thumbnails/0170-chinchou.png",
+      "forms": {}
+    },
+    "171": {
+      "default": "data/thumbnails/0171-lanturn.png",
+      "forms": {}
+    },
+    "172": {
+      "default": "data/thumbnails/0172-pichu.png",
+      "forms": {}
+    },
+    "173": {
+      "default": "data/thumbnails/0173-cleffa.png",
+      "forms": {}
+    },
+    "174": {
+      "default": "data/thumbnails/0174-igglybuff.png",
+      "forms": {}
+    },
+    "175": {
+      "default": "data/thumbnails/0175-togepi.png",
+      "forms": {}
+    },
+    "176": {
+      "default": "data/thumbnails/0176-togetic.png",
+      "forms": {}
+    },
+    "177": {
+      "default": "data/thumbnails/0177-natu.png",
+      "forms": {}
+    },
+    "178": {
+      "default": "data/thumbnails/0178-xatu.png",
+      "forms": {}
+    },
+    "179": {
+      "default": "data/thumbnails/0179-mareep.png",
+      "forms": {}
+    },
+    "180": {
+      "default": "data/thumbnails/0180-flaaffy.png",
+      "forms": {}
+    },
+    "181": {
+      "default": "data/thumbnails/0181-ampharos.png",
+      "forms": {
+        "mega": "data/thumbnails/0181-ampharos-mega.png"
+      }
+    },
+    "182": {
+      "default": "data/thumbnails/0182-bellossom.png",
+      "forms": {}
+    },
+    "183": {
+      "default": "data/thumbnails/0183-marill.png",
+      "forms": {}
+    },
+    "184": {
+      "default": "data/thumbnails/0184-azumarill.png",
+      "forms": {}
+    },
+    "185": {
+      "default": "data/thumbnails/0185-sudowoodo.png",
+      "forms": {}
+    },
+    "186": {
+      "default": "data/thumbnails/0186-politoed.png",
+      "forms": {}
+    },
+    "187": {
+      "default": "data/thumbnails/0187-hoppip.png",
+      "forms": {}
+    },
+    "188": {
+      "default": "data/thumbnails/0188-skiploom.png",
+      "forms": {}
+    },
+    "189": {
+      "default": "data/thumbnails/0189-jumpluff.png",
+      "forms": {}
+    },
+    "190": {
+      "default": "data/thumbnails/0190-aipom.png",
+      "forms": {}
+    },
+    "191": {
+      "default": "data/thumbnails/0191-sunkern.png",
+      "forms": {}
+    },
+    "192": {
+      "default": "data/thumbnails/0192-sunflora.png",
+      "forms": {}
+    },
+    "193": {
+      "default": "data/thumbnails/0193-yanma.png",
+      "forms": {}
+    },
+    "194": {
+      "default": "data/thumbnails/0194-wooper.png",
+      "forms": {
+        "paldea": "data/thumbnails/8194-wooper-paldea.png"
+      }
+    },
+    "195": {
+      "default": "data/thumbnails/0195-quagsire.png",
+      "forms": {}
+    },
+    "196": {
+      "default": "data/thumbnails/0196-espeon.png",
+      "forms": {}
+    },
+    "197": {
+      "default": "data/thumbnails/0197-umbreon.png",
+      "forms": {}
+    },
+    "198": {
+      "default": "data/thumbnails/0198-murkrow.png",
+      "forms": {}
+    },
+    "199": {
+      "default": "data/thumbnails/0199-slowking.png",
+      "forms": {
+        "galar": "data/thumbnails/0199-slowking-galar.png"
+      }
+    },
+    "200": {
+      "default": "data/thumbnails/0200-misdreavus.png",
+      "forms": {}
+    },
+    "201": {
+      "default": "data/thumbnails/0201-unown.png",
+      "forms": {}
+    },
+    "202": {
+      "default": "data/thumbnails/0202-wobbuffet.png",
+      "forms": {}
+    },
+    "203": {
+      "default": "data/thumbnails/0203-girafarig.png",
+      "forms": {}
+    },
+    "204": {
+      "default": "data/thumbnails/0204-pineco.png",
+      "forms": {}
+    },
+    "205": {
+      "default": "data/thumbnails/0205-forretress.png",
+      "forms": {}
+    },
+    "206": {
+      "default": "data/thumbnails/0206-dunsparce.png",
+      "forms": {}
+    },
+    "207": {
+      "default": "data/thumbnails/0207-gligar.png",
+      "forms": {}
+    },
+    "208": {
+      "default": "data/thumbnails/0208-steelix.png",
+      "forms": {
+        "mega-x": "data/thumbnails/0208-steelix-mega-x.png"
+      }
+    },
+    "209": {
+      "default": "data/thumbnails/0209-snubbull.png",
+      "forms": {}
+    },
+    "210": {
+      "default": "data/thumbnails/0210-granbull.png",
+      "forms": {}
+    },
+    "211": {
+      "default": "data/thumbnails/0211-qwilfish.png",
+      "forms": {
+        "hisui": "data/thumbnails/0211-qwilfish-hisui.png"
+      }
+    },
+    "212": {
+      "default": "data/thumbnails/0212-scizor.png",
+      "forms": {
+        "mega": "data/thumbnails/0212-scizor-mega.png"
+      }
+    },
+    "213": {
+      "default": "data/thumbnails/0213-shuckle.png",
+      "forms": {}
+    },
+    "214": {
+      "default": "data/thumbnails/0214-heracross.png",
+      "forms": {
+        "mega": "data/thumbnails/0214-heracross-mega.png"
+      }
+    },
+    "215": {
+      "default": "data/thumbnails/0215-sneasel.png",
+      "forms": {
+        "hisui": "data/thumbnails/0215-sneasel-hisui.png"
+      }
+    },
+    "216": {
+      "default": "data/thumbnails/0216-teddiursa.png",
+      "forms": {}
+    },
+    "217": {
+      "default": "data/thumbnails/0217-ursaring.png",
+      "forms": {}
+    },
+    "218": {
+      "default": "data/thumbnails/0218-slugma.png",
+      "forms": {}
+    },
+    "219": {
+      "default": "data/thumbnails/0219-magcargo.png",
+      "forms": {}
+    },
+    "220": {
+      "default": "data/thumbnails/0220-swinub.png",
+      "forms": {}
+    },
+    "221": {
+      "default": "data/thumbnails/0221-piloswine.png",
+      "forms": {}
+    },
+    "222": {
+      "default": "data/thumbnails/0222-corsola.png",
+      "forms": {
+        "galar": "data/thumbnails/4222-corsola-galar.png"
+      }
+    },
+    "223": {
+      "default": "data/thumbnails/0223-remoraid.png",
+      "forms": {}
+    },
+    "224": {
+      "default": "data/thumbnails/0224-octillery.png",
+      "forms": {}
+    },
+    "225": {
+      "default": "data/thumbnails/0225-delibird.png",
+      "forms": {}
+    },
+    "226": {
+      "default": "data/thumbnails/0226-mantine.png",
+      "forms": {}
+    },
+    "227": {
+      "default": "data/thumbnails/0227-skarmory.png",
+      "forms": {}
+    },
+    "228": {
+      "default": "data/thumbnails/0228-houndour.png",
+      "forms": {}
+    },
+    "229": {
+      "default": "data/thumbnails/0229-houndoom.png",
+      "forms": {
+        "mega": "data/thumbnails/0229-houndoom-mega.png"
+      }
+    },
+    "230": {
+      "default": "data/thumbnails/0230-kingdra.png",
+      "forms": {}
+    },
+    "231": {
+      "default": "data/thumbnails/0231-phanpy.png",
+      "forms": {}
+    },
+    "232": {
+      "default": "data/thumbnails/0232-donphan.png",
+      "forms": {}
+    },
+    "233": {
+      "default": "data/thumbnails/0233-porygon2.png",
+      "forms": {}
+    },
+    "234": {
+      "default": "data/thumbnails/0234-stantler.png",
+      "forms": {}
+    },
+    "235": {
+      "default": "data/thumbnails/0235-smeargle.png",
+      "forms": {}
+    },
+    "236": {
+      "default": "data/thumbnails/0236-tyrogue.png",
+      "forms": {}
+    },
+    "237": {
+      "default": "data/thumbnails/0237-hitmontop.png",
+      "forms": {}
+    },
+    "238": {
+      "default": "data/thumbnails/0238-smoochum.png",
+      "forms": {}
+    },
+    "239": {
+      "default": "data/thumbnails/0239-elekid.png",
+      "forms": {}
+    },
+    "240": {
+      "default": "data/thumbnails/0240-magby.png",
+      "forms": {}
+    },
+    "241": {
+      "default": "data/thumbnails/0241-miltank.png",
+      "forms": {}
+    },
+    "242": {
+      "default": "data/thumbnails/0242-blissey.png",
+      "forms": {}
+    },
+    "243": {
+      "default": "data/thumbnails/0243-raikou.png",
+      "forms": {}
+    },
+    "244": {
+      "default": "data/thumbnails/0244-entei.png",
+      "forms": {}
+    },
+    "245": {
+      "default": "data/thumbnails/0245-suicune.png",
+      "forms": {}
+    },
+    "246": {
+      "default": "data/thumbnails/0246-larvitar.png",
+      "forms": {}
+    },
+    "247": {
+      "default": "data/thumbnails/0247-pupitar.png",
+      "forms": {}
+    },
+    "248": {
+      "default": "data/thumbnails/0248-tyranitar.png",
+      "forms": {
+        "mega-y": "data/thumbnails/0248-tyranitar-mega-y.png"
+      }
+    },
+    "249": {
+      "default": "data/thumbnails/0249-lugia.png",
+      "forms": {}
+    },
+    "250": {
+      "default": "data/thumbnails/0250-ho-oh.png",
+      "forms": {}
+    },
+    "251": {
+      "default": "data/thumbnails/0251-celebi.png",
+      "forms": {}
+    },
+    "252": {
+      "default": "data/thumbnails/0252-treecko.png",
+      "forms": {}
+    },
+    "253": {
+      "default": "data/thumbnails/0253-grovyle.png",
+      "forms": {}
+    },
+    "254": {
+      "default": "data/thumbnails/0254-sceptile.png",
+      "forms": {
+        "mega": "data/thumbnails/0254-sceptile-mega.png"
+      }
+    },
+    "255": {
+      "default": "data/thumbnails/0255-torchic.png",
+      "forms": {}
+    },
+    "256": {
+      "default": "data/thumbnails/0256-combusken.png",
+      "forms": {}
+    },
+    "257": {
+      "default": "data/thumbnails/0257-blaziken.png",
+      "forms": {
+        "mega": "data/thumbnails/0257-blaziken-mega.png"
+      }
+    },
+    "258": {
+      "default": "data/thumbnails/0258-mudkip.png",
+      "forms": {}
+    },
+    "259": {
+      "default": "data/thumbnails/0259-marshtomp.png",
+      "forms": {}
+    },
+    "260": {
+      "default": "data/thumbnails/0260-swampert.png",
+      "forms": {
+        "mega": "data/thumbnails/0260-swampert-mega.png"
+      }
+    },
+    "261": {
+      "default": "data/thumbnails/0261-poochyena.png",
+      "forms": {}
+    },
+    "262": {
+      "default": "data/thumbnails/0262-mightyena.png",
+      "forms": {}
+    },
+    "263": {
+      "default": "data/thumbnails/0263-zigzagoon.png",
+      "forms": {
+        "galar": "data/thumbnails/4263-zigzagoon-galar.png"
+      }
+    },
+    "264": {
+      "default": "data/thumbnails/0264-linoone.png",
+      "forms": {
+        "galar": "data/thumbnails/0264-linoone-galar.png"
+      }
+    },
+    "265": {
+      "default": "data/thumbnails/0265-wurmple.png",
+      "forms": {}
+    },
+    "266": {
+      "default": "data/thumbnails/0266-silcoon.png",
+      "forms": {}
+    },
+    "267": {
+      "default": "data/thumbnails/0267-beautifly.png",
+      "forms": {}
+    },
+    "268": {
+      "default": "data/thumbnails/0268-cascoon.png",
+      "forms": {}
+    },
+    "269": {
+      "default": "data/thumbnails/0269-dustox.png",
+      "forms": {}
+    },
+    "270": {
+      "default": "data/thumbnails/0270-lotad.png",
+      "forms": {}
+    },
+    "271": {
+      "default": "data/thumbnails/0271-lombre.png",
+      "forms": {}
+    },
+    "272": {
+      "default": "data/thumbnails/0272-ludicolo.png",
+      "forms": {}
+    },
+    "273": {
+      "default": "data/thumbnails/0273-seedot.png",
+      "forms": {}
+    },
+    "274": {
+      "default": "data/thumbnails/0274-nuzleaf.png",
+      "forms": {}
+    },
+    "275": {
+      "default": "data/thumbnails/0275-shiftry.png",
+      "forms": {}
+    },
+    "276": {
+      "default": "data/thumbnails/0276-taillow.png",
+      "forms": {}
+    },
+    "277": {
+      "default": "data/thumbnails/0277-swellow.png",
+      "forms": {}
+    },
+    "278": {
+      "default": "data/thumbnails/0278-wingull.png",
+      "forms": {}
+    },
+    "279": {
+      "default": "data/thumbnails/0279-pelipper.png",
+      "forms": {}
+    },
+    "280": {
+      "default": "data/thumbnails/0280-ralts.png",
+      "forms": {}
+    },
+    "281": {
+      "default": "data/thumbnails/0281-kirlia.png",
+      "forms": {}
+    },
+    "282": {
+      "default": "data/thumbnails/0282-gardevoir.png",
+      "forms": {
+        "mega": "data/thumbnails/0282-gardevoir-mega.png"
+      }
+    },
+    "283": {
+      "default": "data/thumbnails/0283-surskit.png",
+      "forms": {}
+    },
+    "284": {
+      "default": "data/thumbnails/0284-masquerain.png",
+      "forms": {}
+    },
+    "285": {
+      "default": "data/thumbnails/0285-shroomish.png",
+      "forms": {}
+    },
+    "286": {
+      "default": "data/thumbnails/0286-breloom.png",
+      "forms": {}
+    },
+    "287": {
+      "default": "data/thumbnails/0287-slakoth.png",
+      "forms": {}
+    },
+    "288": {
+      "default": "data/thumbnails/0288-vigoroth.png",
+      "forms": {}
+    },
+    "289": {
+      "default": "data/thumbnails/0289-slaking.png",
+      "forms": {}
+    },
+    "290": {
+      "default": "data/thumbnails/0290-nincada.png",
+      "forms": {}
+    },
+    "291": {
+      "default": "data/thumbnails/0291-ninjask.png",
+      "forms": {}
+    },
+    "292": {
+      "default": "data/thumbnails/0292-shedinja.png",
+      "forms": {}
+    },
+    "293": {
+      "default": "data/thumbnails/0293-whismur.png",
+      "forms": {}
+    },
+    "294": {
+      "default": "data/thumbnails/0294-loudred.png",
+      "forms": {}
+    },
+    "295": {
+      "default": "data/thumbnails/0295-exploud.png",
+      "forms": {}
+    },
+    "296": {
+      "default": "data/thumbnails/0296-makuhita.png",
+      "forms": {}
+    },
+    "297": {
+      "default": "data/thumbnails/0297-hariyama.png",
+      "forms": {}
+    },
+    "298": {
+      "default": "data/thumbnails/0298-azurill.png",
+      "forms": {}
+    },
+    "299": {
+      "default": "data/thumbnails/0299-nosepass.png",
+      "forms": {}
+    },
+    "300": {
+      "default": "data/thumbnails/0300-skitty.png",
+      "forms": {}
+    },
+    "301": {
+      "default": "data/thumbnails/0301-delcatty.png",
+      "forms": {}
+    },
+    "302": {
+      "default": "data/thumbnails/0302-sableye.png",
+      "forms": {
+        "mega-y": "data/thumbnails/0302-sableye-mega-y.png"
+      }
+    },
+    "303": {
+      "default": "data/thumbnails/0303-mawile.png",
+      "forms": {
+        "mega": "data/thumbnails/0303-mawile-mega.png"
+      }
+    },
+    "304": {
+      "default": "data/thumbnails/0304-aron.png",
+      "forms": {}
+    },
+    "305": {
+      "default": "data/thumbnails/0305-lairon.png",
+      "forms": {}
+    },
+    "306": {
+      "default": "data/thumbnails/0306-aggron.png",
+      "forms": {
+        "mega": "data/thumbnails/0306-aggron-mega.png"
+      }
+    },
+    "307": {
+      "default": "data/thumbnails/0307-meditite.png",
+      "forms": {}
+    },
+    "308": {
+      "default": "data/thumbnails/0308-medicham.png",
+      "forms": {
+        "mega": "data/thumbnails/0308-medicham-mega.png"
+      }
+    },
+    "309": {
+      "default": "data/thumbnails/0309-electrike.png",
+      "forms": {}
+    },
+    "310": {
+      "default": "data/thumbnails/0310-manectric.png",
+      "forms": {
+        "mega": "data/thumbnails/0310-manectric-mega.png"
+      }
+    },
+    "311": {
+      "default": "data/thumbnails/0311-plusle.png",
+      "forms": {}
+    },
+    "312": {
+      "default": "data/thumbnails/0312-minun.png",
+      "forms": {}
+    },
+    "313": {
+      "default": "data/thumbnails/0313-volbeat.png",
+      "forms": {}
+    },
+    "314": {
+      "default": "data/thumbnails/0314-illumise.png",
+      "forms": {}
+    },
+    "315": {
+      "default": "data/thumbnails/0315-roselia.png",
+      "forms": {}
+    },
+    "316": {
+      "default": "data/thumbnails/0316-gulpin.png",
+      "forms": {}
+    },
+    "317": {
+      "default": "data/thumbnails/0317-swalot.png",
+      "forms": {}
+    },
+    "318": {
+      "default": "data/thumbnails/0318-carvanha.png",
+      "forms": {}
+    },
+    "319": {
+      "default": "data/thumbnails/0319-sharpedo.png",
+      "forms": {
+        "mega": "data/thumbnails/0319-sharpedo-mega.png"
+      }
+    },
+    "320": {
+      "default": "data/thumbnails/0320-wailmer.png",
+      "forms": {}
+    },
+    "321": {
+      "default": "data/thumbnails/0321-wailord.png",
+      "forms": {}
+    },
+    "322": {
+      "default": "data/thumbnails/0322-numel.png",
+      "forms": {}
+    },
+    "323": {
+      "default": "data/thumbnails/0323-camerupt.png",
+      "forms": {
+        "mega": "data/thumbnails/0323-camerupt-mega.png"
+      }
+    },
+    "324": {
+      "default": "data/thumbnails/0324-torkoal.png",
+      "forms": {}
+    },
+    "325": {
+      "default": "data/thumbnails/0325-spoink.png",
+      "forms": {}
+    },
+    "326": {
+      "default": "data/thumbnails/0326-grumpig.png",
+      "forms": {}
+    },
+    "327": {
+      "default": "data/thumbnails/0327-spinda.png",
+      "forms": {}
+    },
+    "328": {
+      "default": "data/thumbnails/0328-trapinch.png",
+      "forms": {}
+    },
+    "329": {
+      "default": "data/thumbnails/0329-vibrava.png",
+      "forms": {}
+    },
+    "330": {
+      "default": "data/thumbnails/0330-flygon.png",
+      "forms": {}
+    },
+    "331": {
+      "default": "data/thumbnails/0331-cacnea.png",
+      "forms": {}
+    },
+    "332": {
+      "default": "data/thumbnails/0332-cacturne.png",
+      "forms": {}
+    },
+    "333": {
+      "default": "data/thumbnails/0333-swablu.png",
+      "forms": {}
+    },
+    "334": {
+      "default": "data/thumbnails/0334-altaria.png",
+      "forms": {
+        "mega": "data/thumbnails/0334-altaria-mega.png"
+      }
+    },
+    "335": {
+      "default": "data/thumbnails/0335-zangoose.png",
+      "forms": {}
+    },
+    "336": {
+      "default": "data/thumbnails/0336-seviper.png",
+      "forms": {}
+    },
+    "337": {
+      "default": "data/thumbnails/0337-lunatone.png",
+      "forms": {}
+    },
+    "338": {
+      "default": "data/thumbnails/0338-solrock.png",
+      "forms": {}
+    },
+    "339": {
+      "default": "data/thumbnails/0339-barboach.png",
+      "forms": {}
+    },
+    "340": {
+      "default": "data/thumbnails/0340-whiscash.png",
+      "forms": {}
+    },
+    "341": {
+      "default": "data/thumbnails/0341-corphish.png",
+      "forms": {}
+    },
+    "342": {
+      "default": "data/thumbnails/0342-crawdaunt.png",
+      "forms": {}
+    },
+    "343": {
+      "default": "data/thumbnails/0343-baltoy.png",
+      "forms": {}
+    },
+    "344": {
+      "default": "data/thumbnails/0344-claydol.png",
+      "forms": {}
+    },
+    "345": {
+      "default": "data/thumbnails/0345-lileep.png",
+      "forms": {}
+    },
+    "346": {
+      "default": "data/thumbnails/0346-cradily.png",
+      "forms": {}
+    },
+    "347": {
+      "default": "data/thumbnails/0347-anorith.png",
+      "forms": {}
+    },
+    "348": {
+      "default": "data/thumbnails/0348-armaldo.png",
+      "forms": {}
+    },
+    "349": {
+      "default": "data/thumbnails/0349-feebas.png",
+      "forms": {}
+    },
+    "350": {
+      "default": "data/thumbnails/0350-milotic.png",
+      "forms": {}
+    },
+    "351": {
+      "default": "data/thumbnails/0351-castform.png",
+      "forms": {}
+    },
+    "352": {
+      "default": "data/thumbnails/0352-kecleon.png",
+      "forms": {}
+    },
+    "353": {
+      "default": "data/thumbnails/0353-shuppet.png",
+      "forms": {}
+    },
+    "354": {
+      "default": "data/thumbnails/0354-banette.png",
+      "forms": {
+        "mega": "data/thumbnails/0354-banette-mega.png"
+      }
+    },
+    "355": {
+      "default": "data/thumbnails/0355-duskull.png",
+      "forms": {}
+    },
+    "356": {
+      "default": "data/thumbnails/0356-dusclops.png",
+      "forms": {}
+    },
+    "357": {
+      "default": "data/thumbnails/0357-tropius.png",
+      "forms": {}
+    },
+    "358": {
+      "default": "data/thumbnails/0358-chimecho.png",
+      "forms": {}
+    },
+    "359": {
+      "default": "data/thumbnails/0359-absol.png",
+      "forms": {
+        "mega": "data/thumbnails/0359-absol-mega.png"
+      }
+    },
+    "360": {
+      "default": "data/thumbnails/0360-wynaut.png",
+      "forms": {}
+    },
+    "361": {
+      "default": "data/thumbnails/0361-snorunt.png",
+      "forms": {}
+    },
+    "362": {
+      "default": "data/thumbnails/0362-glalie.png",
+      "forms": {
+        "mega": "data/thumbnails/0362-glalie-mega.png"
+      }
+    },
+    "363": {
+      "default": "data/thumbnails/0363-spheal.png",
+      "forms": {}
+    },
+    "364": {
+      "default": "data/thumbnails/0364-sealeo.png",
+      "forms": {}
+    },
+    "365": {
+      "default": "data/thumbnails/0365-walrein.png",
+      "forms": {}
+    },
+    "366": {
+      "default": "data/thumbnails/0366-clamperl.png",
+      "forms": {}
+    },
+    "367": {
+      "default": "data/thumbnails/0367-huntail.png",
+      "forms": {}
+    },
+    "368": {
+      "default": "data/thumbnails/0368-gorebyss.png",
+      "forms": {}
+    },
+    "369": {
+      "default": "data/thumbnails/0369-relicanth.png",
+      "forms": {}
+    },
+    "370": {
+      "default": "data/thumbnails/0370-luvdisc.png",
+      "forms": {}
+    },
+    "371": {
+      "default": "data/thumbnails/0371-bagon.png",
+      "forms": {}
+    },
+    "372": {
+      "default": "data/thumbnails/0372-shelgon.png",
+      "forms": {}
+    },
+    "373": {
+      "default": "data/thumbnails/0373-salamence.png",
+      "forms": {
+        "mega": "data/thumbnails/0373-salamence-mega.png"
+      }
+    },
+    "374": {
+      "default": "data/thumbnails/0374-beldum.png",
+      "forms": {}
+    },
+    "375": {
+      "default": "data/thumbnails/0375-metang.png",
+      "forms": {}
+    },
+    "376": {
+      "default": "data/thumbnails/0376-metagross.png",
+      "forms": {
+        "mega": "data/thumbnails/0376-metagross-mega.png"
+      }
+    },
+    "377": {
+      "default": "data/thumbnails/0377-regirock.png",
+      "forms": {}
+    },
+    "378": {
+      "default": "data/thumbnails/0378-regice.png",
+      "forms": {}
+    },
+    "379": {
+      "default": "data/thumbnails/0379-registeel.png",
+      "forms": {}
+    },
+    "380": {
+      "default": "data/thumbnails/0380-latias.png",
+      "forms": {
+        "mega": "data/thumbnails/0380-latias-mega.png"
+      }
+    },
+    "381": {
+      "default": "data/thumbnails/0381-latios.png",
+      "forms": {
+        "mega": "data/thumbnails/0381-latios-mega.png"
+      }
+    },
+    "382": {
+      "default": "data/thumbnails/0382-kyogre.png",
+      "forms": {
+        "primal-kyogre": "data/thumbnails/0382-kyogre-primal-kyogre.png"
+      }
+    },
+    "383": {
+      "default": "data/thumbnails/0383-groudon.png",
+      "forms": {
+        "primal-groudon": "data/thumbnails/0383-groudon-primal-groudon.png"
+      }
+    },
+    "384": {
+      "default": "data/thumbnails/0384-rayquaza.png",
+      "forms": {
+        "mega-y": "data/thumbnails/0384-rayquaza-mega-y.png"
+      }
+    },
+    "385": {
+      "default": "data/thumbnails/0385-jirachi.png",
+      "forms": {}
+    },
+    "386": {
+      "default": "data/thumbnails/0386-deoxys.png",
+      "forms": {
+        "attack-forme": "data/thumbnails/0386-deoxys-attack-forme.png",
+        "defense-forme": "data/thumbnails/0386-deoxys-defense-forme.png",
+        "normal-forme": "data/thumbnails/0386-deoxys-normal-forme.png",
+        "speed-forme": "data/thumbnails/0386-deoxys-speed-forme.png"
+      }
+    },
+    "387": {
+      "default": "data/thumbnails/0387-turtwig.png",
+      "forms": {}
+    },
+    "388": {
+      "default": "data/thumbnails/0388-grotle.png",
+      "forms": {}
+    },
+    "389": {
+      "default": "data/thumbnails/0389-torterra.png",
+      "forms": {}
+    },
+    "390": {
+      "default": "data/thumbnails/0390-chimchar.png",
+      "forms": {}
+    },
+    "391": {
+      "default": "data/thumbnails/0391-monferno.png",
+      "forms": {}
+    },
+    "392": {
+      "default": "data/thumbnails/0392-infernape.png",
+      "forms": {}
+    },
+    "393": {
+      "default": "data/thumbnails/0393-piplup.png",
+      "forms": {}
+    },
+    "394": {
+      "default": "data/thumbnails/0394-prinplup.png",
+      "forms": {}
+    },
+    "395": {
+      "default": "data/thumbnails/0395-empoleon.png",
+      "forms": {}
+    },
+    "396": {
+      "default": "data/thumbnails/0396-starly.png",
+      "forms": {}
+    },
+    "397": {
+      "default": "data/thumbnails/0397-staravia.png",
+      "forms": {}
+    },
+    "398": {
+      "default": "data/thumbnails/0398-staraptor.png",
+      "forms": {}
+    },
+    "399": {
+      "default": "data/thumbnails/0399-bidoof.png",
+      "forms": {}
+    },
+    "400": {
+      "default": "data/thumbnails/0400-bibarel.png",
+      "forms": {}
+    },
+    "401": {
+      "default": "data/thumbnails/0401-kricketot.png",
+      "forms": {}
+    },
+    "402": {
+      "default": "data/thumbnails/0402-kricketune.png",
+      "forms": {}
+    },
+    "403": {
+      "default": "data/thumbnails/0403-shinx.png",
+      "forms": {}
+    },
+    "404": {
+      "default": "data/thumbnails/0404-luxio.png",
+      "forms": {}
+    },
+    "405": {
+      "default": "data/thumbnails/0405-luxray.png",
+      "forms": {}
+    },
+    "406": {
+      "default": "data/thumbnails/0406-budew.png",
+      "forms": {}
+    },
+    "407": {
+      "default": "data/thumbnails/0407-roserade.png",
+      "forms": {}
+    },
+    "408": {
+      "default": "data/thumbnails/0408-cranidos.png",
+      "forms": {}
+    },
+    "409": {
+      "default": "data/thumbnails/0409-rampardos.png",
+      "forms": {}
+    },
+    "410": {
+      "default": "data/thumbnails/0410-shieldon.png",
+      "forms": {}
+    },
+    "411": {
+      "default": "data/thumbnails/0411-bastiodon.png",
+      "forms": {}
+    },
+    "412": {
+      "default": "data/thumbnails/0412-burmy.png",
+      "forms": {}
+    },
+    "413": {
+      "default": "data/thumbnails/0413-wormadam.png",
+      "forms": {
+        "plant-cloak": "data/thumbnails/0413-wormadam-plant-cloak.png",
+        "sandy-cloak": "data/thumbnails/0413-wormadam-sandy-cloak.png",
+        "trash-cloak": "data/thumbnails/0413-wormadam-trash-cloak.png"
+      }
+    },
+    "414": {
+      "default": "data/thumbnails/0414-mothim.png",
+      "forms": {}
+    },
+    "415": {
+      "default": "data/thumbnails/0415-combee.png",
+      "forms": {}
+    },
+    "416": {
+      "default": "data/thumbnails/0416-vespiquen.png",
+      "forms": {}
+    },
+    "417": {
+      "default": "data/thumbnails/0417-pachirisu.png",
+      "forms": {}
+    },
+    "418": {
+      "default": "data/thumbnails/0418-buizel.png",
+      "forms": {}
+    },
+    "419": {
+      "default": "data/thumbnails/0419-floatzel.png",
+      "forms": {}
+    },
+    "420": {
+      "default": "data/thumbnails/0420-cherubi.png",
+      "forms": {}
+    },
+    "421": {
+      "default": "data/thumbnails/0421-cherrim.png",
+      "forms": {}
+    },
+    "422": {
+      "default": "data/thumbnails/0422-shellos.png",
+      "forms": {}
+    },
+    "423": {
+      "default": "data/thumbnails/0423-gastrodon.png",
+      "forms": {}
+    },
+    "424": {
+      "default": "data/thumbnails/0424-ambipom.png",
+      "forms": {}
+    },
+    "425": {
+      "default": "data/thumbnails/0425-drifloon.png",
+      "forms": {}
+    },
+    "426": {
+      "default": "data/thumbnails/0426-drifblim.png",
+      "forms": {}
+    },
+    "427": {
+      "default": "data/thumbnails/0427-buneary.png",
+      "forms": {}
+    },
+    "428": {
+      "default": "data/thumbnails/0428-lopunny.png",
+      "forms": {
+        "mega-y": "data/thumbnails/0428-lopunny-mega-y.png"
+      }
+    },
+    "429": {
+      "default": "data/thumbnails/0429-mismagius.png",
+      "forms": {}
+    },
+    "430": {
+      "default": "data/thumbnails/0430-honchkrow.png",
+      "forms": {}
+    },
+    "431": {
+      "default": "data/thumbnails/0431-glameow.png",
+      "forms": {}
+    },
+    "432": {
+      "default": "data/thumbnails/0432-purugly.png",
+      "forms": {}
+    },
+    "433": {
+      "default": "data/thumbnails/0433-chingling.png",
+      "forms": {}
+    },
+    "434": {
+      "default": "data/thumbnails/0434-stunky.png",
+      "forms": {}
+    },
+    "435": {
+      "default": "data/thumbnails/0435-skuntank.png",
+      "forms": {}
+    },
+    "436": {
+      "default": "data/thumbnails/0436-bronzor.png",
+      "forms": {}
+    },
+    "437": {
+      "default": "data/thumbnails/0437-bronzong.png",
+      "forms": {}
+    },
+    "438": {
+      "default": "data/thumbnails/0438-bonsly.png",
+      "forms": {}
+    },
+    "439": {
+      "default": "data/thumbnails/0439-mime-jr.png",
+      "forms": {}
+    },
+    "440": {
+      "default": "data/thumbnails/0440-happiny.png",
+      "forms": {}
+    },
+    "441": {
+      "default": "data/thumbnails/0441-chatot.png",
+      "forms": {}
+    },
+    "442": {
+      "default": "data/thumbnails/0442-spiritomb.png",
+      "forms": {}
+    },
+    "443": {
+      "default": "data/thumbnails/0443-gible.png",
+      "forms": {}
+    },
+    "444": {
+      "default": "data/thumbnails/0444-gabite.png",
+      "forms": {}
+    },
+    "445": {
+      "default": "data/thumbnails/0445-garchomp.png",
+      "forms": {
+        "mega": "data/thumbnails/0445-garchomp-mega.png"
+      }
+    },
+    "446": {
+      "default": "data/thumbnails/0446-munchlax.png",
+      "forms": {}
+    },
+    "447": {
+      "default": "data/thumbnails/0447-riolu.png",
+      "forms": {}
+    },
+    "448": {
+      "default": "data/thumbnails/0448-lucario.png",
+      "forms": {
+        "mega": "data/thumbnails/0448-lucario-mega.png"
+      }
+    },
+    "449": {
+      "default": "data/thumbnails/0449-hippopotas.png",
+      "forms": {}
+    },
+    "450": {
+      "default": "data/thumbnails/0450-hippowdon.png",
+      "forms": {}
+    },
+    "451": {
+      "default": "data/thumbnails/0451-skorupi.png",
+      "forms": {}
+    },
+    "452": {
+      "default": "data/thumbnails/0452-drapion.png",
+      "forms": {}
+    },
+    "453": {
+      "default": "data/thumbnails/0453-croagunk.png",
+      "forms": {}
+    },
+    "454": {
+      "default": "data/thumbnails/0454-toxicroak.png",
+      "forms": {}
+    },
+    "455": {
+      "default": "data/thumbnails/0455-carnivine.png",
+      "forms": {}
+    },
+    "456": {
+      "default": "data/thumbnails/0456-finneon.png",
+      "forms": {}
+    },
+    "457": {
+      "default": "data/thumbnails/0457-lumineon.png",
+      "forms": {}
+    },
+    "458": {
+      "default": "data/thumbnails/0458-mantyke.png",
+      "forms": {}
+    },
+    "459": {
+      "default": "data/thumbnails/0459-snover.png",
+      "forms": {}
+    },
+    "460": {
+      "default": "data/thumbnails/0460-abomasnow.png",
+      "forms": {
+        "mega": "data/thumbnails/0460-abomasnow-mega.png"
+      }
+    },
+    "461": {
+      "default": "data/thumbnails/0461-weavile.png",
+      "forms": {}
+    },
+    "462": {
+      "default": "data/thumbnails/0462-magnezone.png",
+      "forms": {}
+    },
+    "463": {
+      "default": "data/thumbnails/0463-lickilicky.png",
+      "forms": {}
+    },
+    "464": {
+      "default": "data/thumbnails/0464-rhyperior.png",
+      "forms": {}
+    },
+    "465": {
+      "default": "data/thumbnails/0465-tangrowth.png",
+      "forms": {}
+    },
+    "466": {
+      "default": "data/thumbnails/0466-electivire.png",
+      "forms": {}
+    },
+    "467": {
+      "default": "data/thumbnails/0467-magmortar.png",
+      "forms": {}
+    },
+    "468": {
+      "default": "data/thumbnails/0468-togekiss.png",
+      "forms": {}
+    },
+    "469": {
+      "default": "data/thumbnails/0469-yanmega.png",
+      "forms": {}
+    },
+    "470": {
+      "default": "data/thumbnails/0470-leafeon.png",
+      "forms": {}
+    },
+    "471": {
+      "default": "data/thumbnails/0471-glaceon.png",
+      "forms": {}
+    },
+    "472": {
+      "default": "data/thumbnails/0472-gliscor.png",
+      "forms": {}
+    },
+    "473": {
+      "default": "data/thumbnails/0473-mamoswine.png",
+      "forms": {}
+    },
+    "474": {
+      "default": "data/thumbnails/0474-porygon-z.png",
+      "forms": {}
+    },
+    "475": {
+      "default": "data/thumbnails/0475-gallade.png",
+      "forms": {
+        "mega": "data/thumbnails/0475-gallade-mega.png"
+      }
+    },
+    "476": {
+      "default": "data/thumbnails/0476-probopass.png",
+      "forms": {}
+    },
+    "477": {
+      "default": "data/thumbnails/0477-dusknoir.png",
+      "forms": {}
+    },
+    "478": {
+      "default": "data/thumbnails/0478-froslass.png",
+      "forms": {}
+    },
+    "479": {
+      "default": "data/thumbnails/0479-rotom.png",
+      "forms": {
+        "fan-rotom": "data/thumbnails/0479-rotom-fan-rotom.png",
+        "frost-rotom": "data/thumbnails/0479-rotom-frost-rotom.png",
+        "heat-rotom": "data/thumbnails/0479-rotom-heat-rotom.png",
+        "mow-rotom": "data/thumbnails/0479-rotom-mow-rotom.png",
+        "wash-rotom": "data/thumbnails/0479-rotom-wash-rotom.png"
+      }
+    },
+    "480": {
+      "default": "data/thumbnails/0480-uxie.png",
+      "forms": {}
+    },
+    "481": {
+      "default": "data/thumbnails/0481-mesprit.png",
+      "forms": {}
+    },
+    "482": {
+      "default": "data/thumbnails/0482-azelf.png",
+      "forms": {}
+    },
+    "483": {
+      "default": "data/thumbnails/0483-dialga.png",
+      "forms": {
+        "origin": "data/thumbnails/0483-dialga-origin.png"
+      }
+    },
+    "484": {
+      "default": "data/thumbnails/0484-palkia.png",
+      "forms": {
+        "origin": "data/thumbnails/0484-palkia-origin.png"
+      }
+    },
+    "485": {
+      "default": "data/thumbnails/0485-heatran.png",
+      "forms": {}
+    },
+    "486": {
+      "default": "data/thumbnails/0486-regigigas.png",
+      "forms": {}
+    },
+    "487": {
+      "default": "data/thumbnails/0487-giratina.png",
+      "forms": {
+        "altered-forme": "data/thumbnails/0487-giratina-altered-forme.png",
+        "origin": "data/thumbnails/0487-giratina-origin.png"
+      }
+    },
+    "488": {
+      "default": "data/thumbnails/0488-cresselia.png",
+      "forms": {}
+    },
+    "489": {
+      "default": "data/thumbnails/0489-phione.png",
+      "forms": {}
+    },
+    "490": {
+      "default": "data/thumbnails/0490-manaphy.png",
+      "forms": {}
+    },
+    "491": {
+      "default": "data/thumbnails/0491-darkrai.png",
+      "forms": {}
+    },
+    "492": {
+      "default": "data/thumbnails/0492-shaymin.png",
+      "forms": {
+        "land-forme": "data/thumbnails/0492-shaymin-land-forme.png",
+        "sky-forme": "data/thumbnails/0492-shaymin-sky-forme.png"
+      }
+    },
+    "493": {
+      "default": "data/thumbnails/0493-arceus.png",
+      "forms": {}
+    },
+    "494": {
+      "default": "data/thumbnails/0494-victini.png",
+      "forms": {}
+    },
+    "495": {
+      "default": "data/thumbnails/0495-snivy.png",
+      "forms": {}
+    },
+    "496": {
+      "default": "data/thumbnails/0496-servine.png",
+      "forms": {}
+    },
+    "497": {
+      "default": "data/thumbnails/0497-serperior.png",
+      "forms": {}
+    },
+    "498": {
+      "default": "data/thumbnails/0498-tepig.png",
+      "forms": {}
+    },
+    "499": {
+      "default": "data/thumbnails/0499-pignite.png",
+      "forms": {}
+    },
+    "500": {
+      "default": "data/thumbnails/0500-emboar.png",
+      "forms": {}
+    },
+    "501": {
+      "default": "data/thumbnails/0501-oshawott.png",
+      "forms": {}
+    },
+    "502": {
+      "default": "data/thumbnails/0502-dewott.png",
+      "forms": {}
+    },
+    "503": {
+      "default": "data/thumbnails/0503-samurott.png",
+      "forms": {
+        "hisui": "data/thumbnails/0503-samurott-hisui.png"
+      }
+    },
+    "504": {
+      "default": "data/thumbnails/0504-patrat.png",
+      "forms": {}
+    },
+    "505": {
+      "default": "data/thumbnails/0505-watchog.png",
+      "forms": {}
+    },
+    "506": {
+      "default": "data/thumbnails/0506-lillipup.png",
+      "forms": {}
+    },
+    "507": {
+      "default": "data/thumbnails/0507-herdier.png",
+      "forms": {}
+    },
+    "508": {
+      "default": "data/thumbnails/0508-stoutland.png",
+      "forms": {}
+    },
+    "509": {
+      "default": "data/thumbnails/0509-purrloin.png",
+      "forms": {}
+    },
+    "510": {
+      "default": "data/thumbnails/0510-liepard.png",
+      "forms": {}
+    },
+    "511": {
+      "default": "data/thumbnails/0511-pansage.png",
+      "forms": {}
+    },
+    "512": {
+      "default": "data/thumbnails/0512-simisage.png",
+      "forms": {}
+    },
+    "513": {
+      "default": "data/thumbnails/0513-pansear.png",
+      "forms": {}
+    },
+    "514": {
+      "default": "data/thumbnails/0514-simisear.png",
+      "forms": {}
+    },
+    "515": {
+      "default": "data/thumbnails/0515-panpour.png",
+      "forms": {}
+    },
+    "516": {
+      "default": "data/thumbnails/0516-simipour.png",
+      "forms": {}
+    },
+    "517": {
+      "default": "data/thumbnails/0517-munna.png",
+      "forms": {}
+    },
+    "518": {
+      "default": "data/thumbnails/0518-musharna.png",
+      "forms": {}
+    },
+    "519": {
+      "default": "data/thumbnails/0519-pidove.png",
+      "forms": {}
+    },
+    "520": {
+      "default": "data/thumbnails/0520-tranquill.png",
+      "forms": {}
+    },
+    "521": {
+      "default": "data/thumbnails/0521-unfezant.png",
+      "forms": {}
+    },
+    "522": {
+      "default": "data/thumbnails/0522-blitzle.png",
+      "forms": {}
+    },
+    "523": {
+      "default": "data/thumbnails/0523-zebstrika.png",
+      "forms": {}
+    },
+    "524": {
+      "default": "data/thumbnails/0524-roggenrola.png",
+      "forms": {}
+    },
+    "525": {
+      "default": "data/thumbnails/0525-boldore.png",
+      "forms": {}
+    },
+    "526": {
+      "default": "data/thumbnails/0526-gigalith.png",
+      "forms": {}
+    },
+    "527": {
+      "default": "data/thumbnails/0527-woobat.png",
+      "forms": {}
+    },
+    "528": {
+      "default": "data/thumbnails/0528-swoobat.png",
+      "forms": {}
+    },
+    "529": {
+      "default": "data/thumbnails/0529-drilbur.png",
+      "forms": {}
+    },
+    "530": {
+      "default": "data/thumbnails/0530-excadrill.png",
+      "forms": {}
+    },
+    "531": {
+      "default": "data/thumbnails/0531-audino.png",
+      "forms": {
+        "mega": "data/thumbnails/0531-audino-mega.png"
+      }
+    },
+    "532": {
+      "default": "data/thumbnails/0532-timburr.png",
+      "forms": {}
+    },
+    "533": {
+      "default": "data/thumbnails/0533-gurdurr.png",
+      "forms": {}
+    },
+    "534": {
+      "default": "data/thumbnails/0534-conkeldurr.png",
+      "forms": {}
+    },
+    "535": {
+      "default": "data/thumbnails/0535-tympole.png",
+      "forms": {}
+    },
+    "536": {
+      "default": "data/thumbnails/0536-palpitoad.png",
+      "forms": {}
+    },
+    "537": {
+      "default": "data/thumbnails/0537-seismitoad.png",
+      "forms": {}
+    },
+    "538": {
+      "default": "data/thumbnails/0538-throh.png",
+      "forms": {}
+    },
+    "539": {
+      "default": "data/thumbnails/0539-sawk.png",
+      "forms": {}
+    },
+    "540": {
+      "default": "data/thumbnails/0540-sewaddle.png",
+      "forms": {}
+    },
+    "541": {
+      "default": "data/thumbnails/0541-swadloon.png",
+      "forms": {}
+    },
+    "542": {
+      "default": "data/thumbnails/0542-leavanny.png",
+      "forms": {}
+    },
+    "543": {
+      "default": "data/thumbnails/0543-venipede.png",
+      "forms": {}
+    },
+    "544": {
+      "default": "data/thumbnails/0544-whirlipede.png",
+      "forms": {}
+    },
+    "545": {
+      "default": "data/thumbnails/0545-scolipede.png",
+      "forms": {}
+    },
+    "546": {
+      "default": "data/thumbnails/0546-cottonee.png",
+      "forms": {}
+    },
+    "547": {
+      "default": "data/thumbnails/0547-whimsicott.png",
+      "forms": {}
+    },
+    "548": {
+      "default": "data/thumbnails/0548-petilil.png",
+      "forms": {}
+    },
+    "549": {
+      "default": "data/thumbnails/0549-lilligant.png",
+      "forms": {
+        "hisui": "data/thumbnails/0549-lilligant-hisui.png"
+      }
+    },
+    "550": {
+      "default": "data/thumbnails/0550-basculin.png",
+      "forms": {}
+    },
+    "551": {
+      "default": "data/thumbnails/0551-sandile.png",
+      "forms": {}
+    },
+    "552": {
+      "default": "data/thumbnails/0552-krokorok.png",
+      "forms": {}
+    },
+    "553": {
+      "default": "data/thumbnails/0553-krookodile.png",
+      "forms": {}
+    },
+    "554": {
+      "default": "data/thumbnails/0554-darumaka.png",
+      "forms": {
+        "galar": "data/thumbnails/4554-darumaka-galar.png"
+      }
+    },
+    "555": {
+      "default": "data/thumbnails/0555-darmanitan.png",
+      "forms": {
+        "galar": "data/thumbnails/0555-darmanitan-galar.png",
+        "standard-mode": "data/thumbnails/0555-darmanitan-standard-mode.png",
+        "zen-mode": "data/thumbnails/0555-darmanitan-zen-mode.png"
+      }
+    },
+    "556": {
+      "default": "data/thumbnails/0556-maractus.png",
+      "forms": {}
+    },
+    "557": {
+      "default": "data/thumbnails/0557-dwebble.png",
+      "forms": {}
+    },
+    "558": {
+      "default": "data/thumbnails/0558-crustle.png",
+      "forms": {}
+    },
+    "559": {
+      "default": "data/thumbnails/0559-scraggy.png",
+      "forms": {}
+    },
+    "560": {
+      "default": "data/thumbnails/0560-scrafty.png",
+      "forms": {}
+    },
+    "561": {
+      "default": "data/thumbnails/0561-sigilyph.png",
+      "forms": {}
+    },
+    "562": {
+      "default": "data/thumbnails/0562-yamask.png",
+      "forms": {
+        "galar": "data/thumbnails/4562-yamask-galar.png"
+      }
+    },
+    "563": {
+      "default": "data/thumbnails/0563-cofagrigus.png",
+      "forms": {}
+    },
+    "564": {
+      "default": "data/thumbnails/0564-tirtouga.png",
+      "forms": {}
+    },
+    "565": {
+      "default": "data/thumbnails/0565-carracosta.png",
+      "forms": {}
+    },
+    "566": {
+      "default": "data/thumbnails/0566-archen.png",
+      "forms": {}
+    },
+    "567": {
+      "default": "data/thumbnails/0567-archeops.png",
+      "forms": {}
+    },
+    "568": {
+      "default": "data/thumbnails/0568-trubbish.png",
+      "forms": {}
+    },
+    "569": {
+      "default": "data/thumbnails/0569-garbodor.png",
+      "forms": {}
+    },
+    "570": {
+      "default": "data/thumbnails/0570-zorua.png",
+      "forms": {
+        "hisui": "data/thumbnails/0570-zorua-hisui.png"
+      }
+    },
+    "571": {
+      "default": "data/thumbnails/0571-zoroark.png",
+      "forms": {
+        "hisui": "data/thumbnails/0571-zoroark-hisui.png"
+      }
+    },
+    "572": {
+      "default": "data/thumbnails/0572-minccino.png",
+      "forms": {}
+    },
+    "573": {
+      "default": "data/thumbnails/0573-cinccino.png",
+      "forms": {}
+    },
+    "574": {
+      "default": "data/thumbnails/0574-gothita.png",
+      "forms": {}
+    },
+    "575": {
+      "default": "data/thumbnails/0575-gothorita.png",
+      "forms": {}
+    },
+    "576": {
+      "default": "data/thumbnails/0576-gothitelle.png",
+      "forms": {}
+    },
+    "577": {
+      "default": "data/thumbnails/0577-solosis.png",
+      "forms": {}
+    },
+    "578": {
+      "default": "data/thumbnails/0578-duosion.png",
+      "forms": {}
+    },
+    "579": {
+      "default": "data/thumbnails/0579-reuniclus.png",
+      "forms": {}
+    },
+    "580": {
+      "default": "data/thumbnails/0580-ducklett.png",
+      "forms": {}
+    },
+    "581": {
+      "default": "data/thumbnails/0581-swanna.png",
+      "forms": {}
+    },
+    "582": {
+      "default": "data/thumbnails/0582-vanillite.png",
+      "forms": {}
+    },
+    "583": {
+      "default": "data/thumbnails/0583-vanillish.png",
+      "forms": {}
+    },
+    "584": {
+      "default": "data/thumbnails/0584-vanilluxe.png",
+      "forms": {}
+    },
+    "585": {
+      "default": "data/thumbnails/0585-deerling.png",
+      "forms": {}
+    },
+    "586": {
+      "default": "data/thumbnails/0586-sawsbuck.png",
+      "forms": {}
+    },
+    "587": {
+      "default": "data/thumbnails/0587-emolga.png",
+      "forms": {}
+    },
+    "588": {
+      "default": "data/thumbnails/0588-karrablast.png",
+      "forms": {}
+    },
+    "589": {
+      "default": "data/thumbnails/0589-escavalier.png",
+      "forms": {}
+    },
+    "590": {
+      "default": "data/thumbnails/0590-foongus.png",
+      "forms": {}
+    },
+    "591": {
+      "default": "data/thumbnails/0591-amoonguss.png",
+      "forms": {}
+    },
+    "592": {
+      "default": "data/thumbnails/0592-frillish.png",
+      "forms": {}
+    },
+    "593": {
+      "default": "data/thumbnails/0593-jellicent.png",
+      "forms": {}
+    },
+    "594": {
+      "default": "data/thumbnails/0594-alomomola.png",
+      "forms": {}
+    },
+    "595": {
+      "default": "data/thumbnails/0595-joltik.png",
+      "forms": {}
+    },
+    "596": {
+      "default": "data/thumbnails/0596-galvantula.png",
+      "forms": {}
+    },
+    "597": {
+      "default": "data/thumbnails/0597-ferroseed.png",
+      "forms": {}
+    },
+    "598": {
+      "default": "data/thumbnails/0598-ferrothorn.png",
+      "forms": {}
+    },
+    "599": {
+      "default": "data/thumbnails/0599-klink.png",
+      "forms": {}
+    },
+    "600": {
+      "default": "data/thumbnails/0600-klang.png",
+      "forms": {}
+    },
+    "601": {
+      "default": "data/thumbnails/0601-klinklang.png",
+      "forms": {}
+    },
+    "602": {
+      "default": "data/thumbnails/0602-tynamo.png",
+      "forms": {}
+    },
+    "603": {
+      "default": "data/thumbnails/0603-eelektrik.png",
+      "forms": {}
+    },
+    "604": {
+      "default": "data/thumbnails/0604-eelektross.png",
+      "forms": {}
+    },
+    "605": {
+      "default": "data/thumbnails/0605-elgyem.png",
+      "forms": {}
+    },
+    "606": {
+      "default": "data/thumbnails/0606-beheeyem.png",
+      "forms": {}
+    },
+    "607": {
+      "default": "data/thumbnails/0607-litwick.png",
+      "forms": {}
+    },
+    "608": {
+      "default": "data/thumbnails/0608-lampent.png",
+      "forms": {}
+    },
+    "609": {
+      "default": "data/thumbnails/0609-chandelure.png",
+      "forms": {}
+    },
+    "610": {
+      "default": "data/thumbnails/0610-axew.png",
+      "forms": {}
+    },
+    "611": {
+      "default": "data/thumbnails/0611-fraxure.png",
+      "forms": {}
+    },
+    "612": {
+      "default": "data/thumbnails/0612-haxorus.png",
+      "forms": {}
+    },
+    "613": {
+      "default": "data/thumbnails/0613-cubchoo.png",
+      "forms": {}
+    },
+    "614": {
+      "default": "data/thumbnails/0614-beartic.png",
+      "forms": {}
+    },
+    "615": {
+      "default": "data/thumbnails/0615-cryogonal.png",
+      "forms": {}
+    },
+    "616": {
+      "default": "data/thumbnails/0616-shelmet.png",
+      "forms": {}
+    },
+    "617": {
+      "default": "data/thumbnails/0617-accelgor.png",
+      "forms": {}
+    },
+    "618": {
+      "default": "data/thumbnails/0618-stunfisk.png",
+      "forms": {
+        "galar": "data/thumbnails/4618-stunfisk-galar.png"
+      }
+    },
+    "619": {
+      "default": "data/thumbnails/0619-mienfoo.png",
+      "forms": {}
+    },
+    "620": {
+      "default": "data/thumbnails/0620-mienshao.png",
+      "forms": {}
+    },
+    "621": {
+      "default": "data/thumbnails/0621-druddigon.png",
+      "forms": {}
+    },
+    "622": {
+      "default": "data/thumbnails/0622-golett.png",
+      "forms": {}
+    },
+    "623": {
+      "default": "data/thumbnails/0623-golurk.png",
+      "forms": {}
+    },
+    "624": {
+      "default": "data/thumbnails/0624-pawniard.png",
+      "forms": {}
+    },
+    "625": {
+      "default": "data/thumbnails/0625-bisharp.png",
+      "forms": {}
+    },
+    "626": {
+      "default": "data/thumbnails/0626-bouffalant.png",
+      "forms": {}
+    },
+    "627": {
+      "default": "data/thumbnails/0627-rufflet.png",
+      "forms": {}
+    },
+    "628": {
+      "default": "data/thumbnails/0628-braviary.png",
+      "forms": {
+        "hisui": "data/thumbnails/0628-braviary-hisui.png"
+      }
+    },
+    "629": {
+      "default": "data/thumbnails/0629-vullaby.png",
+      "forms": {}
+    },
+    "630": {
+      "default": "data/thumbnails/0630-mandibuzz.png",
+      "forms": {}
+    },
+    "631": {
+      "default": "data/thumbnails/0631-heatmor.png",
+      "forms": {}
+    },
+    "632": {
+      "default": "data/thumbnails/0632-durant.png",
+      "forms": {}
+    },
+    "633": {
+      "default": "data/thumbnails/0633-deino.png",
+      "forms": {}
+    },
+    "634": {
+      "default": "data/thumbnails/0634-zweilous.png",
+      "forms": {}
+    },
+    "635": {
+      "default": "data/thumbnails/0635-hydreigon.png",
+      "forms": {}
+    },
+    "636": {
+      "default": "data/thumbnails/0636-larvesta.png",
+      "forms": {}
+    },
+    "637": {
+      "default": "data/thumbnails/0637-volcarona.png",
+      "forms": {}
+    },
+    "638": {
+      "default": "data/thumbnails/0638-cobalion.png",
+      "forms": {}
+    },
+    "639": {
+      "default": "data/thumbnails/0639-terrakion.png",
+      "forms": {}
+    },
+    "640": {
+      "default": "data/thumbnails/0640-virizion.png",
+      "forms": {}
+    },
+    "641": {
+      "default": "data/thumbnails/0641-tornadus.png",
+      "forms": {
+        "incarnate": "data/thumbnails/0641-tornadus-incarnate.png",
+        "therian": "data/thumbnails/0641-tornadus-therian.png"
+      }
+    },
+    "642": {
+      "default": "data/thumbnails/0642-thundurus.png",
+      "forms": {
+        "incarnate": "data/thumbnails/0642-thundurus-incarnate.png",
+        "therian": "data/thumbnails/0642-thundurus-therian.png"
+      }
+    },
+    "643": {
+      "default": "data/thumbnails/0643-reshiram.png",
+      "forms": {}
+    },
+    "644": {
+      "default": "data/thumbnails/0644-zekrom.png",
+      "forms": {}
+    },
+    "645": {
+      "default": "data/thumbnails/0645-landorus.png",
+      "forms": {
+        "incarnate": "data/thumbnails/0645-landorus-incarnate.png",
+        "therian": "data/thumbnails/0645-landorus-therian.png"
+      }
+    },
+    "646": {
+      "default": "data/thumbnails/0646-kyurem.png",
+      "forms": {
+        "black-kyurem": "data/thumbnails/0646-kyurem-black-kyurem.png",
+        "white-kyurem": "data/thumbnails/0646-kyurem-white-kyurem.png"
+      }
+    },
+    "647": {
+      "default": "data/thumbnails/0647-keldeo.png",
+      "forms": {}
+    },
+    "648": {
+      "default": "data/thumbnails/0648-meloetta.png",
+      "forms": {
+        "aria-forme": "data/thumbnails/0648-meloetta-aria-forme.png",
+        "pirouette-forme": "data/thumbnails/0648-meloetta-pirouette-forme.png"
+      }
+    },
+    "649": {
+      "default": "data/thumbnails/0649-genesect.png",
+      "forms": {}
+    },
+    "650": {
+      "default": "data/thumbnails/0650-chespin.png",
+      "forms": {}
+    },
+    "651": {
+      "default": "data/thumbnails/0651-quilladin.png",
+      "forms": {}
+    },
+    "652": {
+      "default": "data/thumbnails/0652-chesnaught.png",
+      "forms": {}
+    },
+    "653": {
+      "default": "data/thumbnails/0653-fennekin.png",
+      "forms": {}
+    },
+    "654": {
+      "default": "data/thumbnails/0654-braixen.png",
+      "forms": {}
+    },
+    "655": {
+      "default": "data/thumbnails/0655-delphox.png",
+      "forms": {}
+    },
+    "656": {
+      "default": "data/thumbnails/0656-froakie.png",
+      "forms": {}
+    },
+    "657": {
+      "default": "data/thumbnails/0657-frogadier.png",
+      "forms": {}
+    },
+    "658": {
+      "default": "data/thumbnails/0658-greninja.png",
+      "forms": {
+        "ash-greninja": "data/thumbnails/0658-greninja-ash-greninja.png"
+      }
+    },
+    "659": {
+      "default": "data/thumbnails/0659-bunnelby.png",
+      "forms": {}
+    },
+    "660": {
+      "default": "data/thumbnails/0660-diggersby.png",
+      "forms": {}
+    },
+    "661": {
+      "default": "data/thumbnails/0661-fletchling.png",
+      "forms": {}
+    },
+    "662": {
+      "default": "data/thumbnails/0662-fletchinder.png",
+      "forms": {}
+    },
+    "663": {
+      "default": "data/thumbnails/0663-talonflame.png",
+      "forms": {}
+    },
+    "664": {
+      "default": "data/thumbnails/0664-scatterbug.png",
+      "forms": {}
+    },
+    "665": {
+      "default": "data/thumbnails/0665-spewpa.png",
+      "forms": {}
+    },
+    "666": {
+      "default": "data/thumbnails/0666-vivillon.png",
+      "forms": {}
+    },
+    "667": {
+      "default": "data/thumbnails/0667-litleo.png",
+      "forms": {}
+    },
+    "668": {
+      "default": "data/thumbnails/0668-pyroar.png",
+      "forms": {}
+    },
+    "669": {
+      "default": "data/thumbnails/0669-flabebe.png",
+      "forms": {}
+    },
+    "670": {
+      "default": "data/thumbnails/2670-floette.png",
+      "forms": {
+        "eternal-flower": "data/thumbnails/0670-floette-eternal-flower.png"
+      }
+    },
+    "671": {
+      "default": "data/thumbnails/0671-florges.png",
+      "forms": {}
+    },
+    "672": {
+      "default": "data/thumbnails/0672-skiddo.png",
+      "forms": {}
+    },
+    "673": {
+      "default": "data/thumbnails/0673-gogoat.png",
+      "forms": {}
+    },
+    "674": {
+      "default": "data/thumbnails/0674-pancham.png",
+      "forms": {}
+    },
+    "675": {
+      "default": "data/thumbnails/0675-pangoro.png",
+      "forms": {}
+    },
+    "676": {
+      "default": "data/thumbnails/0676-furfrou.png",
+      "forms": {}
+    },
+    "677": {
+      "default": "data/thumbnails/0677-espurr.png",
+      "forms": {}
+    },
+    "678": {
+      "default": "data/thumbnails/0678-meowstic.png",
+      "forms": {}
+    },
+    "679": {
+      "default": "data/thumbnails/0679-honedge.png",
+      "forms": {}
+    },
+    "680": {
+      "default": "data/thumbnails/0680-doublade.png",
+      "forms": {}
+    },
+    "681": {
+      "default": "data/thumbnails/0681-aegislash.png",
+      "forms": {
+        "blade-forme": "data/thumbnails/0681-aegislash-blade-forme.png",
+        "shield-forme": "data/thumbnails/0681-aegislash-shield-forme.png"
+      }
+    },
+    "682": {
+      "default": "data/thumbnails/0682-spritzee.png",
+      "forms": {}
+    },
+    "683": {
+      "default": "data/thumbnails/0683-aromatisse.png",
+      "forms": {}
+    },
+    "684": {
+      "default": "data/thumbnails/0684-swirlix.png",
+      "forms": {}
+    },
+    "685": {
+      "default": "data/thumbnails/0685-slurpuff.png",
+      "forms": {}
+    },
+    "686": {
+      "default": "data/thumbnails/0686-inkay.png",
+      "forms": {}
+    },
+    "687": {
+      "default": "data/thumbnails/0687-malamar.png",
+      "forms": {}
+    },
+    "688": {
+      "default": "data/thumbnails/0688-binacle.png",
+      "forms": {}
+    },
+    "689": {
+      "default": "data/thumbnails/0689-barbaracle.png",
+      "forms": {}
+    },
+    "690": {
+      "default": "data/thumbnails/0690-skrelp.png",
+      "forms": {}
+    },
+    "691": {
+      "default": "data/thumbnails/0691-dragalge.png",
+      "forms": {}
+    },
+    "692": {
+      "default": "data/thumbnails/0692-clauncher.png",
+      "forms": {}
+    },
+    "693": {
+      "default": "data/thumbnails/0693-clawitzer.png",
+      "forms": {}
+    },
+    "694": {
+      "default": "data/thumbnails/0694-helioptile.png",
+      "forms": {}
+    },
+    "695": {
+      "default": "data/thumbnails/0695-heliolisk.png",
+      "forms": {}
+    },
+    "696": {
+      "default": "data/thumbnails/0696-tyrunt.png",
+      "forms": {}
+    },
+    "697": {
+      "default": "data/thumbnails/0697-tyrantrum.png",
+      "forms": {}
+    },
+    "698": {
+      "default": "data/thumbnails/0698-amaura.png",
+      "forms": {}
+    },
+    "699": {
+      "default": "data/thumbnails/0699-aurorus.png",
+      "forms": {}
+    },
+    "700": {
+      "default": "data/thumbnails/0700-sylveon.png",
+      "forms": {}
+    },
+    "701": {
+      "default": "data/thumbnails/0701-hawlucha.png",
+      "forms": {}
+    },
+    "702": {
+      "default": "data/thumbnails/0702-dedenne.png",
+      "forms": {}
+    },
+    "703": {
+      "default": "data/thumbnails/0703-carbink.png",
+      "forms": {}
+    },
+    "704": {
+      "default": "data/thumbnails/0704-goomy.png",
+      "forms": {}
+    },
+    "705": {
+      "default": "data/thumbnails/0705-sliggoo.png",
+      "forms": {
+        "hisui": "data/thumbnails/0705-sliggoo-hisui.png"
+      }
+    },
+    "706": {
+      "default": "data/thumbnails/0706-goodra.png",
+      "forms": {
+        "hisui": "data/thumbnails/0706-goodra-hisui.png"
+      }
+    },
+    "707": {
+      "default": "data/thumbnails/0707-klefki.png",
+      "forms": {}
+    },
+    "708": {
+      "default": "data/thumbnails/0708-phantump.png",
+      "forms": {}
+    },
+    "709": {
+      "default": "data/thumbnails/0709-trevenant.png",
+      "forms": {}
+    },
+    "710": {
+      "default": "data/thumbnails/0710-pumpkaboo.png",
+      "forms": {
+        "average-size": "data/thumbnails/0710-pumpkaboo-average-size.png",
+        "large-size": "data/thumbnails/0710-pumpkaboo-large-size.png",
+        "small-size": "data/thumbnails/0710-pumpkaboo-small-size.png",
+        "super-size": "data/thumbnails/0710-pumpkaboo-super-size.png"
+      }
+    },
+    "711": {
+      "default": "data/thumbnails/0711-gourgeist.png",
+      "forms": {
+        "average-size": "data/thumbnails/0711-gourgeist-average-size.png",
+        "large-size": "data/thumbnails/0711-gourgeist-large-size.png",
+        "small-size": "data/thumbnails/0711-gourgeist-small-size.png",
+        "super-size": "data/thumbnails/0711-gourgeist-super-size.png"
+      }
+    },
+    "712": {
+      "default": "data/thumbnails/0712-bergmite.png",
+      "forms": {}
+    },
+    "713": {
+      "default": "data/thumbnails/0713-avalugg.png",
+      "forms": {
+        "hisui": "data/thumbnails/0713-avalugg-hisui.png"
+      }
+    },
+    "714": {
+      "default": "data/thumbnails/0714-noibat.png",
+      "forms": {}
+    },
+    "715": {
+      "default": "data/thumbnails/0715-noivern.png",
+      "forms": {}
+    },
+    "716": {
+      "default": "data/thumbnails/0716-xerneas.png",
+      "forms": {}
+    },
+    "717": {
+      "default": "data/thumbnails/0717-yveltal.png",
+      "forms": {}
+    },
+    "718": {
+      "default": "data/thumbnails/0718-zygarde.png",
+      "forms": {
+        "10-forme": "data/thumbnails/0718-zygarde-10-forme.png",
+        "50-forme": "data/thumbnails/0718-zygarde-50-forme.png",
+        "complete-forme": "data/thumbnails/0718-zygarde-complete-forme.png"
+      }
+    },
+    "719": {
+      "default": "data/thumbnails/0719-diancie.png",
+      "forms": {
+        "mega": "data/thumbnails/0719-diancie-mega.png"
+      }
+    },
+    "720": {
+      "default": "data/thumbnails/0720-hoopa.png",
+      "forms": {
+        "hoopa-confined": "data/thumbnails/0720-hoopa-hoopa-confined.png",
+        "hoopa-unbound": "data/thumbnails/0720-hoopa-hoopa-unbound.png"
+      }
+    },
+    "721": {
+      "default": "data/thumbnails/0721-volcanion.png",
+      "forms": {}
+    },
+    "722": {
+      "default": "data/thumbnails/0722-rowlet.png",
+      "forms": {}
+    },
+    "723": {
+      "default": "data/thumbnails/0723-dartrix.png",
+      "forms": {}
+    },
+    "724": {
+      "default": "data/thumbnails/0724-decidueye.png",
+      "forms": {
+        "hisui": "data/thumbnails/0724-decidueye-hisui.png"
+      }
+    },
+    "725": {
+      "default": "data/thumbnails/0725-litten.png",
+      "forms": {}
+    },
+    "726": {
+      "default": "data/thumbnails/0726-torracat.png",
+      "forms": {}
+    },
+    "727": {
+      "default": "data/thumbnails/0727-incineroar.png",
+      "forms": {}
+    },
+    "728": {
+      "default": "data/thumbnails/0728-popplio.png",
+      "forms": {}
+    },
+    "729": {
+      "default": "data/thumbnails/0729-brionne.png",
+      "forms": {}
+    },
+    "730": {
+      "default": "data/thumbnails/0730-primarina.png",
+      "forms": {}
+    },
+    "731": {
+      "default": "data/thumbnails/0731-pikipek.png",
+      "forms": {}
+    },
+    "732": {
+      "default": "data/thumbnails/0732-trumbeak.png",
+      "forms": {}
+    },
+    "733": {
+      "default": "data/thumbnails/0733-toucannon.png",
+      "forms": {}
+    },
+    "734": {
+      "default": "data/thumbnails/0734-yungoos.png",
+      "forms": {}
+    },
+    "735": {
+      "default": "data/thumbnails/0735-gumshoos.png",
+      "forms": {}
+    },
+    "736": {
+      "default": "data/thumbnails/0736-grubbin.png",
+      "forms": {}
+    },
+    "737": {
+      "default": "data/thumbnails/0737-charjabug.png",
+      "forms": {}
+    },
+    "738": {
+      "default": "data/thumbnails/0738-vikavolt.png",
+      "forms": {}
+    },
+    "739": {
+      "default": "data/thumbnails/0739-crabrawler.png",
+      "forms": {}
+    },
+    "740": {
+      "default": "data/thumbnails/0740-crabominable.png",
+      "forms": {}
+    },
+    "741": {
+      "default": "data/thumbnails/0741-oricorio.png",
+      "forms": {}
+    },
+    "742": {
+      "default": "data/thumbnails/0742-cutiefly.png",
+      "forms": {}
+    },
+    "743": {
+      "default": "data/thumbnails/0743-ribombee.png",
+      "forms": {}
+    },
+    "744": {
+      "default": "data/thumbnails/0744-rockruff.png",
+      "forms": {}
+    },
+    "745": {
+      "default": "data/thumbnails/0745-lycanroc.png",
+      "forms": {
+        "dusk-form": "data/thumbnails/0745-lycanroc-dusk-form.png",
+        "midday-form": "data/thumbnails/0745-lycanroc-midday-form.png",
+        "midnight-form": "data/thumbnails/0745-lycanroc-midnight-form.png"
+      }
+    },
+    "746": {
+      "default": "data/thumbnails/0746-wishiwashi.png",
+      "forms": {
+        "school-form": "data/thumbnails/0746-wishiwashi-school-form.png",
+        "solo-form": "data/thumbnails/0746-wishiwashi-solo-form.png"
+      }
+    },
+    "747": {
+      "default": "data/thumbnails/0747-mareanie.png",
+      "forms": {}
+    },
+    "748": {
+      "default": "data/thumbnails/0748-toxapex.png",
+      "forms": {}
+    },
+    "749": {
+      "default": "data/thumbnails/0749-mudbray.png",
+      "forms": {}
+    },
+    "750": {
+      "default": "data/thumbnails/0750-mudsdale.png",
+      "forms": {}
+    },
+    "751": {
+      "default": "data/thumbnails/0751-dewpider.png",
+      "forms": {}
+    },
+    "752": {
+      "default": "data/thumbnails/0752-araquanid.png",
+      "forms": {}
+    },
+    "753": {
+      "default": "data/thumbnails/0753-fomantis.png",
+      "forms": {}
+    },
+    "754": {
+      "default": "data/thumbnails/0754-lurantis.png",
+      "forms": {}
+    },
+    "755": {
+      "default": "data/thumbnails/0755-morelull.png",
+      "forms": {}
+    },
+    "756": {
+      "default": "data/thumbnails/0756-shiinotic.png",
+      "forms": {}
+    },
+    "757": {
+      "default": "data/thumbnails/0757-salandit.png",
+      "forms": {}
+    },
+    "758": {
+      "default": "data/thumbnails/0758-salazzle.png",
+      "forms": {}
+    },
+    "759": {
+      "default": "data/thumbnails/0759-stufful.png",
+      "forms": {}
+    },
+    "760": {
+      "default": "data/thumbnails/0760-bewear.png",
+      "forms": {}
+    },
+    "761": {
+      "default": "data/thumbnails/0761-bounsweet.png",
+      "forms": {}
+    },
+    "762": {
+      "default": "data/thumbnails/0762-steenee.png",
+      "forms": {}
+    },
+    "763": {
+      "default": "data/thumbnails/0763-tsareena.png",
+      "forms": {}
+    },
+    "764": {
+      "default": "data/thumbnails/0764-comfey.png",
+      "forms": {}
+    },
+    "765": {
+      "default": "data/thumbnails/0765-oranguru.png",
+      "forms": {}
+    },
+    "766": {
+      "default": "data/thumbnails/0766-passimian.png",
+      "forms": {}
+    },
+    "767": {
+      "default": "data/thumbnails/0767-wimpod.png",
+      "forms": {}
+    },
+    "768": {
+      "default": "data/thumbnails/0768-golisopod.png",
+      "forms": {}
+    },
+    "769": {
+      "default": "data/thumbnails/0769-sandygast.png",
+      "forms": {}
+    },
+    "770": {
+      "default": "data/thumbnails/0770-palossand.png",
+      "forms": {}
+    },
+    "771": {
+      "default": "data/thumbnails/0771-pyukumuku.png",
+      "forms": {}
+    },
+    "772": {
+      "default": "data/thumbnails/0772-type-null.png",
+      "forms": {}
+    },
+    "773": {
+      "default": "data/thumbnails/0773-silvally.png",
+      "forms": {}
+    },
+    "774": {
+      "default": "data/thumbnails/0774-minior.png",
+      "forms": {
+        "core": "data/thumbnails/0774-minior-core.png",
+        "meteor-form": "data/thumbnails/0774-minior-meteor-form.png"
+      }
+    },
+    "775": {
+      "default": "data/thumbnails/0775-komala.png",
+      "forms": {}
+    },
+    "776": {
+      "default": "data/thumbnails/0776-turtonator.png",
+      "forms": {}
+    },
+    "777": {
+      "default": "data/thumbnails/0777-togedemaru.png",
+      "forms": {}
+    },
+    "778": {
+      "default": "data/thumbnails/0778-mimikyu.png",
+      "forms": {}
+    },
+    "779": {
+      "default": "data/thumbnails/0779-bruxish.png",
+      "forms": {}
+    },
+    "780": {
+      "default": "data/thumbnails/0780-drampa.png",
+      "forms": {}
+    },
+    "781": {
+      "default": "data/thumbnails/0781-dhelmise.png",
+      "forms": {}
+    },
+    "782": {
+      "default": "data/thumbnails/0782-jangmo-o.png",
+      "forms": {}
+    },
+    "783": {
+      "default": "data/thumbnails/0783-hakamo-o.png",
+      "forms": {}
+    },
+    "784": {
+      "default": "data/thumbnails/0784-kommo-o.png",
+      "forms": {}
+    },
+    "785": {
+      "default": "data/thumbnails/0785-tapu-koko.png",
+      "forms": {}
+    },
+    "786": {
+      "default": "data/thumbnails/0786-tapu-lele.png",
+      "forms": {}
+    },
+    "787": {
+      "default": "data/thumbnails/0787-tapu-bulu.png",
+      "forms": {}
+    },
+    "788": {
+      "default": "data/thumbnails/0788-tapu-fini.png",
+      "forms": {}
+    },
+    "789": {
+      "default": "data/thumbnails/0789-cosmog.png",
+      "forms": {}
+    },
+    "790": {
+      "default": "data/thumbnails/0790-cosmoem.png",
+      "forms": {}
+    },
+    "791": {
+      "default": "data/thumbnails/0791-solgaleo.png",
+      "forms": {}
+    },
+    "792": {
+      "default": "data/thumbnails/0792-lunala.png",
+      "forms": {}
+    },
+    "793": {
+      "default": "data/thumbnails/0793-nihilego.png",
+      "forms": {}
+    },
+    "794": {
+      "default": "data/thumbnails/0794-buzzwole.png",
+      "forms": {}
+    },
+    "795": {
+      "default": "data/thumbnails/0795-pheromosa.png",
+      "forms": {}
+    },
+    "796": {
+      "default": "data/thumbnails/0796-xurkitree.png",
+      "forms": {}
+    },
+    "797": {
+      "default": "data/thumbnails/0797-celesteela.png",
+      "forms": {}
+    },
+    "798": {
+      "default": "data/thumbnails/0798-kartana.png",
+      "forms": {}
+    },
+    "799": {
+      "default": "data/thumbnails/0799-guzzlord.png",
+      "forms": {}
+    },
+    "800": {
+      "default": "data/thumbnails/0800-necrozma.png",
+      "forms": {
+        "dawn-wings-necrozma": "data/thumbnails/0800-necrozma-dawn-wings-necrozma.png",
+        "dusk-mane-necrozma": "data/thumbnails/0800-necrozma-dusk-mane-necrozma.png",
+        "ultra-necrozma": "data/thumbnails/0800-necrozma-ultra-necrozma.png"
+      }
+    },
+    "801": {
+      "default": "data/thumbnails/0801-magearna.png",
+      "forms": {}
+    },
+    "802": {
+      "default": "data/thumbnails/0802-marshadow.png",
+      "forms": {}
+    },
+    "803": {
+      "default": "data/thumbnails/0803-poipole.png",
+      "forms": {}
+    },
+    "804": {
+      "default": "data/thumbnails/0804-naganadel.png",
+      "forms": {}
+    },
+    "805": {
+      "default": "data/thumbnails/0805-stakataka.png",
+      "forms": {}
+    },
+    "806": {
+      "default": "data/thumbnails/0806-blacephalon.png",
+      "forms": {}
+    },
+    "807": {
+      "default": "data/thumbnails/0807-zeraora.png",
+      "forms": {}
+    },
+    "808": {
+      "default": "data/thumbnails/0808-meltan.png",
+      "forms": {}
+    },
+    "809": {
+      "default": "data/thumbnails/0809-melmetal.png",
+      "forms": {}
+    },
+    "810": {
+      "default": "data/thumbnails/0810-grookey.png",
+      "forms": {}
+    },
+    "811": {
+      "default": "data/thumbnails/0811-thwackey.png",
+      "forms": {}
+    },
+    "812": {
+      "default": "data/thumbnails/0812-rillaboom.png",
+      "forms": {}
+    },
+    "813": {
+      "default": "data/thumbnails/0813-scorbunny.png",
+      "forms": {}
+    },
+    "814": {
+      "default": "data/thumbnails/0814-raboot.png",
+      "forms": {}
+    },
+    "815": {
+      "default": "data/thumbnails/0815-cinderace.png",
+      "forms": {}
+    },
+    "816": {
+      "default": "data/thumbnails/0816-sobble.png",
+      "forms": {}
+    },
+    "817": {
+      "default": "data/thumbnails/0817-drizzile.png",
+      "forms": {}
+    },
+    "818": {
+      "default": "data/thumbnails/0818-inteleon.png",
+      "forms": {}
+    },
+    "819": {
+      "default": "data/thumbnails/0819-skwovet.png",
+      "forms": {}
+    },
+    "820": {
+      "default": "data/thumbnails/0820-greedent.png",
+      "forms": {}
+    },
+    "821": {
+      "default": "data/thumbnails/0821-rookidee.png",
+      "forms": {}
+    },
+    "822": {
+      "default": "data/thumbnails/0822-corvisquire.png",
+      "forms": {}
+    },
+    "823": {
+      "default": "data/thumbnails/0823-corviknight.png",
+      "forms": {}
+    },
+    "824": {
+      "default": "data/thumbnails/0824-blipbug.png",
+      "forms": {}
+    },
+    "825": {
+      "default": "data/thumbnails/0825-dottler.png",
+      "forms": {}
+    },
+    "826": {
+      "default": "data/thumbnails/0826-orbeetle.png",
+      "forms": {}
+    },
+    "827": {
+      "default": "data/thumbnails/0827-nickit.png",
+      "forms": {}
+    },
+    "828": {
+      "default": "data/thumbnails/0828-thievul.png",
+      "forms": {}
+    },
+    "829": {
+      "default": "data/thumbnails/0829-gossifleur.png",
+      "forms": {}
+    },
+    "830": {
+      "default": "data/thumbnails/0830-eldegoss.png",
+      "forms": {}
+    },
+    "831": {
+      "default": "data/thumbnails/0831-wooloo.png",
+      "forms": {}
+    },
+    "832": {
+      "default": "data/thumbnails/0832-dubwool.png",
+      "forms": {}
+    },
+    "833": {
+      "default": "data/thumbnails/0833-chewtle.png",
+      "forms": {}
+    },
+    "834": {
+      "default": "data/thumbnails/0834-drednaw.png",
+      "forms": {}
+    },
+    "835": {
+      "default": "data/thumbnails/0835-yamper.png",
+      "forms": {}
+    },
+    "836": {
+      "default": "data/thumbnails/0836-boltund.png",
+      "forms": {}
+    },
+    "837": {
+      "default": "data/thumbnails/0837-rolycoly.png",
+      "forms": {}
+    },
+    "838": {
+      "default": "data/thumbnails/0838-carkol.png",
+      "forms": {}
+    },
+    "839": {
+      "default": "data/thumbnails/0839-coalossal.png",
+      "forms": {}
+    },
+    "840": {
+      "default": "data/thumbnails/0840-applin.png",
+      "forms": {}
+    },
+    "841": {
+      "default": "data/thumbnails/0841-flapple.png",
+      "forms": {}
+    },
+    "842": {
+      "default": "data/thumbnails/0842-appletun.png",
+      "forms": {}
+    },
+    "843": {
+      "default": "data/thumbnails/0843-silicobra.png",
+      "forms": {}
+    },
+    "844": {
+      "default": "data/thumbnails/0844-sandaconda.png",
+      "forms": {}
+    },
+    "845": {
+      "default": "data/thumbnails/0845-cramorant.png",
+      "forms": {}
+    },
+    "846": {
+      "default": "data/thumbnails/0846-arrokuda.png",
+      "forms": {}
+    },
+    "847": {
+      "default": "data/thumbnails/0847-barraskewda.png",
+      "forms": {}
+    },
+    "848": {
+      "default": "data/thumbnails/0848-toxel.png",
+      "forms": {}
+    },
+    "849": {
+      "default": "data/thumbnails/0849-toxtricity.png",
+      "forms": {}
+    },
+    "850": {
+      "default": "data/thumbnails/0850-sizzlipede.png",
+      "forms": {}
+    },
+    "851": {
+      "default": "data/thumbnails/0851-centiskorch.png",
+      "forms": {}
+    },
+    "852": {
+      "default": "data/thumbnails/0852-clobbopus.png",
+      "forms": {}
+    },
+    "853": {
+      "default": "data/thumbnails/0853-grapploct.png",
+      "forms": {}
+    },
+    "854": {
+      "default": "data/thumbnails/0854-sinistea.png",
+      "forms": {}
+    },
+    "855": {
+      "default": "data/thumbnails/0855-polteageist.png",
+      "forms": {}
+    },
+    "856": {
+      "default": "data/thumbnails/0856-hatenna.png",
+      "forms": {}
+    },
+    "857": {
+      "default": "data/thumbnails/0857-hattrem.png",
+      "forms": {}
+    },
+    "858": {
+      "default": "data/thumbnails/0858-hatterene.png",
+      "forms": {}
+    },
+    "859": {
+      "default": "data/thumbnails/0859-impidimp.png",
+      "forms": {}
+    },
+    "860": {
+      "default": "data/thumbnails/0860-morgrem.png",
+      "forms": {}
+    },
+    "861": {
+      "default": "data/thumbnails/0861-grimmsnarl.png",
+      "forms": {}
+    },
+    "862": {
+      "default": "data/thumbnails/0862-obstagoon.png",
+      "forms": {}
+    },
+    "863": {
+      "default": "data/thumbnails/0863-perrserker.png",
+      "forms": {}
+    },
+    "864": {
+      "default": "data/thumbnails/0864-cursola.png",
+      "forms": {}
+    },
+    "865": {
+      "default": "data/thumbnails/0865-sirfetch-d.png",
+      "forms": {}
+    },
+    "866": {
+      "default": "data/thumbnails/0866-mr-rime.png",
+      "forms": {}
+    },
+    "867": {
+      "default": "data/thumbnails/0867-runerigus.png",
+      "forms": {}
+    },
+    "868": {
+      "default": "data/thumbnails/0868-milcery.png",
+      "forms": {}
+    },
+    "869": {
+      "default": "data/thumbnails/0869-alcremie.png",
+      "forms": {}
+    },
+    "870": {
+      "default": "data/thumbnails/0870-falinks.png",
+      "forms": {}
+    },
+    "871": {
+      "default": "data/thumbnails/0871-pincurchin.png",
+      "forms": {}
+    },
+    "872": {
+      "default": "data/thumbnails/0872-snom.png",
+      "forms": {}
+    },
+    "873": {
+      "default": "data/thumbnails/0873-frosmoth.png",
+      "forms": {}
+    },
+    "874": {
+      "default": "data/thumbnails/0874-stonjourner.png",
+      "forms": {}
+    },
+    "875": {
+      "default": "data/thumbnails/0875-eiscue.png",
+      "forms": {
+        "ice-face": "data/thumbnails/0875-eiscue-ice-face.png",
+        "noice-face": "data/thumbnails/0875-eiscue-noice-face.png"
+      }
+    },
+    "876": {
+      "default": "data/thumbnails/0876-indeedee.png",
+      "forms": {
+        "female": "data/thumbnails/0876-indeedee-female.png",
+        "male": "data/thumbnails/0876-indeedee-male.png"
+      }
+    },
+    "877": {
+      "default": "data/thumbnails/0877-morpeko.png",
+      "forms": {}
+    },
+    "878": {
+      "default": "data/thumbnails/0878-cufant.png",
+      "forms": {}
+    },
+    "879": {
+      "default": "data/thumbnails/0879-copperajah.png",
+      "forms": {}
+    },
+    "880": {
+      "default": "data/thumbnails/0880-dracozolt.png",
+      "forms": {}
+    },
+    "881": {
+      "default": "data/thumbnails/0881-arctozolt.png",
+      "forms": {}
+    },
+    "882": {
+      "default": "data/thumbnails/0882-dracovish.png",
+      "forms": {}
+    },
+    "883": {
+      "default": "data/thumbnails/0883-arctovish.png",
+      "forms": {}
+    },
+    "884": {
+      "default": "data/thumbnails/0884-duraludon.png",
+      "forms": {}
+    },
+    "885": {
+      "default": "data/thumbnails/0885-dreepy.png",
+      "forms": {}
+    },
+    "886": {
+      "default": "data/thumbnails/0886-drakloak.png",
+      "forms": {}
+    },
+    "887": {
+      "default": "data/thumbnails/0887-dragapult.png",
+      "forms": {}
+    },
+    "888": {
+      "default": "data/thumbnails/0888-zacian.png",
+      "forms": {
+        "crowned-sword": "data/thumbnails/0888-zacian-crowned-sword.png",
+        "hero-of-many-battles": "data/thumbnails/0888-zacian-hero-of-many-battles.png"
+      }
+    },
+    "889": {
+      "default": "data/thumbnails/0889-zamazenta.png",
+      "forms": {
+        "crowned-shield": "data/thumbnails/0889-zamazenta-crowned-shield.png",
+        "hero-of-many-battles": "data/thumbnails/0889-zamazenta-hero-of-many-battles.png"
+      }
+    },
+    "890": {
+      "default": "data/thumbnails/0890-eternatus.png",
+      "forms": {
+        "eternamax-eternatus": "data/thumbnails/0890-eternatus-eternamax-eternatus.png"
+      }
+    },
+    "891": {
+      "default": "data/thumbnails/0891-kubfu.png",
+      "forms": {}
+    },
+    "892": {
+      "default": "data/thumbnails/0892-urshifu.png",
+      "forms": {}
+    },
+    "893": {
+      "default": "data/thumbnails/0893-zarude.png",
+      "forms": {}
+    },
+    "894": {
+      "default": "data/thumbnails/0894-regieleki.png",
+      "forms": {}
+    },
+    "895": {
+      "default": "data/thumbnails/0895-regidrago.png",
+      "forms": {}
+    },
+    "896": {
+      "default": "data/thumbnails/0896-glastrier.png",
+      "forms": {}
+    },
+    "897": {
+      "default": "data/thumbnails/0897-spectrier.png",
+      "forms": {}
+    },
+    "898": {
+      "default": "data/thumbnails/0898-calyrex.png",
+      "forms": {
+        "ice-rider-calyrex": "data/thumbnails/0898-calyrex-ice-rider-calyrex.png",
+        "shadow-rider-calyrex": "data/thumbnails/0898-calyrex-shadow-rider-calyrex.png"
+      }
+    },
+    "899": {
+      "default": "data/thumbnails/0899-wyrdeer.png",
+      "forms": {}
+    },
+    "900": {
+      "default": "data/thumbnails/0900-kleavor.png",
+      "forms": {}
+    },
+    "901": {
+      "default": "data/thumbnails/0901-ursaluna.png",
+      "forms": {
+        "bloodmoon-ursaluna": "data/thumbnails/0901-ursaluna-bloodmoon-ursaluna.png"
+      }
+    },
+    "902": {
+      "default": "data/thumbnails/0902-basculegion.png",
+      "forms": {
+        "female": "data/thumbnails/0902-basculegion-female.png",
+        "male": "data/thumbnails/0902-basculegion-male.png"
+      }
+    },
+    "903": {
+      "default": "data/thumbnails/0903-sneasler.png",
+      "forms": {}
+    },
+    "904": {
+      "default": "data/thumbnails/0904-overqwil.png",
+      "forms": {}
+    },
+    "905": {
+      "default": "data/thumbnails/0905-enamorus.png",
+      "forms": {
+        "incarnate": "data/thumbnails/0905-enamorus-incarnate.png",
+        "therian": "data/thumbnails/0905-enamorus-therian.png"
+      }
+    },
+    "906": {
+      "default": "data/thumbnails/0906-sprigatito.png",
+      "forms": {}
+    },
+    "907": {
+      "default": "data/thumbnails/0907-floragato.png",
+      "forms": {}
+    },
+    "908": {
+      "default": "data/thumbnails/0908-meowscarada.png",
+      "forms": {}
+    },
+    "909": {
+      "default": "data/thumbnails/0909-fuecoco.png",
+      "forms": {}
+    },
+    "910": {
+      "default": "data/thumbnails/0910-crocalor.png",
+      "forms": {}
+    },
+    "911": {
+      "default": "data/thumbnails/0911-skeledirge.png",
+      "forms": {}
+    },
+    "912": {
+      "default": "data/thumbnails/0912-quaxly.png",
+      "forms": {}
+    },
+    "913": {
+      "default": "data/thumbnails/0913-quaxwell.png",
+      "forms": {}
+    },
+    "914": {
+      "default": "data/thumbnails/0914-quaquaval.png",
+      "forms": {}
+    },
+    "915": {
+      "default": "data/thumbnails/0915-lechonk.png",
+      "forms": {}
+    },
+    "916": {
+      "default": "data/thumbnails/0916-oinkologne.png",
+      "forms": {
+        "female": "data/thumbnails/0916-oinkologne-female.png",
+        "male": "data/thumbnails/0916-oinkologne-male.png"
+      }
+    },
+    "917": {
+      "default": "data/thumbnails/0917-tarountula.png",
+      "forms": {}
+    },
+    "918": {
+      "default": "data/thumbnails/0918-spidops.png",
+      "forms": {}
+    },
+    "919": {
+      "default": "data/thumbnails/0919-nymble.png",
+      "forms": {}
+    },
+    "920": {
+      "default": "data/thumbnails/0920-lokix.png",
+      "forms": {}
+    },
+    "921": {
+      "default": "data/thumbnails/0921-pawmi.png",
+      "forms": {}
+    },
+    "922": {
+      "default": "data/thumbnails/0922-pawmo.png",
+      "forms": {}
+    },
+    "923": {
+      "default": "data/thumbnails/0923-pawmot.png",
+      "forms": {}
+    },
+    "924": {
+      "default": "data/thumbnails/0924-tandemaus.png",
+      "forms": {}
+    },
+    "925": {
+      "default": "data/thumbnails/0925-maushold.png",
+      "forms": {}
+    },
+    "926": {
+      "default": "data/thumbnails/0926-fidough.png",
+      "forms": {}
+    },
+    "927": {
+      "default": "data/thumbnails/0927-dachsbun.png",
+      "forms": {}
+    },
+    "928": {
+      "default": "data/thumbnails/0928-smoliv.png",
+      "forms": {}
+    },
+    "929": {
+      "default": "data/thumbnails/0929-dolliv.png",
+      "forms": {}
+    },
+    "930": {
+      "default": "data/thumbnails/0930-arboliva.png",
+      "forms": {}
+    },
+    "931": {
+      "default": "data/thumbnails/0931-squawkabilly.png",
+      "forms": {}
+    },
+    "932": {
+      "default": "data/thumbnails/0932-nacli.png",
+      "forms": {}
+    },
+    "933": {
+      "default": "data/thumbnails/0933-naclstack.png",
+      "forms": {}
+    },
+    "934": {
+      "default": "data/thumbnails/0934-garganacl.png",
+      "forms": {}
+    },
+    "935": {
+      "default": "data/thumbnails/0935-charcadet.png",
+      "forms": {}
+    },
+    "936": {
+      "default": "data/thumbnails/0936-armarouge.png",
+      "forms": {}
+    },
+    "937": {
+      "default": "data/thumbnails/0937-ceruledge.png",
+      "forms": {}
+    },
+    "938": {
+      "default": "data/thumbnails/0938-tadbulb.png",
+      "forms": {}
+    },
+    "939": {
+      "default": "data/thumbnails/0939-bellibolt.png",
+      "forms": {}
+    },
+    "940": {
+      "default": "data/thumbnails/0940-wattrel.png",
+      "forms": {}
+    },
+    "941": {
+      "default": "data/thumbnails/0941-kilowattrel.png",
+      "forms": {}
+    },
+    "942": {
+      "default": "data/thumbnails/0942-maschiff.png",
+      "forms": {}
+    },
+    "943": {
+      "default": "data/thumbnails/0943-mabosstiff.png",
+      "forms": {}
+    },
+    "944": {
+      "default": "data/thumbnails/0944-shroodle.png",
+      "forms": {}
+    },
+    "945": {
+      "default": "data/thumbnails/0945-grafaiai.png",
+      "forms": {}
+    },
+    "946": {
+      "default": "data/thumbnails/0946-bramblin.png",
+      "forms": {}
+    },
+    "947": {
+      "default": "data/thumbnails/0947-brambleghast.png",
+      "forms": {}
+    },
+    "948": {
+      "default": "data/thumbnails/0948-toedscool.png",
+      "forms": {}
+    },
+    "949": {
+      "default": "data/thumbnails/0949-toedscruel.png",
+      "forms": {}
+    },
+    "950": {
+      "default": "data/thumbnails/0950-klawf.png",
+      "forms": {}
+    },
+    "951": {
+      "default": "data/thumbnails/0951-capsakid.png",
+      "forms": {}
+    },
+    "952": {
+      "default": "data/thumbnails/0952-scovillain.png",
+      "forms": {}
+    },
+    "953": {
+      "default": "data/thumbnails/0953-rellor.png",
+      "forms": {}
+    },
+    "954": {
+      "default": "data/thumbnails/0954-rabsca.png",
+      "forms": {}
+    },
+    "955": {
+      "default": "data/thumbnails/0955-flittle.png",
+      "forms": {}
+    },
+    "956": {
+      "default": "data/thumbnails/0956-espathra.png",
+      "forms": {}
+    },
+    "957": {
+      "default": "data/thumbnails/0957-tinkatink.png",
+      "forms": {}
+    },
+    "958": {
+      "default": "data/thumbnails/0958-tinkatuff.png",
+      "forms": {}
+    },
+    "959": {
+      "default": "data/thumbnails/0959-tinkaton.png",
+      "forms": {}
+    },
+    "960": {
+      "default": "data/thumbnails/0960-wiglett.png",
+      "forms": {}
+    },
+    "961": {
+      "default": "data/thumbnails/0961-wugtrio.png",
+      "forms": {}
+    },
+    "962": {
+      "default": "data/thumbnails/0962-bombirdier.png",
+      "forms": {}
+    },
+    "963": {
+      "default": "data/thumbnails/0963-finizen.png",
+      "forms": {}
+    },
+    "964": {
+      "default": "data/thumbnails/0964-palafin.png",
+      "forms": {
+        "hero": "data/thumbnails/0964-palafin-hero.png",
+        "zero": "data/thumbnails/0964-palafin-zero.png"
+      }
+    },
+    "965": {
+      "default": "data/thumbnails/0965-varoom.png",
+      "forms": {}
+    },
+    "966": {
+      "default": "data/thumbnails/0966-revavroom.png",
+      "forms": {}
+    },
+    "967": {
+      "default": "data/thumbnails/0967-cyclizar.png",
+      "forms": {}
+    },
+    "968": {
+      "default": "data/thumbnails/0968-orthworm.png",
+      "forms": {}
+    },
+    "969": {
+      "default": "data/thumbnails/0969-glimmet.png",
+      "forms": {}
+    },
+    "970": {
+      "default": "data/thumbnails/0970-glimmora.png",
+      "forms": {}
+    },
+    "971": {
+      "default": "data/thumbnails/0971-greavard.png",
+      "forms": {}
+    },
+    "972": {
+      "default": "data/thumbnails/0972-houndstone.png",
+      "forms": {}
+    },
+    "973": {
+      "default": "data/thumbnails/0973-flamigo.png",
+      "forms": {}
+    },
+    "974": {
+      "default": "data/thumbnails/0974-cetoddle.png",
+      "forms": {}
+    },
+    "975": {
+      "default": "data/thumbnails/0975-cetitan.png",
+      "forms": {}
+    },
+    "976": {
+      "default": "data/thumbnails/0976-veluza.png",
+      "forms": {}
+    },
+    "977": {
+      "default": "data/thumbnails/0977-dondozo.png",
+      "forms": {}
+    },
+    "978": {
+      "default": "data/thumbnails/0978-tatsugiri.png",
+      "forms": {}
+    },
+    "979": {
+      "default": "data/thumbnails/0979-annihilape.png",
+      "forms": {}
+    },
+    "980": {
+      "default": "data/thumbnails/0980-clodsire.png",
+      "forms": {}
+    },
+    "981": {
+      "default": "data/thumbnails/0981-farigiraf.png",
+      "forms": {}
+    },
+    "982": {
+      "default": "data/thumbnails/0982-dudunsparce.png",
+      "forms": {}
+    },
+    "983": {
+      "default": "data/thumbnails/0983-kingambit.png",
+      "forms": {}
+    },
+    "984": {
+      "default": "data/thumbnails/0984-great-tusk.png",
+      "forms": {}
+    },
+    "985": {
+      "default": "data/thumbnails/0985-scream-tail.png",
+      "forms": {}
+    },
+    "986": {
+      "default": "data/thumbnails/0986-brute-bonnet.png",
+      "forms": {}
+    },
+    "987": {
+      "default": "data/thumbnails/0987-flutter-mane.png",
+      "forms": {}
+    },
+    "988": {
+      "default": "data/thumbnails/0988-slither-wing.png",
+      "forms": {}
+    },
+    "989": {
+      "default": "data/thumbnails/0989-sandy-shocks.png",
+      "forms": {}
+    },
+    "990": {
+      "default": "data/thumbnails/0990-iron-treads.png",
+      "forms": {}
+    },
+    "991": {
+      "default": "data/thumbnails/0991-iron-bundle.png",
+      "forms": {}
+    },
+    "992": {
+      "default": "data/thumbnails/0992-iron-hands.png",
+      "forms": {}
+    },
+    "993": {
+      "default": "data/thumbnails/0993-iron-jugulis.png",
+      "forms": {}
+    },
+    "994": {
+      "default": "data/thumbnails/0994-iron-moth.png",
+      "forms": {}
+    },
+    "995": {
+      "default": "data/thumbnails/0995-iron-thorns.png",
+      "forms": {}
+    },
+    "996": {
+      "default": "data/thumbnails/0996-frigibax.png",
+      "forms": {}
+    },
+    "997": {
+      "default": "data/thumbnails/0997-arctibax.png",
+      "forms": {}
+    },
+    "998": {
+      "default": "data/thumbnails/0998-baxcalibur.png",
+      "forms": {}
+    },
+    "999": {
+      "default": "data/thumbnails/0999-gimmighoul.png",
+      "forms": {
+        "chest-form": "data/thumbnails/0999-gimmighoul-chest-form.png",
+        "roaming-form": "data/thumbnails/0999-gimmighoul-roaming-form.png"
+      }
+    },
+    "1000": {
+      "default": "data/thumbnails/1000-gholdengo.png",
+      "forms": {}
+    },
+    "1001": {
+      "default": "data/thumbnails/1001-wo-chien.png",
+      "forms": {}
+    },
+    "1002": {
+      "default": "data/thumbnails/1002-chien-pao.png",
+      "forms": {}
+    },
+    "1003": {
+      "default": "data/thumbnails/1003-ting-lu.png",
+      "forms": {}
+    },
+    "1004": {
+      "default": "data/thumbnails/1004-chi-yu.png",
+      "forms": {}
+    },
+    "1005": {
+      "default": "data/thumbnails/1005-roaring-moon.png",
+      "forms": {}
+    },
+    "1006": {
+      "default": "data/thumbnails/1006-iron-valiant.png",
+      "forms": {}
+    },
+    "1007": {
+      "default": "data/thumbnails/1007-koraidon.png",
+      "forms": {}
+    },
+    "1008": {
+      "default": "data/thumbnails/1008-miraidon.png",
+      "forms": {}
+    },
+    "1009": {
+      "default": "data/thumbnails/1009-walking-wake.png",
+      "forms": {}
+    },
+    "1010": {
+      "default": "data/thumbnails/1010-iron-leaves.png",
+      "forms": {}
+    },
+    "1011": {
+      "default": "data/thumbnails/1011-dipplin.png",
+      "forms": {}
+    },
+    "1012": {
+      "default": "data/thumbnails/1012-poltchageist.png",
+      "forms": {}
+    },
+    "1013": {
+      "default": "data/thumbnails/1013-sinistcha.png",
+      "forms": {}
+    },
+    "1014": {
+      "default": "data/thumbnails/1014-okidogi.png",
+      "forms": {}
+    },
+    "1015": {
+      "default": "data/thumbnails/1015-munkidori.png",
+      "forms": {}
+    },
+    "1016": {
+      "default": "data/thumbnails/1016-fezandipiti.png",
+      "forms": {}
+    },
+    "1017": {
+      "default": "data/thumbnails/1017-ogerpon.png",
+      "forms": {}
+    },
+    "1018": {
+      "default": "data/thumbnails/1018-archaludon.png",
+      "forms": {}
+    },
+    "1019": {
+      "default": "data/thumbnails/1019-hydrapple.png",
+      "forms": {}
+    },
+    "1020": {
+      "default": "data/thumbnails/1020-gouging-fire.png",
+      "forms": {}
+    },
+    "1021": {
+      "default": "data/thumbnails/1021-raging-bolt.png",
+      "forms": {}
+    },
+    "1022": {
+      "default": "data/thumbnails/1022-iron-boulder.png",
+      "forms": {}
+    },
+    "1023": {
+      "default": "data/thumbnails/1023-iron-crown.png",
+      "forms": {}
+    },
+    "1024": {
+      "default": "data/thumbnails/1024-terapagos.png",
+      "forms": {
+        "normal-form": "data/thumbnails/1024-terapagos-normal-form.png",
+        "stellar-form": "data/thumbnails/1024-terapagos-stellar-form.png",
+        "terastal-form": "data/thumbnails/1024-terapagos-terastal-form.png"
+      }
+    },
+    "1025": {
+      "default": "data/thumbnails/1025-pecharunt.png",
+      "forms": {}
+    },
+    "2670": {
+      "default": "data/thumbnails/2670-floette.png",
+      "forms": {}
+    }
   }
 }

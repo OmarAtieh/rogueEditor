@@ -44,13 +44,13 @@ $exclude = @(
 # Group 1: GUI modular package scaffold (common/dialogs/sections)
 Stage-And-Commit -Paths @(
   "Source/gui/"
-) -Message "gui: modular package scaffold and delegator" -Exclude $exclude
+) -Message 'gui: modular package scaffold and delegator' -Exclude $exclude
 
 # Group 2: Diagnostics & healthcheck infra
 Stage-And-Commit -Paths @(
   "Source/rogueeditor/logging_utils.py",
   "Source/rogueeditor/healthcheck.py"
-) -Message "infra: logging + healthcheck to diagnose GUI startup" -Exclude $exclude
+) -Message 'infra: logging + healthcheck to diagnose GUI startup' -Exclude $exclude
 
 # Group 3: Session lifecycle updates (CLI/API/Editor/Utils)
 Stage-And-Commit -Paths @(
@@ -58,30 +58,30 @@ Stage-And-Commit -Paths @(
   "Source/rogueeditor/api.py",
   "Source/rogueeditor/editor.py",
   "Source/rogueeditor/utils.py"
-) -Message "session: fresh csid per login; CLI/GUI plumbing" -Exclude $exclude
+) -Message 'session: fresh csid per login; CLI/GUI plumbing' -Exclude $exclude
 
 # Group 4: Data catalogs: base stats
 Stage-And-Commit -Paths @(
   "Source/rogueeditor/base_stats.py",
   "Source/data/base_stats.json"
-) -Message "data: add base stats catalog + loader" -Exclude $exclude
+) -Message 'data: add base stats catalog + loader' -Exclude $exclude
 
 # Group 5: GUI startup fix and handler wiring
 Stage-And-Commit -Paths @(
   "Source/gui.py"
-) -Message "gui: fix startup crash; add Upload All handler" -Exclude $exclude
+) -Message 'gui: fix startup crash; add Upload All handler' -Exclude $exclude
 
 # Group 6: Docs/Changelog update for bugfix
 Stage-And-Commit -Paths @(
   "CHANGELOG.md",
   "debug/docs/GUI_MIGRATION_PLAN.md"
-) -Message "docs: postmortem for GUI startup fix; update changelog" -Exclude $exclude
+) -Message 'docs: postmortem for GUI startup fix; update changelog' -Exclude $exclude
 
 # Group 7: Team Editor enhancements (Form & Visuals, EXP↔Level, status)
 Stage-And-Commit -Paths @(
   "Source/gui/dialogs/team_editor.py",
   "Source/gui/sections/slots.py"
-) -Message "team-editor: add Form & Visuals; EXP↔Level sync; status UX; growth rate" -Exclude $exclude
+) -Message 'team-editor: add Form & Visuals; EXP<->Level sync; status UX; growth rate' -Exclude $exclude
 
 # Group 8: New catalogs and growth mapping
 Stage-And-Commit -Paths @(
@@ -91,12 +91,12 @@ Stage-And-Commit -Paths @(
   "Source/data/type_matrix.json",
   "Source/data/pokeballs.json",
   "Source/data/growth_map.json"
-) -Message "data: exp tables/types/pokeballs/growth mapping; helpers" -Exclude $exclude
+) -Message 'data: exp tables/types/pokeballs/growth mapping; helpers' -Exclude $exclude
 
 # Group 9: Team Editor plan doc
 Stage-And-Commit -Paths @(
   "debug/docs/TEAM_EDITOR_ENHANCEMENTS_PLAN.md"
-) -Message "docs: team editor enhancements plan and progress" -Exclude $exclude
+) -Message 'docs: team editor enhancements plan and progress' -Exclude $exclude
 
 # Any remaining changes
 $remaining = git status --porcelain | % { $_.Substring(3) } | Where-Object { $_ -ne "" }
@@ -111,11 +111,11 @@ if ($remaining) {
     }
   }
   if ($remaining.Count -gt 0) {
-    Write-Host "Staging remaining changes..." -ForegroundColor Yellow
+    Write-Host 'Staging remaining changes...' -ForegroundColor Yellow
     git add -- $remaining
-    git commit -m "misc: remaining changes"
+    git commit -m 'misc: remaining changes'
   }
 }
 
-Write-Host "Pushing to $Remote/$Branch..." -ForegroundColor Green
+Write-Host ('Pushing to ' + $Remote + '/' + $Branch + '...') -ForegroundColor Green
 git push $Remote $Branch
