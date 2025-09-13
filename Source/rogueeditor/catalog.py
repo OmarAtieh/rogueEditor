@@ -25,6 +25,8 @@ DATA_TYPE_MATRIX_JSON = repo_path("data", "type_matrix.json")
 DATA_EXP_TABLES_JSON = repo_path("data", "exp_tables.json")
 DATA_POKEMON_TYPES_JSON = repo_path("data", "pokemon_types.json")
 DATA_GROWTH_MAP_JSON = repo_path("data", "growth_map.json")
+DATA_POKEMON_CATALOG_JSON = repo_path("data", "pokemon_catalog.json")
+DATA_TYPE_COLORS_JSON = repo_path("data", "type_colors.json")
 
 
 def _parse_ts_enum(path: str) -> Dict[str, int]:
@@ -276,43 +278,172 @@ def load_types_catalog() -> Tuple[Dict[str, int], Dict[int, str]]:
 
 
 def _parse_type_matrix_from_ts(ts_path: str) -> Dict[str, Dict[str, float]]:
-    # Heuristic parser for getTypeDamageMultiplier switches in type.ts
+    """Parse getTypeDamageMultiplier from GameData/2/type.ts robustly.
+
+    We expect a structure like:
+      switch (defType) {
+        case PokemonType.NORMAL:
+          switch (attackType) {
+            case PokemonType.FIGHTING:
+              return 2;
+            case PokemonType.GHOST:
+              return 0;
+            default:
+              return 1;
+          }
+        ...
+      }
+    We capture grouped 'case' fallthroughs by accumulating attacker cases until a 'return X;' line.
+    """
     if not os.path.exists(ts_path):
         return {}
+    # Ensure type names map
     _, type_id_to_name = load_types_catalog()
-    name_to_id = {v.lower(): k for k, v in type_id_to_name.items()}
+    type_names = [v.lower() for v in type_id_to_name.values()]
     with open(ts_path, "r", encoding="utf-8", errors="ignore") as f:
         txt = f.read()
-    # Find blocks: case PokemonType.DEF: ... switch (attackType) { case PokemonType.ATT: return X; }
     import re
     matrix: Dict[str, Dict[str, float]] = {}
-    def_types = re.finditer(r"case\s+PokemonType\.([A-Z_]+)\s*:\s*\n\s*switch\s*\(attackType\)\s*\{(.*?)\}\s*", txt, re.S)
-    for m in def_types:
+    # Find outer defType switch cases
+    outer = re.search(r"switch\s*\(defType\)\s*\{(.*)\}\s*$", txt, re.S | re.M)
+    scope = outer.group(1) if outer else txt
+    for m in re.finditer(r"case\s+PokemonType\.([A-Z_]+)\s*:\s*(.*?)\n\s*break\s*;", scope, re.S):
         def_name = m.group(1).lower()
-        block = m.group(2)
-        row: Dict[str, float] = {}
-        # Defaults to 1
-        for name in name_to_id.keys():
-            row[name] = 1.0
-        for m2 in re.finditer(r"case\s+PokemonType\.([A-Z_]+)\s*:\s*\n\s*return\s*([0-9\.]+)\s*;", block):
-            att_name = m2.group(1).lower()
-            val = float(m2.group(2))
-            row[att_name] = val
-        # special zero returns often fall through after multiple cases; also handle grouped cases by scanning preceding 'case' lines
-        for m3 in re.finditer(r"case\s+PokemonType\.([A-Z_]+)\s*:\s*\n\s*return\s*(0|0\.125|0\.25|0\.5|1|2|4|8)\s*;", block):
-            row[m3.group(1).lower()] = float(m3.group(2))
+        body = m.group(2)
+        # Locate inner attackType switch block
+        inner = re.search(r"switch\s*\(attackType\)\s*\{(.*?)\}\s*", body, re.S)
+        row: Dict[str, float] = {name: 1.0 for name in type_names}
+        if inner:
+            block = inner.group(1)
+            # Iterate lines, accumulate cases until a return
+            pending: list[str] = []
+            for line in block.splitlines():
+                line = line.strip()
+                if not line:
+                    continue
+                mc = re.match(r"case\s+PokemonType\.([A-Z_]+)\s*:\s*$", line)
+                if mc:
+                    pending.append(mc.group(1).lower())
+                    continue
+                mr = re.match(r"return\s*([0-9\.]+)\s*;", line)
+                if mr and pending:
+                    val = float(mr.group(1))
+                    for att in pending:
+                        row[att] = val
+                    pending = []
+                # ignore default and other tokens
         matrix[def_name] = row
     return matrix
 
 
+def _norm_type_name(s: str) -> str:
+    return str(s or "").strip().lower().replace(" ", "_").replace("-", "_")
+
+
+def _parse_type_matrix_from_csv(csv_path: str) -> Dict[str, Dict[str, float]]:
+    """Parse a CSV chart of defensive effectiveness.
+
+    Expected layout (defense types by row, attack types by column):
+      , Normal, Fire, Water, ...
+      Normal, 1, 1, 1, ...
+      Fire, 1, 0.5, 0.5, ...
+
+    The parser attempts to detect orientation and normalizes type names to lowercase tokens
+    matching the enum in pokemon-type.ts (via load_types_catalog()).
+    """
+    if not os.path.exists(csv_path):
+        return {}
+    # Known enum names + 3-letter abbrev mapping
+    _, id_to_name = load_types_catalog()
+    known_list = [str(v).strip().lower() for v in id_to_name.values()]
+    known = set(known_list)
+    abbrev = {k[:3]: k for k in known_list}
+
+    with open(csv_path, "r", encoding="utf-8-sig", newline="") as f:
+        rows = list(csv.reader(f))
+    rows = [r for r in rows if any(cell.strip() for cell in r)]
+    if not rows:
+        return {}
+
+    # Normalize headers
+    header = rows[0]
+    head_cells = [c.strip() for c in header]
+    # Default: columns are defense types, rows are attack types
+    def_raw = [c.strip().lower() for c in head_cells[1:] if c]
+    att_raw = [r[0].strip().lower() for r in rows[1:] if r]
+    def_norm = [d if d in known else abbrev.get(d, d) for d in def_raw]
+    att_norm = [a if a in known else abbrev.get(a, a) for a in att_raw]
+    def_ok = all(d in known for d in def_norm) and len(def_norm) > 0
+    att_ok = all(a in known for a in att_norm) and len(att_norm) > 0
+
+    if not (def_ok and att_ok):
+        # Try flipped: columns attackers, rows defenders
+        att_raw2 = def_raw
+        def_raw2 = att_raw
+        att_norm = [a if a in known else abbrev.get(a, a) for a in att_raw2]
+        def_norm = [d if d in known else abbrev.get(d, d) for d in def_raw2]
+        if not (all(a in known for a in att_norm) and all(d in known for d in def_norm)):
+            return {}
+        # Build transposed
+        matrix: Dict[str, Dict[str, float]] = {d: {a: 1.0 for a in att_norm} for d in def_norm}
+        for ri, r in enumerate(rows[1:], start=1):
+            if not r:
+                continue
+            d = def_norm[ri-1] if ri-1 < len(def_norm) else None
+            if not d:
+                continue
+            for ci, a in enumerate(att_norm, start=1):
+                try:
+                    val = float(str(r[ci]).strip())
+                except Exception:
+                    val = 1.0
+                matrix[d][a] = val
+        return matrix
+
+    # Build matrix with defaults of 1.0 (columns=defense, rows=attack)
+    matrix: Dict[str, Dict[str, float]] = {d: {a: 1.0 for a in att_norm} for d in def_norm}
+    for ri, r in enumerate(rows[1:], start=1):
+        if not r:
+            continue
+        a = att_norm[ri-1] if ri-1 < len(att_norm) else None
+        if not a:
+            continue
+        for ci, d in enumerate(def_norm, start=1):
+            try:
+                val = float(str(r[ci]).strip())
+            except Exception:
+                val = 1.0
+            matrix[d][a] = val
+    return matrix
+
+
 def load_type_matchup_matrix() -> Dict[str, Dict[str, float]]:
+    # Prefer definitive CSV source when present
+    csv_path = _ts_path2("PokemonTypeMatchupChart.csv")
+    if os.path.exists(csv_path):
+        mat = _parse_type_matrix_from_csv(csv_path)
+        if mat:
+            try:
+                with open(DATA_TYPE_MATRIX_JSON, "w", encoding="utf-8") as f:
+                    json.dump(mat, f, ensure_ascii=False, indent=2)
+            except Exception:
+                pass
+            return mat
+    # Fallback to cached JSON
     if os.path.exists(DATA_TYPE_MATRIX_JSON):
-        with open(DATA_TYPE_MATRIX_JSON, "r", encoding="utf-8") as f:
-            return json.load(f)
+        try:
+            with open(DATA_TYPE_MATRIX_JSON, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception:
+            pass
+    # Last resort: parse TS
     mat = _parse_type_matrix_from_ts(_ts_path2("type.ts"))
     if mat:
-        with open(DATA_TYPE_MATRIX_JSON, "w", encoding="utf-8") as f:
-            json.dump(mat, f, ensure_ascii=False, indent=2)
+        try:
+            with open(DATA_TYPE_MATRIX_JSON, "w", encoding="utf-8") as f:
+                json.dump(mat, f, ensure_ascii=False, indent=2)
+        except Exception:
+            pass
     return mat
 
 
@@ -360,22 +491,44 @@ def load_exp_tables() -> Dict[str, object]:
 
 
 def exp_for_level(growth_index: int, level: int) -> int:
+    """Return cumulative EXP required for a given level.
+
+    Behavior:
+    - For levels within the parsed table, return the exact breakpoint.
+    - For levels above the table (e.g., >100), assume each subsequent level requires
+      the same EXP delta as the last known step (L_max - (L_max-1)).
+      This is an explicit assumption until official curves beyond 100 are provided.
+    """
     data = load_exp_tables()
     tables = data.get("tables") or []
     try:
         if level < 1:
             level = 1
-        # expLevels table stores total exp for level-1 indices below 100, and custom for 100+
         if 0 <= growth_index < len(tables):
             tbl = tables[growth_index]
-            if 1 <= level <= len(tbl):
+            n = len(tbl)
+            if n == 0:
+                return 0
+            if level <= n:
                 return int(tbl[level - 1])
+            # beyond table: extend linearly by last delta
+            if n >= 2:
+                delta = int(tbl[-1]) - int(tbl[-2])
+            else:
+                delta = int(tbl[-1])
+            extra_levels = level - n
+            return int(tbl[-1]) + max(0, extra_levels) * max(0, delta)
     except Exception:
         pass
     return 0
 
 
 def level_from_exp(growth_index: int, exp: int) -> int:
+    """Return the floored level for a given cumulative EXP.
+
+    - For EXP within the table, find last breakpoint <= EXP.
+    - For EXP beyond the last table entry, extend using the last delta per level.
+    """
     data = load_exp_tables()
     tables = data.get("tables") or []
     try:
@@ -383,14 +536,28 @@ def level_from_exp(growth_index: int, exp: int) -> int:
             exp = 0
         if 0 <= growth_index < len(tables):
             tbl = tables[growth_index]
-            # floor: last level whose breakpoint <= exp
+            n = len(tbl)
+            if n == 0:
+                return 1
+            # within table
             lvl = 1
             for i, bp in enumerate(tbl, start=1):
                 if exp >= bp:
                     lvl = i
                 else:
                     break
-            return int(lvl)
+            if exp <= tbl[-1]:
+                return int(lvl)
+            # beyond table: linear extension by last delta
+            if n >= 2:
+                delta = int(tbl[-1]) - int(tbl[-2])
+            else:
+                delta = int(tbl[-1])
+            if delta <= 0:
+                return int(n)
+            extra = exp - int(tbl[-1])
+            add_levels = extra // delta
+            return int(n + add_levels)
     except Exception:
         pass
     return 1
@@ -549,3 +716,49 @@ def nature_multipliers_by_id() -> Dict[int, list[float]]:
                     arr[down] = 0.9
         mults[int(nid)] = arr
     return mults
+
+
+# --- Pokemon catalog + type colors ---
+def load_pokemon_catalog() -> Dict[str, object]:
+    if not os.path.exists(DATA_POKEMON_CATALOG_JSON):
+        return {}
+    with open(DATA_POKEMON_CATALOG_JSON, "r", encoding="utf-8") as f:
+        return json.load(f)
+
+
+def load_type_colors() -> Dict[str, str]:
+    if os.path.exists(DATA_TYPE_COLORS_JSON):
+        try:
+            with open(DATA_TYPE_COLORS_JSON, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception:
+            pass
+    default = {
+        "normal": "#A8A77A",
+        "fire": "#EE8130",
+        "water": "#6390F0",
+        "electric": "#F7D02C",
+        "grass": "#7AC74C",
+        "ice": "#96D9D6",
+        "fighting": "#C22E28",
+        "poison": "#A33EA1",
+        "ground": "#E2BF65",
+        "flying": "#A98FF3",
+        "psychic": "#F95587",
+        "bug": "#A6B91A",
+        "rock": "#B6A136",
+        "ghost": "#735797",
+        "dragon": "#6F35FC",
+        "dark": "#705746",
+        "steel": "#B7B7CE",
+        "fairy": "#D685AD",
+        "stellar": "#8899FF",
+        "unknown": "#AAAAAA",
+    }
+    try:
+        os.makedirs(os.path.dirname(DATA_TYPE_COLORS_JSON), exist_ok=True)
+        with open(DATA_TYPE_COLORS_JSON, "w", encoding="utf-8") as f:
+            json.dump(default, f, ensure_ascii=False, indent=2)
+    except Exception:
+        pass
+    return default

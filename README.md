@@ -11,6 +11,12 @@ Discord: Oviren
 - GUI and CLI modes
   - GUI: Non-blocking, scrollable UI with autocomplete pickers and save vs upload separation.
   - CLI: Structured menu with safety confirmations and per-user paths.
+- Team editor enhancements
+  - Basics: species + type chips header (form-aware) with server stats in the header row; base stats prefer `Source/data/pokemon_catalog.json`.
+  - Per-Pokémon Type Matchups (form-aware): vertically stacked bins (x0, x0.25, x0.5, x1, x2, x4) with wrapped chips.
+  - Trainer Team Summary: team members list (with form + type chips), overview with counts per type per bin, and a “Top Risks” section.
+  - Right-click context menus on text inputs (cut/copy/paste/select-all).
+  - Heal actions: Full Restore (current Pokémon) and Full Team Heal (local only; upload to sync changes).
 - Per-user saves and backups
   - Saves stored under `Source/saves/<username>/` (trainer.json, slot N.json).
   - Timestamped backups and a restore dialog (restore all/trainer/slot, delete backups with warnings).
@@ -28,6 +34,7 @@ Discord: Oviren
 - Data catalogs
   - Clean JSON catalogs in `Source/data/` (moves, abilities, ability_attr, natures, weather, stats, modifiers, berries, items if available).
   - Builder tool to parse tmpServerFiles once; runtime uses only `Source/data`.
+  - Type matrix: generated from `TmpServerFiles/GameData/2/PokemonTypeMatchupChart.csv` (defense by columns, attack by rows), cached in `Source/data/type_matrix.json`.
 
 ## Requirements
 

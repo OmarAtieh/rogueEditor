@@ -142,3 +142,17 @@ The format follows a simplified Keep a Changelog style.
 - Token header and endpoint fixes; preliminary catalogs and utilities.
 
 [Unreleased]: ongoing
+## [Unreleased]
+- GUI: Team Editor enhancements
+  - Basics: Added species and type chips header; moved server stats to header row; pushed other fields down for clarity; form-aware species label.
+  - Per-Pokémon Type Matchups: Vertically stacked bins (x0, x0.25, x0.5, x1, x2, x4), form-aware, with chip wrapping.
+  - Trainer Team Summary: Added new tab with team members (with form and type chips), team matchup overview (counts per type per bin), and “Top Risks” summary highlighting overlapping weaknesses.
+  - Improved party list entries to include DEX4, species, and form.
+  - Base stats in Stats tab now prefer Source/data/pokemon_catalog.json.
+  - Right-click context menus (cut/copy/paste/select-all) on text inputs.
+  - Type chip color normalization across all views; removed color overrides in bins (risks shown in dedicated section).
+  - Heal actions: Full Restore for current Pokémon (clears status, sets HP to server max, restores PP) and Full Team Heal (local only; user uploads to sync).
+- Data: pokemon_catalog builder
+  - Form-aware types (including typed variant + form-label patterns), knowledge overrides for Mega typings, final fills.
+  - Thumbnails: sequencing tools + curated mapping flow; deterministic targets decoupled from row anchors.
+  - Types: Defensive matrix now sourced from Csv TmpServerFiles/GameData/2/PokemonTypeMatchupChart.csv; JSON cache updated.
