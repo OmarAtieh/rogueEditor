@@ -32,6 +32,7 @@ import math
 
 from rogueeditor import PokerogueAPI
 from rogueeditor.editor import Editor
+from rogueeditor.session_manager import SessionManager, SessionObserver, SessionState
 from rogueeditor.utils import (
     list_usernames,
     sanitize_username,
@@ -53,6 +54,10 @@ from gui.common.catalog_select import CatalogSelectDialog
 from gui.dialogs.team_editor import TeamEditorDialog
 from gui.sections.slots import build as build_slots_section
 from gui.dialogs.item_manager import ItemManagerDialog
+# Enhanced feedback systems
+from gui.common.feedback_integration import FeedbackIntegrator
+from gui.common.toast import ToastType
+from gui.common.error_handler import ErrorContext
 from rogueeditor.logging_utils import (
     setup_logging,
     install_excepthook,
@@ -71,136 +76,428 @@ from rogueeditor.healthcheck import (
 
 class App(ttk.Frame):
     def __init__(self, master: tk.Misc):
+        # Add initialization debugging
+        self._debug_log("GUI Initialization Started")
+        
         super().__init__(master)
+        self._debug_log("Super class initialized")
+        
         root = self.winfo_toplevel()
+        self._debug_log("Root window obtained")
+        
         try:
             root.title("rogueEditor GUI")
             # Slightly wider default to avoid rightmost button cutoff
             root.geometry("1050x800")
             root.minsize(720, 600)
-        except Exception:
+            # Ensure window opens focused in foreground
+            root.lift()
+            root.focus_force()
+            # On Windows, also try to bring to front
+            try:
+                root.attributes('-topmost', True)
+                root.after(100, lambda: root.attributes('-topmost', False))
+            except Exception:
+                pass
+            self._debug_log("Root window configured")
+        except Exception as e:
+            self._debug_log(f"Root window configuration failed: {e}")
             pass
+            
         self.api: PokerogueAPI | None = None
         self.editor: Editor | None = None
         self.username: str | None = None
+        self._available_slots = []  # Initialize empty, will be populated by _refresh_slots
+        
+        # Slot selection
+        self.slot_var = tk.StringVar(value="1")  # Default to slot 1
+        # Load last selected slot for this user using persistence manager
+        try:
+            from rogueeditor.persistence import persistence_manager
+            if self.username:
+                last_slot = persistence_manager.get_last_selected_slot(self.username)
+                self.slot_var.set(last_slot)
+                self._log(f"[DEBUG] Loaded last selected slot: {last_slot}")
+        except Exception as e:
+            self._log(f"[DEBUG] Failed to load last selected slot: {e}")
+
+        self._debug_log("API and editor attributes initialized")
+
+        # Session management
+        self.session_manager: SessionManager | None = None
+        self.session_observer: SessionObserver | None = None
+        self._debug_log("Session management attributes initialized")
+
+        # Enhanced feedback systems
+        try:
+            self.feedback = FeedbackIntegrator(self)
+            self._debug_log("Feedback integrator initialized")
+        except Exception as e:
+            self._debug_log(f"Feedback integrator initialization failed: {e}")
+
+        # Console logging levels
+        try:
+            self.log_levels = ["DEBUG", "INFO", "WARNING", "ERROR"]
+            self.current_log_level = tk.StringVar(value="INFO")  # Default to INFO
+            self._load_log_level_preference()  # Load user preference
+            self._debug_log("Logging levels initialized")
+        except Exception as e:
+            self._debug_log(f"Logging levels initialization failed: {e}")
 
         # Global style + compact mode state
-        self.style = ttk.Style(self)
-        self.compact_mode = tk.BooleanVar(value=False)
+        try:
+            self.style = ttk.Style(self)
+            self.compact_mode = tk.BooleanVar(value=False)
+            # Load last compact mode preference for this user
+            try:
+                from rogueeditor.persistence import persistence_manager
+                if self.username:
+                    last_compact = persistence_manager.get_user_value(self.username, "compact_mode", False)
+                    self.compact_mode.set(bool(last_compact))
+                    self._log(f"[DEBUG] Loaded last compact mode: {last_compact}")
+            except Exception as e:
+                self._log(f"[DEBUG] Failed to load last compact mode: {e}")
+            self._debug_log("Style and compact mode initialized")
+        except Exception as e:
+            self._debug_log(f"Style and compact mode initialization failed: {e}")
+            
         # Hint font for de-emphasized helper text
         try:
             from tkinter import font as _tkfont
             base_font = _tkfont.nametofont('TkDefaultFont')
             self.hint_font = base_font.copy()
             self.hint_font.configure(slant='italic')
+            self._debug_log("Hint font configured")
         except Exception:
             self.hint_font = None
+            self._debug_log("Hint font configuration failed, using default")
 
-        # Top warning banner (disclaimer)
-        banner = ttk.Frame(self)
-        banner.grid(row=0, column=0, columnspan=2, sticky=tk.EW)
-        banner.columnconfigure(0, weight=1)
-        warn_text = (
-            "⚠️ WARNING: Use at your own risk. The author is not responsible for "
-            "data loss or account bans. No data is collected; only data is "
-            "exchanged between your local computer and the official game server.\n"
-            "❕Tip: Going overboard can trivialize the game and reduce enjoyment. "
-            "Intended uses include backing up/restoring your own data, recovering from desync/corruption, "
-            "and safe personal experimentation. Always back up before editing.\n"
-            "❕Note: This is a side project, so some features (e.g., Items/Modifiers) may be partially functional, "
-            "and data catalogs may contain inaccuracies (for example, certain move data)."
-        )
-        self.banner_label = ttk.Label(
-            banner,
-            text=warn_text,
-            foreground="red",
-            wraplength=900,
-            justify=tk.LEFT,
-        )
-        self.banner_label.grid(row=0, column=0, sticky=tk.W, padx=8, pady=(6, 2))
-        # Reflow banner text based on available width
+        # Top warning banner (disclaimer) - simplified layout
         try:
-            banner.bind(
-                "<Configure>",
-                lambda e: self._update_banner_wraplength(e.width)
+            banner = ttk.Frame(self)
+            banner.grid(row=0, column=0, columnspan=2, sticky=tk.EW, padx=4, pady=2)
+            banner.columnconfigure(0, weight=1)
+            warn_text = (
+                "⚠️ WARNING: Use at your own risk. The author is not responsible for "
+                "data loss or account bans. No data is collected; only data is "
+                "exchanged between your local computer and the official game server.\n"
+                "❕Tip: Going overboard can trivialize the game and reduce enjoyment. "
+                "Intended uses include backing up/restoring your own data, recovering from desync/corruption, "
+                "and safe personal experimentation. Always back up before editing.\n"
+                "❕Note: This is a side project, so some features (e.g., Items/Modifiers) may be partially functional, "
+                "and data catalogs may contain inaccuracies (for example, certain move data).\n"
+                "❕Important: Close ALL running game instances (browser tabs/apps) before editing or uploading to avoid "
+                "overwrites and desync. After uploading changes, reopen the game and validate (Analyze/Verify tools) before continuing."
             )
-            # Also set an initial wrap length after layout
-            self.after(0, lambda: self._update_banner_wraplength(banner.winfo_width()))
+            self.banner_label = ttk.Label(
+                banner,
+                text=warn_text,
+                foreground="red",
+                wraplength=800,
+                justify=tk.LEFT,
+            )
+            self.banner_label.grid(row=0, column=0, sticky=tk.W, padx=4, pady=2)
+            # Reflow banner text based on available width
+            try:
+                banner.bind(
+                    "<Configure>",
+                    lambda e: self._update_banner_wraplength(e.width)
+                )
+                # Also set an initial wrap length after layout
+                self.after(0, lambda: self._update_banner_wraplength(banner.winfo_width()))
+            except Exception:
+                pass
+            # Right side buttons (top-right)
+            right_buttons = ttk.Frame(banner)
+            right_buttons.grid(row=0, column=1, sticky=tk.E, padx=4)
+
+            # Compact mode toggle
+            ttk.Checkbutton(
+                right_buttons,
+                text="Hide banner",
+                variable=self.compact_mode,
+                command=lambda: self._apply_compact_mode(self.compact_mode.get()),
+            ).pack(side=tk.TOP)
+            self._debug_log("Banner created successfully")
+        except Exception as e:
+            self._debug_log(f"Banner creation failed: {e}")
+
+        self._debug_log("Starting grid layout setup")
+        try:
+            # Corrected layout structure:
+            # Row 0: Banner (spans all columns)
+            # Row 1: Main content area with two columns
+            self.grid_rowconfigure(0, weight=0)  # Banner row - fixed height
+            self.grid_rowconfigure(1, weight=1)  # Main content row - expands
+            self.grid_columnconfigure(0, weight=3)  # Left column (main content)
+            self.grid_columnconfigure(1, weight=1)  # Right column (console)
+            self._debug_log("Grid weights configured")
+            
+            # Create main column frames
+            self.left_col = ttk.Frame(self)   # Contains auth/status/tools (top) + actions (scrollable below)
+            self.console_col = ttk.Frame(self)  # Console column (collapsible)
+            self._debug_log("Column frames created")
+            
+            # Grid the column frames
+            self.left_col.grid(row=1, column=0, sticky=tk.NSEW, padx=4, pady=4)
+            self.console_col.grid(row=1, column=1, sticky=tk.NSEW, padx=4, pady=4)
+            self._debug_log("Column frames gridded")
+            
+            # Create sub-frames within left column
+            self.left_top_frame = ttk.Frame(self.left_col)  # Non-scrollable top section
+            self.left_bottom_frame = ttk.Frame(self.left_col)  # Scrollable bottom section
+            self.left_top_frame.pack(fill=tk.X, padx=4, pady=4)
+            self.left_bottom_frame.pack(fill=tk.BOTH, expand=True, padx=4, pady=4)
+            
+            # Create sub-columns within top frame (auth, status, tools)
+            self.auth_col = ttk.Frame(self.left_top_frame)
+            self.session_col = ttk.Frame(self.left_top_frame)
+            self.tools_col = ttk.Frame(self.left_top_frame)
+            self.auth_col.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=2)
+            self.session_col.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=2)
+            self.tools_col.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=2)
+            self._debug_log("Sub-frames created")
+
+            self._build_login()
+            self._debug_log("Login section built")
+
+            self._build_actions()
+            self._debug_log("Actions section built")
+
+            self._build_console()
+            self._debug_log("Console section built")
+
+            # Mount root container
+            self.pack(fill=tk.BOTH, expand=True)
+            self._debug_log("Root container packed")
+            self._debug_log("GUI Initialization Completed Successfully")
+        except Exception as e:
+            self._debug_log(f"Grid layout setup failed: {e}")
+            import traceback
+            self._debug_log(f"Traceback: {traceback.format_exc()}")
+
+    def _debug_log(self, message):
+        """Write debug message to file for initialization tracking."""
+        try:
+            import datetime
+            timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")
+            with open("gui_debug.log", "a") as f:
+                f.write(f"[{timestamp}] {message}\n")
+        except:
+            pass  # Silently fail to avoid recursion
+            
+    def _debug_exception(self, message, exception):
+        """Write exception details to debug log."""
+        try:
+            import datetime
+            import traceback
+            timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")
+            with open("gui_debug.log", "a") as f:
+                f.write(f"[{timestamp}] EXCEPTION in {message}: {exception}\n")
+                f.write(f"[{timestamp}] TRACEBACK: {traceback.format_exc()}\n")
+        except:
+            pass  # Silently fail to avoid recursion
+            
+    def _load_last_selected_slot(self):
+        """Load the last selected slot for the current user."""
+        try:
+            if not self.username:
+                return
+                
+            from rogueeditor.persistence import persistence_manager
+            last_slot = persistence_manager.get_last_selected_slot(self.username)
+            self.slot_var.set(last_slot)
+            self._log(f"[DEBUG] Loaded last selected slot: {last_slot}")
+        except Exception as e:
+            self._log(f"[DEBUG] Failed to load last selected slot: {e}")
+            # Default to slot 1 on error
+            self.slot_var.set("1")
+
+    def _save_last_selected_slot(self):
+        """Load user's preferred log level from settings."""
+        try:
+            from rogueeditor.persistence import persistence_manager
+            import os
+            
+            # Use a safe default directory if username is not set yet
+            username = getattr(self, 'username', None) or "default"
+            log_level = persistence_manager.get_log_level(username)
+            if log_level in self.log_levels:
+                self.current_log_level.set(log_level)
+                # Can't log here since logging system might not be fully initialized yet
         except Exception:
+            # Silently fail - don't log since logging might not be ready
             pass
-        # Compact mode toggle (top-right)
-        ttk.Checkbutton(
-            banner,
-            text="Hide banner",
-            variable=self.compact_mode,
-            command=lambda: self._apply_compact_mode(self.compact_mode.get()),
-        ).grid(row=0, column=1, sticky=tk.E, padx=8)
 
-        # Layout: left (controls), right (console)
-        # Reserve row 0 for top banner
-        self.grid_rowconfigure(0, weight=0)
-        self.grid_rowconfigure(1, weight=1)
-        self.grid_columnconfigure(0, weight=3)
-        self.grid_columnconfigure(1, weight=1)
-        self.left_col = ttk.Frame(self)
-        self.right_col = ttk.Frame(self)
-        self.left_col.grid(row=1, column=0, sticky=tk.NSEW)
-        self.right_col.grid(row=1, column=1, sticky=tk.NSEW)
+    def _save_last_selected_slot(self):
+        """Save the currently selected slot for the current user."""
+        try:
+            if not self.username:
+                return
+                
+            from rogueeditor.persistence import persistence_manager
+            selected_slot = self.slot_var.get()
+            persistence_manager.set_last_selected_slot(self.username, selected_slot)
+            self._log(f"[DEBUG] Saved selected slot: {selected_slot}")
+        except Exception as e:
+            self._log(f"[DEBUG] Failed to save selected slot: {e}")
 
-        self._build_login()
-        self._build_actions()
-        self._build_console()
-        # Mount root container
-        self.pack(fill=tk.BOTH, expand=True)
+    def _load_log_level_preference(self):
+        """Load user's preferred log level from settings."""
+        try:
+            from rogueeditor.persistence import persistence_manager
+            import os
+            
+            # Use a safe default directory if username is not set yet
+            username = getattr(self, 'username', None) or "default"
+            log_level = persistence_manager.get_log_level(username)
+            if log_level in self.log_levels:
+                self.current_log_level.set(log_level)
+                # Can't log here since logging system might not be fully initialized yet
+        except Exception:
+            # Silently fail - don't log since logging might not be ready
+            pass
+
+    def _load_last_selected_slot(self):
+        """Load the last selected slot for the current user."""
+        try:
+            if not self.username:
+                return
+                
+            from rogueeditor.utils import user_save_dir
+            import os
+            import json
+            
+            settings_file = os.path.join(user_save_dir(self.username), "gui_settings.json")
+            if os.path.exists(settings_file):
+                with open(settings_file, 'r') as f:
+                    settings = json.load(f)
+                    last_slot = settings.get("last_selected_slot", "1")
+                    self.slot_var.set(last_slot)
+                    self._log(f"[DEBUG] Loaded last selected slot: {last_slot}")
+        except Exception as e:
+            self._log(f"[DEBUG] Failed to load last selected slot: {e}")
+            # Default to slot 1 on error
+            self.slot_var.set("1")
+
+    def _save_last_selected_slot(self):
+        """Save the currently selected slot for the current user."""
+        try:
+            if not self.username:
+                return
+                
+            from rogueeditor.persistence import persistence_manager
+            selected_slot = self.slot_var.get()
+            persistence_manager.set_last_selected_slot(self.username, selected_slot)
+            self._log(f"[DEBUG] Saved selected slot: {selected_slot}")
+        except Exception as e:
+            self._log(f"[DEBUG] Failed to save selected slot: {e}")
 
     # --- UI builders ---
     def _build_login(self):
-        frm = ttk.LabelFrame(self.left_col, text="Login")
-        frm.pack(fill=tk.X, padx=8, pady=8)
+        # Build the three-column top section
+        self._build_auth_column()
+        self._build_session_column()
+        self._build_tools_column()
 
-        ttk.Label(frm, text="User:").grid(row=0, column=0, sticky=tk.W, padx=4, pady=4)
-        self.user_combo = ttk.Combobox(frm, values=list_usernames(), state="readonly")
-        self.user_combo.grid(row=0, column=1, sticky=tk.W, padx=4, pady=4)
-
-        ttk.Button(frm, text="New User", command=self._new_user_dialog).grid(row=0, column=2, padx=4)
-
-        ttk.Label(frm, text="Password:").grid(row=1, column=0, sticky=tk.W, padx=4, pady=4)
-        self.pass_entry = ttk.Entry(frm, show="*")
-        self.pass_entry.grid(row=1, column=1, sticky=tk.W, padx=4, pady=4)
-        self.show_pwd_var = tk.BooleanVar(value=False)
-        ttk.Checkbutton(frm, text="Show", variable=self.show_pwd_var, command=lambda: self.pass_entry.config(show="" if self.show_pwd_var.get() else "*")).grid(row=1, column=2, sticky=tk.W, padx=4, pady=4)
-
-        ttk.Label(frm, text="clientSessionId (optional):").grid(row=2, column=0, sticky=tk.W, padx=4, pady=4)
-        self.csid_entry = ttk.Entry(frm, width=50, show="*")
-        self.csid_entry.grid(row=2, column=1, sticky=tk.W, padx=4, pady=4)
-
-        # Row of buttons (keep within 4 side-by-side)
-        ttk.Button(frm, text="Login", command=self._login).grid(row=3, column=1, padx=4, pady=6, sticky=tk.W)
-        ttk.Button(frm, text="Refresh Session", command=self._refresh_session).grid(row=3, column=2, padx=4, pady=6, sticky=tk.W)
-
-        self.status_var = tk.StringVar(value="Status: Not logged in")
-        ttk.Label(frm, textvariable=self.status_var).grid(row=4, column=0, columnspan=3, sticky=tk.W, padx=4, pady=4)
-        # Session last updated label (persisted per user)
-        self.session_updated_var = tk.StringVar(value="Last session update: -")
-        ttk.Label(frm, textvariable=self.session_updated_var).grid(row=5, column=0, columnspan=3, sticky=tk.W, padx=4, pady=2)
-        # Quick Actions toolbar (prominent backup/restore)
-        qa = ttk.Frame(frm)
-        qa.grid(row=6, column=0, columnspan=3, sticky=tk.W, padx=4, pady=4)
-        self.btn_backup = ttk.Button(qa, text="Backup All", command=self._safe(self._backup), state=tk.DISABLED)
-        self.btn_backup.pack(side=tk.LEFT, padx=4)
-        self.btn_restore = ttk.Button(qa, text="Restore Backup (to server)", command=self._safe(self._restore_dialog2), state=tk.DISABLED)
-        self.btn_restore.pack(side=tk.LEFT, padx=4)
-        self.backup_status_var = tk.StringVar(value="Last backup: none")
-        ttk.Label(qa, textvariable=self.backup_status_var).pack(side=tk.LEFT, padx=8)
         # Update session label when user changes selection
         try:
             self.user_combo.bind('<<ComboboxSelected>>', lambda e: self._update_session_label_from_store())
         except Exception:
             pass
 
+    def _build_auth_column(self):
+        """Build the narrow authentication column (left)"""
+        auth_frm = ttk.LabelFrame(self.auth_col, text="Authentication")
+        auth_frm.pack(fill=tk.BOTH, expand=True)
+
+        # User and password fields in a compact vertical layout
+        auth_grid = ttk.Frame(auth_frm)
+        auth_grid.pack(fill=tk.X, padx=4, pady=4)
+
+        # User selection
+        ttk.Label(auth_grid, text="User:").grid(row=0, column=0, sticky=tk.W, padx=1, pady=1)
+        self.user_combo = ttk.Combobox(auth_grid, values=list_usernames(), state="readonly", width=12)
+        self.user_combo.grid(row=0, column=1, sticky=tk.EW, padx=1, pady=1)
+        ttk.Button(auth_grid, text="New", command=self._new_user_dialog, width=4).grid(row=0, column=2, padx=1, pady=1)
+
+        # Password
+        ttk.Label(auth_grid, text="Pwd:").grid(row=1, column=0, sticky=tk.W, padx=1, pady=1)
+        self.pass_entry = ttk.Entry(auth_grid, show="*", width=12)
+        self.pass_entry.grid(row=1, column=1, sticky=tk.EW, padx=1, pady=1)
+        self.show_pwd_var = tk.BooleanVar(value=False)
+        ttk.Checkbutton(auth_grid, text="Show", variable=self.show_pwd_var,
+                       command=lambda: self.pass_entry.config(show="" if self.show_pwd_var.get() else "*")).grid(row=1, column=2, sticky=tk.W, padx=1, pady=1)
+
+        # Configure grid weights for responsiveness
+        auth_grid.columnconfigure(1, weight=1)
+
+        # Action buttons
+        btn_frm = ttk.Frame(auth_frm)
+        btn_frm.pack(fill=tk.X, padx=4, pady=4)
+        ttk.Button(btn_frm, text="Login", command=self._safe(self._login), width=16).pack(side=tk.LEFT, padx=1)
+        ttk.Button(btn_frm, text="Refresh Session", command=self._safe(self._refresh_session), width=16).pack(side=tk.RIGHT, padx=1)
+
+    def _build_session_column(self):
+        """Build the session information column (middle)"""
+        session_frm = ttk.LabelFrame(self.session_col, text="Session Info")
+        session_frm.pack(fill=tk.BOTH, expand=True)
+
+        # Session status
+        self.status_var = tk.StringVar(value="Status: Not logged in")
+        ttk.Label(session_frm, textvariable=self.status_var, wraplength=200).pack(anchor=tk.W, padx=4, pady=2)
+
+        # Session last updated label (persisted per user)
+        self.session_updated_var = tk.StringVar(value="Last: -")
+        ttk.Label(session_frm, textvariable=self.session_updated_var, wraplength=200,
+                 font=('TkDefaultFont', 8), foreground='gray50').pack(anchor=tk.W, padx=4, pady=1)
+
+        # Session ID display and entry (compact)
+        session_id_frm = ttk.Frame(session_frm)
+        session_id_frm.pack(fill=tk.X, padx=4, pady=4)
+        ttk.Label(session_id_frm, text="Session ID:").pack(anchor=tk.W)
+        self.csid_entry = ttk.Entry(session_id_frm, show="*", width=30)
+        self.csid_entry.pack(fill=tk.X, pady=2)
+
+    def _build_tools_column(self):
+        """Build the quick tools column (right) with vertical stacking"""
+        tools_frm = ttk.LabelFrame(self.tools_col, text="Quick Tools")
+        tools_frm.pack(fill=tk.BOTH, expand=True)
+
+        # Backup and restore tools (sharing one row)
+        backup_frm = ttk.Frame(tools_frm)
+        backup_frm.pack(fill=tk.X, padx=4, pady=2)
+        self.btn_backup = ttk.Button(backup_frm, text="Backup", command=self._safe(self._backup), state=tk.DISABLED)
+        self.btn_backup.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=1)
+        self.btn_restore = ttk.Button(backup_frm, text="Restore", command=self._safe(self._restore_dialog2), state=tk.DISABLED)
+        self.btn_restore.pack(side=tk.RIGHT, fill=tk.X, expand=True, padx=1)
+
+        # Backup status label
+        self.backup_status_var = tk.StringVar(value="Last backup: none")
+        ttk.Label(tools_frm, textvariable=self.backup_status_var, foreground='gray50',
+                 font=('TkDefaultFont', 8), wraplength=100).pack(fill=tk.X, padx=4, pady=2)
+
+        # Log level selector (in one row)
+        log_frm = ttk.Frame(tools_frm)
+        log_frm.pack(fill=tk.X, padx=4, pady=2)
+        ttk.Label(log_frm, text="Log Level:").pack(side=tk.LEFT)
+        log_level_combo = ttk.Combobox(log_frm, textvariable=self.current_log_level,
+                                      values=self.log_levels, width=8, state="readonly")
+        log_level_combo.pack(side=tk.RIGHT, fill=tk.X, expand=True, pady=1)
+        log_level_combo.bind('<<ComboboxSelected>>', lambda e: self._on_log_level_changed())
+
+        # Console toggle and open logs button (sharing one row)
+        console_frm = ttk.Frame(tools_frm)
+        console_frm.pack(fill=tk.X, padx=4, pady=2)
+        self.console_visible = tk.BooleanVar(value=True)  # Console visible by default
+        ttk.Checkbutton(console_frm, text="Show Console", variable=self.console_visible,
+                       command=self._toggle_console).pack(side=tk.LEFT)
+        ttk.Button(console_frm, text="Open Logs", command=self._open_log_directory).pack(side=tk.RIGHT)
+
     def _build_actions(self):
+        """Build the scrollable actions section (bottom-left) with all action groups."""
         # Scrollable container for actions
-        container = ttk.LabelFrame(self.left_col, text="Actions")
+        container = ttk.LabelFrame(self.left_bottom_frame, text="Actions")
         container.pack(fill=tk.BOTH, expand=True, padx=8, pady=4)
         canvas = tk.Canvas(container, highlightthickness=0)
         vsb = ttk.Scrollbar(container, orient="vertical", command=canvas.yview)
@@ -369,13 +666,24 @@ class App(ttk.Frame):
         ttk.Button(s2, text="Hatch All Eggs After Next Fight", command=self._safe(self._hatch_eggs)).grid(row=1, column=1, columnspan=3, sticky=tk.W, padx=4, pady=4)
 
     def _build_console(self):
-        frm = ttk.LabelFrame(self.right_col, text="Console")
-        frm.pack(fill=tk.BOTH, expand=True, padx=8, pady=8)
-        self.console = tk.Text(frm, height=30, width=40)
+        self.console_frame = ttk.LabelFrame(self.console_col, text="Console")
+        # Don't pack immediately, let toggle_console control visibility
+        # The frame exists but is not visible by default
+        self.console = tk.Text(self.console_frame, height=30, width=40, state=tk.DISABLED)
         self.console.pack(fill=tk.BOTH, expand=True)
-        # Busy progress bar
-        self.progress = ttk.Progressbar(frm, mode='indeterminate')
-        self.progress.pack(fill=tk.X, padx=4, pady=4)
+        
+        # Add context menu for copying
+        self.console_menu = tk.Menu(self.console, tearoff=0)
+        self.console_menu.add_command(label="Copy", command=self._copy_console_selection)
+        self.console_menu.add_command(label="Copy All", command=self._copy_console_all)
+        self.console_menu.add_separator()
+        self.console_menu.add_command(label="Clear", command=self._clear_console)
+        
+        # Bind right-click to show context menu
+        self.console.bind("<Button-3>", self._show_console_context_menu)
+        self.console.bind("<Button-2>", self._show_console_context_menu)  # Middle click on some systems
+        
+        # Note: Progress bar removed as we now use toast notifications for progress
         self._busy_count = 0
         # Enable mouse wheel scrolling on canvas and trees
         def _on_mousewheel(event):
@@ -390,10 +698,24 @@ class App(ttk.Frame):
         self.bind_all('<MouseWheel>', _on_mousewheel)
         self.bind_all('<Button-4>', _on_mousewheel)
         self.bind_all('<Button-5>', _on_mousewheel)
+        
+        # Set initial state based on user preference
+        if self.console_visible.get():
+            self.console_frame.pack(fill=tk.BOTH, expand=True, padx=8, pady=8)
+        # If console is not visible by default, the frame exists but is not packed
 
     def _apply_compact_mode(self, enabled: bool):
         """Compact mode collapses the warning banner text (session only)."""
         try:
+            # Save compact mode preference
+            try:
+                from rogueeditor.persistence import persistence_manager
+                if self.username:
+                    persistence_manager.set_user_value(self.username, "compact_mode", enabled)
+                    self._log(f"[DEBUG] Saved compact mode preference: {enabled}")
+            except Exception as e:
+                self._log(f"[DEBUG] Failed to save compact mode preference: {e}")
+                
             if enabled:
                 try:
                     self.banner_label.grid_remove()
@@ -417,24 +739,61 @@ class App(ttk.Frame):
 
     # --- Helpers ---
     def _log(self, text: str):
+        """Log message to console with timestamp and log level filtering."""
+        from datetime import datetime
+        timestamp = datetime.now().strftime("%H:%M:%S")
+        
+        # Determine log level from message
+        log_level = "INFO"
+        if "[DEBUG]" in text:
+            log_level = "DEBUG"
+        elif "[ERROR]" in text:
+            log_level = "ERROR"
+        elif "[WARNING]" in text:
+            log_level = "WARNING"
+            
+        # Check if message should be displayed based on current log level
+        level_order = {"DEBUG": 0, "INFO": 1, "WARNING": 2, "ERROR": 3}
+        current_level = level_order.get(self.current_log_level.get(), 1)  # Default to INFO
+        message_level = level_order.get(log_level, 1)  # Default to INFO
+        
+        # Only display message if its level is >= current log level
+        if message_level < current_level:
+            return  # Don't display this message
+            
+        formatted_text = f"[{timestamp}] {text}"
+        
         def append():
-            self.console.insert(tk.END, text + "\n")
-            self.console.see(tk.END)
+            try:
+                # Temporarily enable console for writing
+                self.console.config(state=tk.NORMAL)
+                self.console.insert(tk.END, formatted_text + "\n")
+                self.console.see(tk.END)
+                # Disable console again to make it read-only
+                self.console.config(state=tk.DISABLED)
+            except Exception:
+                # Fallback in case of any issues
+                try:
+                    self.console.config(state=tk.NORMAL)
+                    self.console.insert(tk.END, formatted_text + "\n")
+                    self.console.see(tk.END)
+                    self.console.config(state=tk.DISABLED)
+                except:
+                    pass
         self.after(0, append)
 
     def _show_busy(self):
         self._busy_count += 1
-        if self._busy_count == 1:
-            self.progress.start(10)
+        self._log(f"[DEBUG] Show busy: count = {self._busy_count}")
+        # Note: Progress bar removed as we now use toast notifications for progress
 
     def _hide_busy(self):
         self._busy_count = max(0, self._busy_count - 1)
-        if self._busy_count == 0:
-            self.progress.stop()
+        self._log(f"[DEBUG] Hide busy: count = {self._busy_count}")
+        # Note: Progress bar removed as we now use toast notifications for progress
 
     def _run_async(self, desc: str, work, on_done=None):
-        self._show_busy()
-        self._log(desc)
+        # Simple wrapper that just runs work in background thread without busy indicators
         def runner():
             err = None
             try:
@@ -442,21 +801,30 @@ class App(ttk.Frame):
             except Exception as e:
                 err = e
             def finish():
-                self._hide_busy()
                 if err:
-                    messagebox.showerror("Error", str(err))
-                    self._log(f"[ERROR] {err}")
+                    self._log(f"[ERROR] {desc} failed: {err}")
+                    self.feedback.show_error_toast(f"Error: {str(err)}")
                 elif on_done:
                     on_done()
+                self._log(f"Completed: {desc}")
             self.after(0, finish)
         threading.Thread(target=runner, daemon=True).start()
 
     def _safe(self, fn):
+        """Simple safe wrapper that handles exceptions without complex feedback."""
         def wrapper():
-            if not self.editor:
-                messagebox.showwarning("Not logged in", "Please login first")
+            # Skip editor check for functions that create the editor
+            func_name = getattr(fn, '__name__', 'unknown')
+            if func_name not in ['_login', '_refresh_session'] and not self.editor:
+                self.feedback.show_warning("Please login first")
                 return
-            self._run_async("Working...", fn)
+
+            try:
+                fn()
+            except Exception as e:
+                operation_name = getattr(fn, '__name__', 'operation').replace('_', ' ').title()
+                self._log(f"[ERROR] {operation_name} failed: {e}")
+                self.feedback.handle_error(e, operation_name, f"executing {func_name}", use_toast=True)
         return wrapper
 
     def _modalize(self, top: tk.Toplevel, focus_widget: tk.Widget | None = None):
@@ -640,19 +1008,254 @@ class App(ttk.Frame):
         ttk.Button(top, text="OK", command=ok).pack(pady=6)
         self._modalize(top, ent)
 
+    def _test_feedback_system(self):
+        """Test the feedback system without blocking the main application."""
+        self._log("[DEBUG] Test feedback system button clicked")
+        try:
+            self._log("[DEBUG] Starting feedback test in background thread")
+            # Import and run the test in a separate thread to avoid blocking
+            def run_test():
+                try:
+                    self._log("[DEBUG] Background test thread started")
+                    import subprocess
+                    import sys
+                    import os
+                    # Run the test script in a separate process
+                    self._log("[DEBUG] Launching test_feedback_systems.py")
+                    subprocess.Popen([sys.executable, os.path.join(os.path.dirname(__file__), 'test_feedback_systems.py')])
+                    self._log("[DEBUG] Test process launched successfully")
+                except Exception as e:
+                    self._log(f"[ERROR] Failed to start feedback test: {e}")
+                    self.after(0, lambda: self.feedback.show_error_toast(f"Failed to start feedback test: {e}"))
+            
+            # Run in background thread
+            import threading
+            self._log("[DEBUG] Creating background thread for test")
+            thread = threading.Thread(target=run_test, daemon=True)
+            self._log("[DEBUG] Starting background thread")
+            thread.start()
+            self._log("[DEBUG] Background thread started")
+            
+            self._log("[DEBUG] Showing info toast")
+            self.feedback.show_info("Feedback system test started in separate window")
+            self._log("[DEBUG] Test feedback system method completed")
+        except Exception as e:
+            self._log(f"[ERROR] Error starting feedback test: {e}")
+            self.feedback.show_error_toast(f"Error starting feedback test: {e}")
+        self._log("[DEBUG] Test feedback system method fully completed")
+
+    def _open_log_directory(self):
+        """Open the directory where log files are stored."""
+        try:
+            from rogueeditor.logging_utils import log_file_path
+            import os
+            import sys
+            import subprocess
+            
+            # Get the log directory
+            log_path = log_file_path()
+            log_dir = os.path.dirname(log_path)
+            
+            # Open the directory using the appropriate command for the OS
+            if sys.platform.startswith('win'):
+                # Windows
+                os.startfile(log_dir)
+            elif sys.platform == 'darwin':
+                # macOS
+                subprocess.run(['open', log_dir], check=False)
+            else:
+                # Linux and other Unix-like systems
+                subprocess.run(['xdg-open', log_dir], check=False)
+                
+            self._log(f"[DEBUG] Opened log directory: {log_dir}")
+        except Exception as e:
+            self._log(f"[ERROR] Failed to open log directory: {e}")
+            self.feedback.show_error_toast(f"Failed to open log directory: {e}")
+
+    def _toggle_console(self):
+        """Toggle visibility of the console panel."""
+        if hasattr(self, 'console_col'):
+            if self.console_visible.get():
+                # Show console column
+                self.console_col.grid(row=1, column=1, sticky=tk.NSEW, padx=4, pady=4)
+                # Restore normal column weights
+                self.grid_columnconfigure(0, weight=3)
+                self.grid_columnconfigure(1, weight=1)
+                self._log("[DEBUG] Console shown")
+            else:
+                # Hide console column
+                self.console_col.grid_forget()
+                # Adjust column weights to give more space to left column
+                self.grid_columnconfigure(0, weight=4)
+                self.grid_columnconfigure(1, weight=0)
+                self._log("[DEBUG] Console hidden")
+                
+    def _show_console_context_menu(self, event):
+        """Show context menu for console text widget."""
+        try:
+            self.console_menu.tk_popup(event.x_root, event.y_root)
+        finally:
+            self.console_menu.grab_release()
+            
+    def _copy_console_selection(self):
+        """Copy selected text from console to clipboard."""
+        try:
+            selected_text = self.console.get(tk.SEL_FIRST, tk.SEL_LAST)
+            self.clipboard_clear()
+            self.clipboard_append(selected_text)
+        except tk.TclError:
+            # No selection
+            pass
+            
+    def _copy_console_all(self):
+        """Copy all text from console to clipboard."""
+        try:
+            all_text = self.console.get("1.0", tk.END)
+            self.clipboard_clear()
+            self.clipboard_append(all_text)
+        except Exception as e:
+            self._log(f"[ERROR] Failed to copy console text: {e}")
+            
+    def _clear_console(self):
+        """Clear all text from console."""
+        try:
+            self.console.delete("1.0", tk.END)
+        except Exception as e:
+            self._log(f"[ERROR] Failed to clear console: {e}")
+            
+    def _on_log_level_changed(self):
+        """Handle log level change."""
+        new_level = self.current_log_level.get()
+        self._log(f"[DEBUG] Log level changed to: {new_level}")
+        self._save_log_level_preference()  # Save user preference
+
+    def __del__(self):
+        """Cleanup when app is destroyed."""
+        try:
+            self._cleanup_session_manager()
+        except Exception:
+            pass
+
+    def destroy(self):
+        """Override destroy to cleanup session manager."""
+        try:
+            self._cleanup_session_manager()
+        except Exception:
+            pass
+        super().destroy()
+
+    class GUISessionObserver(SessionObserver):
+        """Session observer that updates GUI state."""
+
+        def __init__(self, gui_app):
+            self.gui = gui_app
+
+        def on_session_state_changed(self, state: SessionState, message: str = "") -> None:
+            """Update status display when session state changes."""
+            try:
+                if state == SessionState.HEALTHY:
+                    status = f"Status: Session healthy ({self.gui.username})"
+                elif state == SessionState.EXPIRED:
+                    status = f"Status: Session expired ({self.gui.username}) - {message}"
+                elif state == SessionState.REFRESHING:
+                    status = f"Status: Refreshing session ({self.gui.username})..."
+                elif state == SessionState.ERROR:
+                    status = f"Status: Session error ({self.gui.username}) - {message}"
+                else:
+                    status = f"Status: Session state unknown ({self.gui.username})"
+
+                # Update status in GUI thread
+                self.gui.after(0, lambda: self.gui.status_var.set(status))
+            except Exception as e:
+                print(f"Error updating session status: {e}")
+
+        def on_session_refresh_started(self) -> None:
+            """Called when session refresh begins."""
+            try:
+                self.gui.after(0, lambda: self.gui._log("Session refresh started automatically"))
+            except Exception as e:
+                print(f"Error logging session refresh start: {e}")
+
+        def on_session_refresh_completed(self, success: bool, message: str = "") -> None:
+            """Called when session refresh completes."""
+            try:
+                if success:
+                    self.gui.after(0, lambda: self.gui._log("Session refresh completed successfully"))
+                    # Update session timestamp
+                    try:
+                        from datetime import datetime
+                        from rogueeditor.utils import set_user_last_session_update
+                        ts = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                        if self.gui.username:
+                            set_user_last_session_update(self.gui.username, ts)
+                            self.gui.after(0, lambda: self.gui.session_updated_var.set(f"Last session update: {ts}"))
+                    except Exception as e:
+                        print(f"Error updating session timestamp: {e}")
+                else:
+                    self.gui.after(0, lambda: self.gui._log(f"Session refresh failed: {message}"))
+            except Exception as e:
+                print(f"Error logging session refresh completion: {e}")
+
+    def _setup_session_manager(self):
+        """Initialize session manager with GUI integration."""
+        self._log("[DEBUG] Setting up session manager...")
+        if self.api and not self.session_manager:
+            self._log("[DEBUG] Creating new session manager...")
+            self.session_manager = SessionManager(self.api)
+            self.session_observer = self.GUISessionObserver(self)
+            self.session_manager.add_observer(self.session_observer)
+            self.api.set_session_manager(self.session_manager)
+            self._log("[DEBUG] Starting session monitoring...")
+            try:
+                # Start monitoring with timeout to prevent blocking
+                import threading
+                def start_monitoring_safe():
+                    try:
+                        self.session_manager.start_monitoring()
+                        self._log("[DEBUG] Session monitoring started successfully")
+                    except Exception as e:
+                        self._log(f"[ERROR] Failed to start session monitoring: {e}")
+                
+                monitor_thread = threading.Thread(target=start_monitoring_safe, daemon=True)
+                monitor_thread.start()
+                # Don't wait for it to complete, just start it in background
+            except Exception as e:
+                self._log(f"[ERROR] Exception during session monitoring start: {e}")
+            self._log("[DEBUG] Session manager setup completed")
+        else:
+            self._log("[DEBUG] Session manager already exists or API not available")
+
+    def _cleanup_session_manager(self):
+        """Clean up session manager resources."""
+        if self.session_manager:
+            self.session_manager.stop_monitoring()
+            if self.session_observer:
+                self.session_manager.remove_observer(self.session_observer)
+            self.session_manager = None
+            self.session_observer = None
+
     def _login(self):
         user = self.user_combo.get().strip()
         if not user:
-            messagebox.showwarning("Missing", "Select or create a username")
+            self.feedback.show_warning("Select or create a username")
             return
         pwd = self.pass_entry.get()
         if not pwd:
-            messagebox.showwarning("Missing", "Enter password")
+            self.feedback.show_warning("Enter password")
             return
-        # Intentionally ignore any prefilled clientSessionId; always establish a fresh session per login
-        def work():
+
+        # Log start of login attempt
+        self._log(f"Attempting login for user: {user}")
+
+        try:
+            self._log("[DEBUG] Creating API instance...")
+            # Intentionally ignore any prefilled clientSessionId; always establish a fresh session per login
             api = PokerogueAPI(user, pwd)
+
+            self._log("[DEBUG] Calling API login...")
             api.login()
+
+            self._log("[DEBUG] Login successful, setting up session...")
             # Prefer server-provided clientSessionId; otherwise generate a new one for this session
             try:
                 from rogueeditor.utils import generate_client_session_id
@@ -662,39 +1265,136 @@ class App(ttk.Frame):
                 try:
                     save_client_session_id(csid)
                     set_user_csid(user, csid)
-                except Exception:
-                    pass
-            except Exception:
-                pass
+                except Exception as e:
+                    self._log(f"Warning: Could not save client session ID: {e}")
+            except Exception as e:
+                self._log(f"Warning: Could not generate client session ID: {e}")
+
             self.api = api
             self.editor = Editor(api)
             self.username = user
-        def done():
+
+            self._log("[DEBUG] Scheduling login completion...")
+            # Schedule done callback on main thread
+            self.after(0, lambda: self._safe_login_done_wrapper())
+
+        except Exception as e:
+            # Handle login errors properly - ensure we're on the main thread
+            def handle_login_error(error_exception):
+                self._log(f"[ERROR] Login failed: {error_exception}")
+                self.feedback.handle_error(error_exception, "Login", "authenticating user", use_toast=True)
+                self.status_var.set("Status: Login failed")
+                # Make sure we hide busy indicator
+                try:
+                    # Ensure busy indicator is completely hidden
+                    while self._busy_count > 0:
+                        self._hide_busy()
+                    self._log("[DEBUG] Busy indicator hidden after login error")
+                except Exception as hide_err:
+                    self._log(f"[ERROR] Failed to hide busy indicator: {hide_err}")
+
+            self._log(f"[ERROR] Scheduling login error handler: {e}")
+            self.after(0, lambda: handle_login_error(e))
+        
+    def _safe_login_done_wrapper(self):
+        """Wrapper to ensure login completion doesn't freeze UI"""
+        self._log("[DEBUG] Login completion wrapper called")
+        try:
+            self._login_done()
+            self._log("[DEBUG] Login completion finished successfully")
+        except Exception as e:
+            self._log(f"[ERROR] Login completion failed: {e}")
+            self.feedback.show_error_toast(f"Login completion error: {e}")
+        finally:
+            # Ensure busy indicator is always hidden
+            try:
+                while self._busy_count > 0:
+                    self._hide_busy()
+                self._log("[DEBUG] Busy indicator hidden in login completion wrapper")
+            except:
+                pass
+        
+    def _login_done(self):
+        self._log("[DEBUG] Login completion started...")
+        user = self.username
+        # Set up session manager after successful login
+        try:
+            self._log("[DEBUG] Setting up session manager...")
+            self._setup_session_manager()
+            self._log("[DEBUG] Session manager setup completed")
+        except Exception as e:
+            self._log(f"Warning: Session manager setup failed: {e}")
+
+        try:
+            self._log("[DEBUG] Updating status display...")
             self.status_var.set(f"Status: Logged in as {user}")
             self._log(f"Logged in as {user}")
-            # Reflect the active clientSessionId in the UI field
-            try:
-                self.csid_entry.delete(0, tk.END)
-                self.csid_entry.insert(0, str(self.api.client_session_id or ""))
-            except Exception:
-                pass
-            # Persist and show last session update time
-            try:
-                from datetime import datetime
-                from rogueeditor.utils import set_user_last_session_update
-                ts = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-                set_user_last_session_update(user, ts)
-                self.session_updated_var.set(f"Last session update: {ts}")
-            except Exception:
-                pass
-            # Enable backup/restore and update backup status
-            try:
-                self.btn_backup.configure(state=tk.NORMAL)
-                self.btn_restore.configure(state=tk.NORMAL)
-            except Exception:
-                pass
+            self.feedback.show_success(f"Successfully logged in as {user}")
+            self._log("[DEBUG] Status display updated")
+        except Exception as e:
+            self._log(f"Warning: Could not update status: {e}")
+
+        # Load last selected slot for this user
+        self._load_last_selected_slot()
+
+        # Reflect the active clientSessionId in the UI field
+        try:
+            self._log("[DEBUG] Updating session ID field...")
+            self.csid_entry.delete(0, tk.END)
+            self.csid_entry.insert(0, str(self.api.client_session_id or ""))
+            self._log("[DEBUG] Session ID field updated")
+        except Exception as e:
+            self._log(f"Warning: Could not update session ID field: {e}")
+
+        # Persist and show last session update time
+        try:
+            self._log("[DEBUG] Updating session timestamp...")
+            from datetime import datetime
+            from rogueeditor.utils import set_user_last_session_update
+            from rogueeditor.persistence import persistence_manager
+            ts = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            set_user_last_session_update(user, ts)
+            self.session_updated_var.set(f"Last session update: {ts}")
+            # Also save to persistence manager
+            persistence_manager.set_last_session_update(user, ts)
+            self._log("[DEBUG] Session timestamp updated")
+        except Exception as e:
+            self._log(f"Warning: Could not update session timestamp: {e}")
+
+        # Enable backup/restore and update backup status
+        try:
+            self._log("[DEBUG] Enabling backup buttons...")
+            self.btn_backup.configure(state=tk.NORMAL)
+            self.btn_restore.configure(state=tk.NORMAL)
+            self._log("[DEBUG] Backup buttons enabled")
+        except Exception as e:
+            self._log(f"Warning: Could not enable backup buttons: {e}")
+
+        try:
+            self._log("[DEBUG] Updating backup status...")
             self._update_backup_status()
-        self._run_async("Logging in...", work, done)
+            self._log("[DEBUG] Backup status updated")
+        except Exception as e:
+            self._log(f"Warning: Could not update backup status: {e}")
+
+        # Automatically refresh slots after login
+        try:
+            self._log("[DEBUG] Refreshing slots after login...")
+            self._refresh_slots()
+            self._log("[DEBUG] Slots refreshed after login")
+        except Exception as e:
+            self._log(f"Warning: Could not refresh slots after login: {e}")
+
+        # Make sure busy indicator is hidden
+        try:
+            self._log("[DEBUG] Ensuring busy indicator is hidden...")
+            while self._busy_count > 0:
+                self._hide_busy()
+            self._log("[DEBUG] Busy indicator hidden")
+        except Exception as e:
+            self._log(f"[ERROR] Failed to hide busy indicator: {e}")
+
+        self._log("[DEBUG] Login completion finished.")
 
     def _verify(self):
         self.editor.system_verify()
@@ -706,44 +1406,70 @@ class App(ttk.Frame):
             return
         user = self.user_combo.get().strip()
         pwd = self.pass_entry.get()
-        def work():
+
+        self._log(f"Starting session refresh for user: {user}")
+
+        try:
+            self._log("Creating new API instance for refresh...")
+            # Re-login to obtain a fresh token and possibly server-provided clientSessionId
+            api = PokerogueAPI(user, pwd)
+            api.login()
+
+            # If server did not send csid, generate a fresh one
             try:
-                # Re-login to obtain a fresh token and possibly server-provided clientSessionId
-                self.api.username = user
-                self.api.password = pwd
-                self.api.login()
-                # If server did not send csid, generate a fresh one
+                from rogueeditor.utils import generate_client_session_id
+                csid = api.client_session_id or generate_client_session_id()
+                api.client_session_id = csid
                 try:
-                    from rogueeditor.utils import generate_client_session_id
-                    csid = self.api.client_session_id or generate_client_session_id()
-                    self.api.client_session_id = csid
-                    try:
-                        save_client_session_id(csid)
-                        set_user_csid(user, csid)
-                    except Exception:
-                        pass
+                    save_client_session_id(csid)
+                    set_user_csid(user, csid)
                 except Exception:
                     pass
-            except Exception as e:
-                raise e
-        def done():
-            self.status_var.set(f"Status: Session refreshed for {user}")
-            try:
-                self.csid_entry.delete(0, tk.END)
-                self.csid_entry.insert(0, str(self.api.client_session_id or ""))
             except Exception:
                 pass
-            self._log("Session refreshed.")
-            # Persist and reflect last session update time
-            try:
-                from datetime import datetime
-                from rogueeditor.utils import set_user_last_session_update
-                ts = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-                set_user_last_session_update(user, ts)
-                self.session_updated_var.set(f"Last session update: {ts}")
-            except Exception:
-                pass
-        self._run_async("Refreshing session...", work, done)
+
+            # Schedule done callback on main thread with the new API
+            def done_callback():
+                try:
+                    # Update session manager after refresh
+                    try:
+                        if self.session_manager:
+                            self.session_manager.set_api_instance(api)
+                    except Exception as e:
+                        self._log(f"Warning: Session manager update failed: {e}")
+
+                    # Update references
+                    self.api = api
+                    self.status_var.set(f"Status: Session refreshed for {user}")
+                    try:
+                        self.csid_entry.delete(0, tk.END)
+                        self.csid_entry.insert(0, str(api.client_session_id or ""))
+                    except Exception:
+                        pass
+                    self._log("Session refreshed.")
+                    # Persist and reflect last session update time
+                    try:
+                        from datetime import datetime
+                        from rogueeditor.utils import set_user_last_session_update
+                        ts = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                        set_user_last_session_update(user, ts)
+                        self.session_updated_var.set(f"Last session update: {ts}")
+                    except Exception:
+                        pass
+                except Exception as done_err:
+                    self._log(f"[ERROR] Session refresh completion failed: {done_err}")
+                    self.feedback.show_error_toast(f"Session refresh completion failed: {done_err}")
+
+            self.after(0, done_callback)
+
+        except Exception as e:
+            # Handle refresh errors properly
+            def handle_refresh_error():
+                self._log(f"[ERROR] Session refresh failed: {e}")
+                self.feedback.handle_error(e, "Session Refresh", "refreshing session", use_toast=True)
+                self.status_var.set(f"Status: Session refresh failed for {user}")
+
+            self.after(0, handle_refresh_error)
 
     def _update_session_label_from_store(self):
         user = self.user_combo.get().strip()
@@ -760,10 +1486,13 @@ class App(ttk.Frame):
     def _dump_trainer(self):
         p = trainer_save_path(self.username)
         if os.path.exists(p):
-            if not messagebox.askyesno("Overwrite?", f"{p} exists. Overwrite with a fresh dump?"):
+            if not self.feedback.confirm_action("Overwrite?", f"{p} exists. Overwrite with a fresh dump?", "dumping trainer data"):
                 return
+
         self.editor.dump_trainer()
         self._log(f"Dumped trainer to {p}")
+        # Refresh slots to show updated dump time
+        self._refresh_slots()
 
     def _dump_slot_dialog(self):
         slot = self._ask_slot()
@@ -774,36 +1503,85 @@ class App(ttk.Frame):
                     return
             self.editor.dump_slot(slot)
             self._log(f"Dumped slot {slot} to {p}")
+            # Refresh slots to show updated dump time
+            self._refresh_slots()
     def _dump_slot_selected(self):
         try:
             slot = int(self.slot_var.get())
         except Exception:
-            messagebox.showwarning("Invalid", "Invalid slot")
+            self.feedback.show_warning("Invalid slot")
             return
+
         p = slot_save_path(self.username, slot)
         if os.path.exists(p):
-            if not messagebox.askyesno("Overwrite?", f"{p} exists. Overwrite with a fresh dump?"):
+            if not self.feedback.confirm_action("Overwrite?", f"{p} exists. Overwrite with a fresh dump?", f"dumping slot {slot} data"):
                 return
+
         self.editor.dump_slot(slot)
         self._log(f"Dumped slot {slot} to {p}")
 
     def _dump_all(self):
-        if not messagebox.askyesno("Confirm", "Dump trainer and all slots to local files? Existing files will be overwritten."):
+        if not self.feedback.confirm_action("Confirm", "Dump trainer and all slots to local files? Existing files will be overwritten.", "dumping all data"):
             return
+
+        successes: list[str] = []
+        errors: list[str] = []
+        total_files = 6  # trainer + 5 slots max
+        current_file = 0
+
+        # Trainer
         try:
+            current_file += 1
+            self._log(f"Dumping trainer data... ({current_file}/{total_files})")
             self.editor.dump_trainer()
+            successes.append("trainer")
+            self._log("Dumped trainer data successfully")
         except Exception as e:
+            errors.append(f"trainer: {e}")
             self._log(f"Trainer dump failed: {e}")
+
+        # Slots 1..5
         for i in range(1, 6):
             try:
+                current_file += 1
+                self._log(f"Dumping slot {i}... ({current_file}/{total_files})")
                 self.editor.dump_slot(i)
+                successes.append(f"slot {i}")
+                self._log(f"Dumped slot {i} successfully")
             except Exception as e:
+                errors.append(f"slot {i}: {e}")
                 self._log(f"Slot {i} dump failed: {e}")
-        messagebox.showinfo("Dump All", "Completed dump of trainer and slots 1-5.")
-        self._log("Dumped trainer and slots 1-5")
+
+        # Show summary on main thread
+        def show_summary():
+            # Only warn if no operations succeeded
+            if errors and not successes:
+                error_details = "\n".join(errors)
+                self.feedback.error_handler.show_warning(
+                    f"Dump failed completely - no files were dumped:\n{error_details}",
+                    ErrorContext("dumping all data", "batch dump operation")
+                )
+            elif errors:
+                # Some succeeded, some failed - log but don't warn user
+                error_details = "\n".join(errors)
+                self._log(f"Some dump operations failed:\n{error_details}")
+                self.feedback.show_success(f"Dump partially successful - {len(successes)} files dumped, {len(errors)} failed")
+            else:
+                self.feedback.show_success("All files dumped successfully")
+            # Refresh slots to show updated dump times
+            self._refresh_slots()
+
+        self.after(0, show_summary)
+
+        # Log summary
+        if successes:
+            self._log("Successfully dumped: " + ", ".join(successes))
 
     def _update_trainer(self):
-        if messagebox.askyesno("Confirm", "Update trainer from file?"):
+        if not self.feedback.confirm_action("Confirm", "Update trainer from file?", "uploading trainer data"):
+            return
+
+        def work():
             try:
                 # Pre-validate JSON
                 from rogueeditor.utils import trainer_save_path, load_json
@@ -811,19 +1589,35 @@ class App(ttk.Frame):
                 try:
                     data = load_json(p)
                 except Exception as e:
-                    messagebox.showerror("Invalid trainer.json", f"{p}\n\n{e}")
+                    self.feedback.error_handler.show_error(
+                        Exception(f"{p}\n\n{e}"),
+                        ErrorContext("uploading trainer data", "validating trainer.json")
+                    )
                     return
                 if not isinstance(data, dict):
-                    messagebox.showerror("Invalid trainer.json", "Top-level must be a JSON object.")
+                    self.feedback.error_handler.show_error(
+                        Exception("Top-level must be a JSON object."),
+                        ErrorContext("uploading trainer data", "validating trainer.json structure")
+                    )
                     return
                 self.api.update_trainer(data)
                 self._log("Trainer updated from file.")
-                messagebox.showinfo("Upload", "Trainer uploaded successfully.")
-                # Offer verification
-                if messagebox.askyesno("Verify", "Verify trainer on server matches local changes (key fields)?"):
-                    self._verify_trainer_against_local()
+
+                # Schedule success message on main thread
+                def show_success():
+                    self.feedback.show_success("Trainer uploaded successfully.")
+                    # Offer verification
+                    if self.feedback.confirm_action("Verify", "Verify trainer on server matches local changes (key fields)?", "verifying trainer data"):
+                        self._verify_trainer_against_local()
+
+                self.after(0, show_success)
+
             except Exception as e:
-                messagebox.showerror("Upload failed", str(e))
+                def show_error():
+                    self.feedback.error_handler.show_error(e, ErrorContext("uploading trainer data"))
+                self.after(0, show_error)
+                
+        self._run_async("Uploading trainer data...", work)
 
     def _update_slot_dialog(self):
         slot = self._ask_slot()
@@ -834,84 +1628,148 @@ class App(ttk.Frame):
         try:
             slot = int(self.slot_var.get())
         except Exception:
-            messagebox.showwarning("Invalid", "Invalid slot")
+            self.feedback.show_warning("Invalid slot")
             return
-        if messagebox.askyesno("Confirm", f"Update slot {slot} from file?"):
+            
+        if not self.feedback.confirm_action("Confirm", f"Update slot {slot} from file?", f"uploading slot {slot} data"):
+            return
+
+        def work():
             try:
                 from rogueeditor.utils import slot_save_path, load_json
                 p = slot_save_path(self.username, slot)
                 try:
                     data = load_json(p)
                 except Exception as e:
-                    messagebox.showerror("Invalid slot file", f"{p}\n\n{e}")
+                    self.feedback.error_handler.show_error(
+                        Exception(f"{p}\n\n{e}"),
+                        ErrorContext(f"uploading slot {slot} data", "validating slot file")
+                    )
                     return
                 if not isinstance(data, dict):
-                    messagebox.showerror("Invalid slot file", "Top-level must be a JSON object.")
+                    self.feedback.error_handler.show_error(
+                        Exception("Top-level must be a JSON object."),
+                        ErrorContext(f"uploading slot {slot} data", "validating slot file structure")
+                    )
                     return
                 self.api.update_slot(slot, data)
                 self._log(f"Slot {slot} updated from file.")
-                messagebox.showinfo("Upload", f"Slot {slot} uploaded successfully.")
-                # Offer verification
-                if messagebox.askyesno("Verify", f"Verify slot {slot} on server matches local changes (party/modifiers)?"):
-                    self._verify_slot_against_local(slot)
+
+                # Schedule success message on main thread
+                def show_success():
+                    self.feedback.show_success(f"Slot {slot} uploaded successfully.")
+                    # Offer verification
+                    if self.feedback.confirm_action("Verify", f"Verify slot {slot} on server matches local changes (party/modifiers)?", f"verifying slot {slot} data"):
+                        self._verify_slot_against_local(slot)
+
+                self.after(0, show_success)
+
             except Exception as e:
-                messagebox.showerror("Upload failed", str(e))
-                return
+                def show_error():
+                    self.feedback.error_handler.show_error(e, ErrorContext(f"uploading slot {slot} data"))
+                self.after(0, show_error)
+                
+        self._run_async(f"Uploading slot {slot} data...", work)
 
     def _upload_all(self):
-        # Upload trainer.json and all present slot files (1-5) to the server
+        """Upload trainer.json and all present slot files (1-5) to the server with enhanced feedback."""
         from rogueeditor.utils import trainer_save_path, slot_save_path, load_json
+
         if not self.username:
-            messagebox.showwarning("Not logged in", "Please login first")
+            self.feedback.show_warning("Please login first")
             return
-        if not messagebox.askyesno(
-            "Confirm",
-            "Upload trainer.json and all available slot files (1-5) to the server?\n\nThis overwrites server state.",
+
+        if not self.feedback.confirm_action(
+            "Confirm Upload All",
+            "Upload trainer.json and all available slot files (1-5) to the server?\\n\\nThis overwrites server state.",
+            "uploading all data"
         ):
             return
-        successes: list[str] = []
-        errors: list[str] = []
-        # Trainer
-        try:
-            tp = trainer_save_path(self.username)
-            if os.path.exists(tp):
-                data = load_json(tp)
-                if not isinstance(data, dict):
-                    raise ValueError("trainer.json must contain a JSON object")
-                self.api.update_trainer(data)
-                successes.append("trainer")
-            else:
-                self._log(f"trainer.json not found at {tp}; skipping trainer upload")
-        except Exception as e:
-            errors.append(f"trainer: {e}")
-        # Slots 1..5
-        for i in range(1, 6):
+
+        def work():
+            successes: list[str] = []
+            errors: list[str] = []
+            total_files = 6  # trainer + 5 slots max
+            current_file = 0
+
+            # Trainer
             try:
-                sp = slot_save_path(self.username, i)
-                if not os.path.exists(sp):
-                    continue
-                data = load_json(sp)
-                if not isinstance(data, dict):
-                    raise ValueError(f"slot {i}.json must contain a JSON object")
-                self.api.update_slot(i, data)
-                successes.append(f"slot {i}")
+                current_file += 1
+                # Update progress on main thread
+                self.after(0, lambda: self.feedback.show_info(f"Uploading trainer data... ({current_file}/{total_files})"))
+
+                tp = trainer_save_path(self.username)
+                if os.path.exists(tp):
+                    data = load_json(tp)
+                    if not isinstance(data, dict):
+                        raise ValueError("trainer.json must contain a JSON object")
+                    self.api.update_trainer(data)
+                    successes.append("trainer")
+                    self._log("Uploaded trainer data successfully")
+                else:
+                    self._log(f"trainer.json not found at {tp}; skipping trainer upload")
             except Exception as e:
-                errors.append(f"slot {i}: {e}")
-        # Summary
-        if successes:
-            self._log("Uploaded: " + ", ".join(successes))
-        if errors:
-            messagebox.showwarning("Upload completed with errors", "\n".join(errors))
-        else:
-            messagebox.showinfo("Upload All", "Upload completed successfully.")
+                errors.append(f"trainer: {e}")
+                self._log(f"Failed to upload trainer: {e}")
+
+            # Slots 1..5
+            for i in range(1, 6):
+                try:
+                    current_file += 1
+                    # Update progress on main thread
+                    self.after(0, lambda i=i, current=current_file, total=total_files: self.feedback.show_info(f"Checking slot {i}... ({current}/{total})"))
+
+                    sp = slot_save_path(self.username, i)
+                    if not os.path.exists(sp):
+                        continue
+
+                    # Update progress on main thread
+                    self.after(0, lambda i=i, current=current_file, total=total_files: self.feedback.show_info(f"Uploading slot {i}... ({current}/{total})"))
+
+                    data = load_json(sp)
+                    if not isinstance(data, dict):
+                        raise ValueError(f"slot {i}.json must contain a JSON object")
+                    self.api.update_slot(i, data)
+                    successes.append(f"slot {i}")
+                    self._log(f"Uploaded slot {i} successfully")
+                except Exception as e:
+                    errors.append(f"slot {i}: {e}")
+                    self._log(f"Failed to upload slot {i}: {e}")
+
+            # Complete progress and show summary on main thread
+            def show_summary():
+                if errors:
+                    # Show detailed error message
+                    error_details = "\n".join(errors)
+                    self.feedback.error_handler.show_warning(
+                        f"Upload completed with errors:\n{error_details}",
+                        ErrorContext("uploading all data", "batch upload operation")
+                    )
+                else:
+                    self.feedback.show_success("All files uploaded successfully")
+
+                # Log summary
+                if successes:
+                    self._log("Successfully uploaded: " + ", ".join(successes))
+                    
+            self.after(0, show_summary)
+            
+        self._run_async("Uploading all data...", work)
 
     def _hatch_eggs(self):
         try:
             self.editor.hatch_all_eggs()
             self._log("Eggs set to hatch after next fight.")
-            messagebox.showinfo("Eggs", "All eggs will hatch after the next fight.")
+
+            # Schedule success message on main thread
+            def show_success():
+                self.feedback.show_success("All eggs will hatch after the next fight.")
+            self.after(0, show_success)
+
         except Exception as e:
-            messagebox.showerror("Hatch failed", str(e))
+            def show_error():
+                self.feedback.error_handler.show_error(e, ErrorContext("hatching eggs"))
+            self.after(0, show_error)
 
     # --- Verification helpers ---
     def _verify_slot_against_local(self, slot: int) -> None:
@@ -978,7 +1836,7 @@ class App(ttk.Frame):
         ttk.Radiobutton(top, text="Slot (slot N.json)", variable=choice, value='slot').grid(row=2, column=0, sticky=tk.W, padx=6)
         ttk.Label(top, text="Slot:").grid(row=2, column=1, sticky=tk.E)
         slot_var = tk.StringVar(value=self.slot_var.get())
-        ttk.Combobox(top, textvariable=slot_var, values=["1","2","3","4","5"], width=4, state='readonly').grid(row=2, column=2, sticky=tk.W)
+        ttk.Combobox(top, textvariable=slot_var, values=self._get_slot_values(), width=4, state='readonly').grid(row=2, column=2, sticky=tk.W)
 
         def open_path(path: str):
             if sys.platform.startswith('win'):
@@ -1019,21 +1877,41 @@ class App(ttk.Frame):
         self._modalize(top)
 
     def _on_slot_select(self, event=None):
+        # Remove selected tag from all items
+        for item in self.slot_tree.get_children():
+            current_tags = list(self.slot_tree.item(item, 'tags'))
+            if 'selected' in current_tags:
+                current_tags.remove('selected')
+                self.slot_tree.item(item, tags=current_tags)
+        
+        # Add selected tag to currently selected items
         sel = self.slot_tree.selection()
-        if not sel:
-            return
-        item = self.slot_tree.item(sel[0])
-        values = item.get('values') or []
-        if values:
-            self.slot_var.set(str(values[0]))
+        for item in sel:
+            current_tags = list(self.slot_tree.item(item, 'tags'))
+            if 'selected' not in current_tags:
+                current_tags.append('selected')
+                self.slot_tree.item(item, tags=current_tags)
+        
+        if sel:
+            item = self.slot_tree.item(sel[0])
+            values = item.get('values') or []
+            if values:
+                self.slot_var.set(str(values[0]))
+                # Save the selected slot
+                self._save_last_selected_slot()
 
     def _refresh_slots(self):
         import time
         from rogueeditor.utils import slot_save_path, load_json
+        
         def work():
             rows = []
             any_local = False
             any_outdated = False
+
+            # Get available slots from server (if connected) or fallback to local
+            available_slots = self._get_available_slots()
+
             # Compare dump times with last session update if available
             last_update_ts = None
             try:
@@ -1044,7 +1922,9 @@ class App(ttk.Frame):
                     last_update_ts = _dt.datetime.strptime(ts_str, '%Y-%m-%d %H:%M:%S').timestamp()
             except Exception:
                 last_update_ts = None
-            for i in range(1, 6):
+
+            # Only process slots that are actually available
+            for i in available_slots:
                 party_ct = '-'
                 playtime = '-'
                 empty = True
@@ -1065,23 +1945,101 @@ class App(ttk.Frame):
                         except Exception:
                             playtime = '-'
                         empty = (party_ct == 0 and (int(pt) if isinstance(pt, int) else 0) == 0)
+                        
+                        # Extract wave data
+                        wave_index = data.get('waveIndex')
+                        if wave_index is not None:
+                            try:
+                                wave = str(int(wave_index))
+                            except (ValueError, TypeError):
+                                wave = '-'
+                        else:
+                            wave = '-'
                     except Exception:
                         empty = True
+                        wave = '-'
                     ts = os.path.getmtime(p)
                     local = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(ts))
                     if last_update_ts and ts < last_update_ts:
                         any_outdated = True
-                rows.append((i, party_ct, playtime, local, empty))
+                else:
+                    # Slot exists on server but not locally - mark as empty with server indicator
+                    empty = True
+                    wave = '-'
+                    local = 'Not dumped'
+
+                rows.append((i, party_ct, playtime, wave, local, empty))
+
             def update():
+                # Clear existing slots
                 for r in self.slot_tree.get_children():
                     self.slot_tree.delete(r)
-                for (slot, party_ct, playtime, local, empty) in rows:
-                    tags = ('empty',) if empty else ()
-                    self.slot_tree.insert('', 'end', values=(slot, party_ct, playtime, local), tags=tags)
+
+                # Add only available slots
+                if rows:
+                    selected_slot = self.slot_var.get()
+                    selected_slot_found = False
+                    
+                    for (slot, party_ct, playtime, wave, local, empty) in rows:
+                        tags = ('empty',) if empty else ()
+                        item_id = self.slot_tree.insert('', 'end', values=(slot, party_ct, playtime, wave, local), tags=tags)
+                        
+                        # Highlight the selected slot
+                        if str(slot) == selected_slot:
+                            selected_slot_found = True
+                            self.slot_tree.selection_set(item_id)
+                            # Apply selected tag for visual highlighting
+                            current_tags = list(tags)
+                            current_tags.append('selected')
+                            self.slot_tree.item(item_id, tags=current_tags)
+                    
+                    # If selected slot not found or is empty, reset to slot 1
+                    if not selected_slot_found or (selected_slot_found and any(str(row[0]) == selected_slot and row[5] for row in rows)):
+                        # Selected slot is empty, reset to slot 1
+                        self.slot_var.set("1")
+                        # Find and select slot 1
+                        for child in self.slot_tree.get_children():
+                            item_values = self.slot_tree.item(child, 'values')
+                            if item_values and str(item_values[0]) == "1":
+                                self.slot_tree.selection_set(child)
+                                # Apply selected tag for visual highlighting
+                                current_tags = list(self.slot_tree.item(child, 'tags'))
+                                if 'selected' not in current_tags:
+                                    current_tags.append('selected')
+                                    self.slot_tree.item(child, tags=current_tags)
+                                break
+                        # Save the reset slot
+                        self._save_last_selected_slot()
+                    elif not selected_slot_found:
+                        # Selected slot doesn't exist, reset to slot 1
+                        self.slot_var.set("1")
+                        # Select the first available slot (should be slot 1)
+                        if self.slot_tree.get_children():
+                            first_item = self.slot_tree.get_children()[0]
+                            self.slot_tree.selection_set(first_item)
+                            # Apply selected tag for visual highlighting
+                            current_tags = list(self.slot_tree.item(first_item, 'tags'))
+                            if 'selected' not in current_tags:
+                                current_tags.append('selected')
+                                self.slot_tree.item(first_item, tags=current_tags)
+                        # Save the reset slot
+                        self._save_last_selected_slot()
+                else:
+                    # Show a placeholder when no slots exist
+                    self.slot_tree.insert('', 'end', values=('No slots found', '-', '-', '-'), tags=('empty',))
+
+                # Update available slot values for comboboxes
+                self._update_slot_combobox_values(available_slots)
+
                 # Informative messages
-                if not any_local:
+                if not available_slots:
                     try:
-                        messagebox.showinfo('No local dumps', 'No local dumps found. Use Data IO ? Dump to fetch trainer and/or slots you want to edit.')
+                        messagebox.showinfo('No save slots', 'No save slots found on server. Start a new game to create slots.')
+                    except Exception:
+                        pass
+                elif not any_local:
+                    try:
+                        messagebox.showinfo('No local dumps', 'No local dumps found. Use Data IO → Dump to fetch trainer and/or slots you want to edit.')
                     except Exception:
                         pass
                 elif any_outdated:
@@ -1089,16 +2047,96 @@ class App(ttk.Frame):
                         messagebox.showwarning('Dumps may be out of date', 'Some local dumps are older than the last login. Consider dumping again to avoid overwriting newer server data.')
                     except Exception:
                         pass
+
             self.after(0, update)
-        self._run_async("Loading local slots...", work)
+        self._run_async("Loading slots...", work)
+
+    def _get_available_slots(self) -> list[int]:
+        """
+        Get list of available slot numbers, combining server and local detection.
+        Prioritizes server data when available, falls back to local files.
+        """
+        available_slots = set()
+
+        # Try to get slots from server first
+        try:
+            if hasattr(self, 'api') and self.api:
+                server_slots = self.api.get_available_slots()
+                available_slots.update(server_slots)
+        except Exception:
+            # Server detection failed, continue with local detection
+            pass
+
+        # Also check local files to include any locally dumped slots
+        from rogueeditor.utils import slot_save_path, load_json
+        import os
+        for i in range(1, 6):
+            p = slot_save_path(self.username, i)
+            if os.path.exists(p):
+                try:
+                    data = load_json(p)
+                    # Only include if it has meaningful content
+                    if self._is_local_slot_non_empty(data):
+                        available_slots.add(i)
+                except Exception:
+                    continue
+
+        return sorted(list(available_slots))
+
+    def _is_local_slot_non_empty(self, slot_data: dict) -> bool:
+        """
+        Check if local slot data indicates a non-empty/active slot.
+        Similar to the API version but for local data structure.
+        """
+        if not slot_data:
+            return False
+
+        # Check for party with Pokemon
+        party = slot_data.get('party', [])
+        if party and len(party) > 0:
+            return True
+
+        # Check for playtime
+        play_time = slot_data.get('playTime', 0)
+        if play_time and play_time > 0:
+            return True
+
+        return False
+
+    def _update_slot_combobox_values(self, available_slots: list[int]):
+        """
+        Update all slot comboboxes in the UI to show only available slots.
+        """
+        slot_values = [str(slot) for slot in available_slots] if available_slots else ["1"]
+
+        # Store available slots for other components to use
+        self._available_slots = available_slots
+
+        # Update the main slot selector if it exists
+        if hasattr(self, 'slot_var') and self.slot_var:
+            current_value = self.slot_var.get()
+            # If current selection is not in available slots, pick the first available
+            if current_value not in slot_values and slot_values:
+                self.slot_var.set(slot_values[0])
+
+        # Note: Individual comboboxes will be updated when they're accessed or refreshed
+        # This is because there are many comboboxes throughout the UI and updating them all
+        # here would require tracking references to all of them
+
+    def _get_slot_values(self) -> list[str]:
+        """
+        Get the current list of available slot values for comboboxes.
+        Falls back to ["1"] if no slots are available.
+        """
+        if hasattr(self, '_available_slots') and self._available_slots:
+            return [str(slot) for slot in self._available_slots]
+        return ["1"]  # Fallback to ensure UI doesn't break
 
     def _backup(self):
-        def work():
-            path = self.editor.backup_all()
-            self._log(f"Backup created: {path}")
-        def done():
-            self._update_backup_status()
-        self._run_async("Creating backup...", work, done)
+        path = self.editor.backup_all()
+        self._log(f"Backup created: {path}")
+        # Schedule UI update on main thread
+        self.after(0, lambda: [self._update_backup_status(), self._refresh_slots()])
 
     def _restore_dialog(self):
         base = os.path.join("Source", "saves", self.username, "backups")
@@ -1134,7 +2172,7 @@ class App(ttk.Frame):
             ttk.Radiobutton(opt, text="Restore Specific Slot", variable=scope, value='slot').grid(row=2, column=0, sticky=tk.W, padx=6, pady=4)
             ttk.Label(opt, text="Slot:").grid(row=2, column=1, sticky=tk.E)
             slot_var = tk.StringVar(value='1')
-            slot_cb = ttk.Combobox(opt, textvariable=slot_var, values=["1","2","3","4","5"], width=4, state='readonly')
+            slot_cb = ttk.Combobox(opt, textvariable=slot_var, values=self._get_slot_values(), width=4, state='readonly')
             slot_cb.grid(row=2, column=2, sticky=tk.W)
             def do_restore():
                 choice = scope.get()
@@ -1202,6 +2240,7 @@ class App(ttk.Frame):
     def _update_backup_status(self):
         try:
             from rogueeditor.utils import user_save_dir
+            from rogueeditor.persistence import persistence_manager
             if not self.username:
                 self.backup_status_var.set("Last backup: none")
                 return
@@ -1210,7 +2249,16 @@ class App(ttk.Frame):
                 self.backup_status_var.set("Last backup: none")
                 return
             dirs = sorted([d for d in os.listdir(base) if os.path.isdir(os.path.join(base, d))])
-            self.backup_status_var.set(f"Last backup: {dirs[-1]}") if dirs else self.backup_status_var.set("Last backup: none")
+            
+            if dirs:
+                latest_backup = dirs[-1]
+                self.backup_status_var.set(f"Last backup: {latest_backup}")
+                # Save to persistence
+                persistence_manager.set_last_backup(self.username, latest_backup)
+            else:
+                self.backup_status_var.set("Last backup: none")
+                # Clear persistence
+                persistence_manager.set_last_backup(self.username, None)
         except Exception:
             self.backup_status_var.set("Last backup: unknown")
 
@@ -1249,21 +2297,21 @@ class App(ttk.Frame):
             ttk.Radiobutton(opt, text="Restore Specific Slot", variable=scope, value='slot').grid(row=2, column=0, sticky=tk.W, padx=6, pady=4)
             ttk.Label(opt, text="Slot:").grid(row=2, column=1, sticky=tk.E)
             slot_var = tk.StringVar(value='1')
-            slot_cb = ttk.Combobox(opt, textvariable=slot_var, values=["1","2","3","4","5"], width=4, state='readonly')
+            slot_cb = ttk.Combobox(opt, textvariable=slot_var, values=self._get_slot_values(), width=4, state='readonly')
             slot_cb.grid(row=2, column=2, sticky=tk.W)
             def do_restore():
                 choice = scope.get()
                 if not messagebox.askyesno("Confirm", f"Restore ({choice}) from {name}? This overwrites server state."):
                     return
                 if choice == 'all':
-                    self._run_async("Restoring backup (all)...", lambda: self.editor.restore_from_backup(backup_dir), lambda: self._log(f"Restored backup {name} (all)"))
+                    self._run_async("Restoring backup (all)...", lambda: self.editor.restore_from_backup(backup_dir), lambda: [self._log(f"Restored backup {name} (all)"), self._update_backup_status(), self._refresh_slots()])
                 elif choice == 'trainer':
                     def work():
                         tp = os.path.join(backup_dir, 'trainer.json')
                         if os.path.exists(tp):
                             data = load_json(tp)
                             self.api.update_trainer(data)
-                    self._run_async("Restoring trainer...", work, lambda: self._log(f"Restored trainer from {name}"))
+                    self._run_async("Restoring trainer...", work, lambda: [self._log(f"Restored trainer from {name}"), self._update_backup_status(), self._refresh_slots()])
                 else:
                     try:
                         s = int(slot_var.get())
@@ -1275,7 +2323,7 @@ class App(ttk.Frame):
                         if os.path.exists(sp):
                             data = load_json(sp)
                             self.api.update_slot(s, data)
-                    self._run_async("Restoring slot...", work, lambda: self._log(f"Restored slot {s} from {name}"))
+                    self._run_async("Restoring slot...", work, lambda: [self._log(f"Restored slot {s} from {name}"), self._update_backup_status(), self._refresh_slots()])
                 opt.destroy(); top.destroy()
             ttk.Button(opt, text="Restore", command=do_restore).grid(row=3, column=0, columnspan=3, pady=8)
             try:
@@ -1324,7 +2372,7 @@ class App(ttk.Frame):
         ttk.Checkbutton(top, text="Trainer (trainer.json)", variable=tr_var).grid(row=1, column=0, sticky=tk.W, padx=6)
         ttk.Label(top, text="Slot:").grid(row=2, column=0, sticky=tk.E, padx=6)
         slot_var = tk.StringVar(value=self.slot_var.get())
-        ttk.Combobox(top, textvariable=slot_var, values=["1","2","3","4","5"], width=4, state='readonly').grid(row=2, column=1, sticky=tk.W)
+        ttk.Combobox(top, textvariable=slot_var, values=self._get_slot_values(), width=4, state='readonly').grid(row=2, column=1, sticky=tk.W)
         ttk.Checkbutton(top, text="Upload slot file (slot N.json)", variable=sl_var).grid(row=2, column=2, sticky=tk.W, padx=6)
         def do_upload():
             # Trainer
@@ -1903,7 +2951,18 @@ class App(ttk.Frame):
             messagebox.showinfo("Uploaded", "Gacha tickets updated on server")
 
 
+def _debug_simple_log(message):
+    """Simple debug logging to file."""
+    try:
+        import datetime
+        timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")
+        with open("gui_debug.log", "a") as f:
+            f.write(f"[RUN] [{timestamp}] {message}\n")
+    except:
+        pass  # Silently fail to avoid recursion
+
 def run():
+    _debug_simple_log("Run function started")
     # Initialize logging early so startup issues are captured
     logger = setup_logging()
     attach_stderr_tee(logger)
@@ -1955,8 +3014,12 @@ def run():
         record_run_result(3, trigger="gui")
         return 3
     try:
+        logger.debug("About to create App instance")
         app = App(root)
+        logger.debug("App instance created successfully")
+        logger.debug("Starting mainloop")
         root.mainloop()
+        logger.debug("Mainloop ended")
     except Exception:
         log_exception_context("Unhandled error in GUI mainloop", logger)
         print("[ERROR] Unhandled GUI error.")
@@ -1965,1268 +3028,3 @@ def run():
         return 4
     record_run_result(0, trigger="gui")
     return 0
-    def __init__(self, master: App, api: PokerogueAPI, editor: Editor, slot: int):
-        super().__init__(master)
-        self.title(f"Team Editor - Slot {slot}")
-        self.geometry("1000x600")
-        self.api = api
-        self.editor = editor
-        self.slot = slot
-        self.data = self.api.get_slot(slot)
-        self.party = self.data.get("party") or []
-        self._build()
-        try:
-            master._modalize(self)
-        except Exception:
-            pass
-
-    def _build(self):
-        frame = ttk.Frame(self)
-        frame.pack(fill=tk.BOTH, expand=True)
-        # Left: team list
-        left = ttk.Frame(frame)
-        left.pack(side=tk.LEFT, fill=tk.Y, padx=6, pady=6)
-        self.team_list = tk.Listbox(left, height=10, exportselection=False)
-        self.team_list.pack(fill=tk.Y)
-        self.team_list.bind('<<ListboxSelect>>', self._on_select)
-        # Populate
-        from rogueeditor.utils import load_pokemon_index, invert_dex_map
-        inv = invert_dex_map(load_pokemon_index())
-        for i, mon in enumerate(self.party, start=1):
-            did = str(mon.get("species") or mon.get("dexId") or mon.get("speciesId") or "?")
-            name = inv.get(did, did)
-            lvl = mon.get("level") or mon.get("lvl")
-            self.team_list.insert(tk.END, f"{i}. {name} (Lv {lvl})")
-        # Right: editor
-        right = ttk.Frame(frame)
-        right.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=6, pady=6)
-        self._build_editor(right)
-
-    def _build_editor(self, parent):
-        move_name_to_id, move_id_to_name = load_move_catalog()
-        abil_name_to_id, abil_id_to_name = load_ability_catalog()
-        nat_name_to_id, nat_id_to_name = load_nature_catalog()
-        # Store move catalogs for labels
-        self.move_name_to_id = move_name_to_id
-        self.move_id_to_name = move_id_to_name
-
-        # Section: Identity
-        ident = ttk.LabelFrame(parent, text="Identity")
-        ident.grid(row=0, column=0, columnspan=6, sticky=tk.W+tk.E, padx=2, pady=2)
-        ttk.Label(ident, text="Level:").grid(row=0, column=0, sticky=tk.W, padx=4, pady=2)
-        self.level_var = tk.StringVar()
-        ttk.Entry(ident, textvariable=self.level_var, width=6).grid(row=0, column=1, sticky=tk.W, padx=2, pady=2)
-        # Recalculate stats when level changes
-        def _on_level_change(*args):
-            try:
-                _ = int(self.level_var.get().strip() or '0')
-            except Exception:
-                pass
-            self._update_calculated_stats()
-        try:
-            self.level_var.trace_remove('write', getattr(self.level_var, '_lvl_trace', None))
-        except Exception:
-            pass
-        self.level_var._lvl_trace = self.level_var.trace_add('write', _on_level_change)
-
-        ttk.Label(ident, text="Ability:").grid(row=0, column=2, sticky=tk.W, padx=8)
-        self.ability_ac = AutoCompleteEntry(ident, abil_name_to_id, width=24)
-        self.ability_ac.grid(row=0, column=3, sticky=tk.W, padx=2)
-        ttk.Button(ident, text="Pick", command=lambda: self._pick_from_catalog(self.ability_ac, abil_name_to_id, 'Select Ability')).grid(row=0, column=4, sticky=tk.W, padx=2)
-
-        ttk.Label(ident, text="Nature:").grid(row=1, column=0, sticky=tk.W, padx=4)
-        # Nature combobox with effect hints (e.g., Adamant +Atk/-SpA)
-        from rogueeditor.catalog import nature_multipliers_by_id
-        mults_map = nature_multipliers_by_id()
-        def _pretty(s: str) -> str:
-            return s.replace('_', ' ').title()
-        def _effect_text(nid: int) -> str:
-            arr = mults_map.get(int(nid), [1.0]*6)
-            labs = ["HP","Atk","Def","SpA","SpD","Spe"]
-            up = next((labs[i] for i,v in enumerate(arr) if i>0 and abs(v-1.1)<1e-6), None)
-            dn = next((labs[i] for i,v in enumerate(arr) if i>0 and abs(v-0.9)<1e-6), None)
-            if not up or not dn or up == dn:
-                return "neutral"
-            return f"+{up}/-{dn}"
-        nature_items = []
-        # Use id->name to preserve source names; prettify for display
-        for nid, raw_name in sorted(load_nature_catalog()[1].items(), key=lambda kv: kv[0]):
-            effect = _effect_text(nid)
-            disp = f"{_pretty(raw_name)} ({effect}) ({nid})"
-            nature_items.append(disp)
-        self.nature_cb = ttk.Combobox(ident, values=nature_items, width=28)
-        self.nature_cb.grid(row=1, column=1, sticky=tk.W, padx=2)
-        self.nature_cb.bind('<<ComboboxSelected>>', lambda e: self._on_nature_change())
-        # Nature effect hint label
-        self.nature_hint = ttk.Label(ident, text="")
-        self.nature_hint.grid(row=1, column=5, sticky=tk.W, padx=6)
-
-        # Held Item(s)
-        ttk.Label(ident, text="Held Item(s):").grid(row=1, column=2, sticky=tk.W, padx=8)
-        try:
-            item_name_to_id, item_id_to_name = load_item_catalog()
-        except Exception:
-            item_name_to_id = {}
-            item_id_to_name = {}
-        if item_name_to_id:
-            self.held_item_ac = AutoCompleteEntry(ident, item_name_to_id, width=20)
-            self.held_item_ac.grid(row=1, column=3, sticky=tk.W, padx=2)
-            ttk.Button(ident, text="Pick", command=lambda: self._pick_from_catalog(self.held_item_ac, item_name_to_id, 'Select Item')).grid(row=1, column=4, sticky=tk.W, padx=2)
-            ttk.Button(ident, text="Manage Items...", command=self._open_item_manager_for_current).grid(row=1, column=6, sticky=tk.W, padx=6)
-            self.held_item_var = None
-        else:
-            self.held_item_var = tk.StringVar()
-            ttk.Entry(ident, textvariable=self.held_item_var, width=8).grid(row=1, column=3, sticky=tk.W, padx=2)
-            ttk.Button(ident, text="Manage Items...", command=self._open_item_manager_for_current).grid(row=1, column=6, sticky=tk.W, padx=6)
-
-        # Section: IVs and Calculated Stats
-        stats_sec = ttk.LabelFrame(parent, text="IVs & Stats")
-        stats_sec.grid(row=1, column=0, columnspan=6, sticky=tk.W+tk.E, padx=2, pady=4)
-        ttk.Label(stats_sec, text="IVs:").grid(row=0, column=0, sticky=tk.NW, padx=4)
-        self.iv_vars = [tk.StringVar() for _ in range(6)]
-        iv_labels = ["HP", "Atk", "Def", "SpA", "SpD", "Spe"]
-        iv_frame = ttk.Frame(stats_sec)
-        iv_frame.grid(row=0, column=1, columnspan=3, sticky=tk.W)
-        # Left column (HP/Atk/Def)
-        for i, lab in enumerate(iv_labels[:3]):
-            ttk.Label(iv_frame, text=lab+":").grid(row=i, column=0, sticky=tk.E, padx=2, pady=1)
-            ttk.Entry(iv_frame, textvariable=self.iv_vars[i], width=4).grid(row=i, column=1, sticky=tk.W)
-        # Right column (SpA/SpD/Spe)
-        for j, lab in enumerate(iv_labels[3:], start=3):
-            ttk.Label(iv_frame, text=lab+":").grid(row=j-3, column=2, sticky=tk.E, padx=8, pady=1)
-            ttk.Entry(iv_frame, textvariable=self.iv_vars[j], width=4).grid(row=j-3, column=3, sticky=tk.W)
-
-        # Calculated Stats (derived from Level + IVs, EV=0)
-        ttk.Label(stats_sec, text="Calculated Stats:").grid(row=1, column=0, sticky=tk.NW, padx=4)
-        stats_frame = ttk.Frame(stats_sec)
-        stats_frame.grid(row=1, column=1, columnspan=3, sticky=tk.W)
-        self.stat_lbls = []
-        for i, lab in enumerate(["HP", "Atk", "Def", "SpA", "SpD", "Spe"]):
-            ttk.Label(stats_frame, text=lab+":").grid(row=i//3, column=(i%3)*2, sticky=tk.W, padx=(0, 4))
-            val = ttk.Label(stats_frame, text="-")
-            val.grid(row=i//3, column=(i%3)*2+1, sticky=tk.W, padx=(0, 12))
-            self.stat_lbls.append(val)
-
-        # Section: Moves
-        moves_sec = ttk.LabelFrame(parent, text="Moves")
-        moves_sec.grid(row=2, column=0, columnspan=6, sticky=tk.W+tk.E, padx=2, pady=4)
-        ttk.Label(moves_sec, text="Moves:").grid(row=0, column=0, sticky=tk.W, padx=4)
-        self.move_acs = []
-        self.move_lbls = []
-        for i in range(4):
-            ac = AutoCompleteEntry(moves_sec, move_name_to_id, width=30)
-            ac.grid(row=i, column=1, sticky=tk.W, pady=1, padx=2)
-            ac.bind('<KeyRelease>', lambda e, j=i: self._on_move_ac_change(j))
-            ac.bind('<FocusOut>', lambda e, j=i: self._on_move_ac_change(j))
-            ttk.Button(moves_sec, text="Pick", command=lambda j=i: self._pick_from_catalog(self.move_acs[j], move_name_to_id, f'Select Move {j+1}')).grid(row=i, column=2, sticky=tk.W, padx=2)
-            lbl = ttk.Label(moves_sec, text="", width=28)
-            lbl.grid(row=i, column=3, sticky=tk.W, padx=6)
-            self.move_lbls.append(lbl)
-            self.move_acs.append(ac)
-
-        # Section: Items & Modifiers preview
-        itm_sec = ttk.LabelFrame(parent, text="Items & Modifiers")
-        itm_sec.grid(row=3, column=0, columnspan=6, sticky=tk.W+tk.E, padx=2, pady=4)
-        ttk.Label(itm_sec, text="Item effects (preview):").grid(row=0, column=0, sticky=tk.W, padx=4)
-        self.item_effects_lbl = ttk.Label(itm_sec, text="-", width=60)
-        self.item_effects_lbl.grid(row=0, column=1, sticky=tk.W)
-        ttk.Button(itm_sec, text="Adjust Item Stacks...", command=self._edit_item_stacks).grid(row=0, column=2, sticky=tk.W, padx=4)
-
-        # Actions
-        ttk.Button(parent, text="Save to file", command=self._save).grid(row=4, column=0, pady=8, padx=2, sticky=tk.W)
-        ttk.Button(parent, text="Upload", command=self._upload).grid(row=4, column=1, pady=8, padx=2, sticky=tk.W)
-
-    def _on_select(self, event=None):
-        if not self.team_list.curselection():
-            return
-        idx = self.team_list.curselection()[0]
-        mon = self.party[idx]
-        # Populate fields
-        lvl = mon.get("level") or mon.get("lvl") or ""
-        self.level_var.set(str(lvl))
-        # Ability
-        abil = mon.get("abilityId") or mon.get("ability") or ""
-        self.ability_ac.set_value(str(abil))
-        # Nature (handled via combobox below)
-        nat = mon.get("natureId") or mon.get("nature") or ""
-        try:
-            nid = int(nat)
-            from rogueeditor.catalog import load_nature_catalog, nature_multipliers_by_id
-            n2i, i2n = load_nature_catalog()
-            name = i2n.get(nid, str(nid))
-            # include effect in display
-            arr = nature_multipliers_by_id().get(int(nid), [1.0]*6)
-            labs = ["HP","Atk","Def","SpA","SpD","Spe"]
-            up = next((labs[i] for i,v in enumerate(arr) if i>0 and abs(v-1.1)<1e-6), None)
-            dn = next((labs[i] for i,v in enumerate(arr) if i>0 and abs(v-0.9)<1e-6), None)
-            effect = "neutral" if (not up or not dn or up==dn) else f"+{up}/-{dn}"
-            self.nature_cb.set(f"{name.replace('_',' ').title()} ({effect}) ({nid})")
-            self._update_nature_hint(arr)
-        except Exception:
-            self.nature_cb.set(str(nat))
-            self._update_nature_hint([1.0]*6)
-        # Moves
-        moves = []
-        mv = mon.get("moveset") or mon.get("moveIds") or mon.get("moves") or []
-        for i in range(4):
-            cur = mv[i] if i < len(mv) else None
-            if isinstance(cur, dict):
-                val = cur.get("id") or cur.get("moveId") or ""
-            else:
-                val = cur or ""
-            self.move_acs[i].set_value(str(val))
-            self._update_move_label(i)
-        # Held item id
-        hid = mon.get("heldItemId") or mon.get("heldItem") or mon.get("item") or ""
-        if hasattr(self, 'held_item_ac') and self.held_item_ac:
-            self.held_item_ac.set_value(str(hid))
-        else:
-            self.held_item_var.set(str(hid))
-        # IVs
-        ivs = mon.get("ivs")
-        if isinstance(ivs, list) and len(ivs) == 6:
-            for i in range(6):
-                self.iv_vars[i].set(str(ivs[i]))
-        else:
-            for i in range(6):
-                self.iv_vars[i].set("")
-        # Attach IV change listeners and initialize base + calculated stats
-        for v in self.iv_vars:
-            try:
-                v.trace_remove('write', getattr(v, '_calc_trace', None))
-            except Exception:
-                pass
-            def _cb(*args, sv=v):
-                self._update_calculated_stats()
-            v._calc_trace = v.trace_add('write', _cb)
-        self._init_base_and_update()
-        # Also refresh hint/labels based on current nature
-        try:
-            from rogueeditor.catalog import nature_multipliers_by_id
-            nid = self._get_nature_id()
-            arr = nature_multipliers_by_id().get(nid or -1, [1.0]*6)
-        except Exception:
-            arr = [1.0]*6
-        self._update_nature_hint(arr)
-        # Update item effects preview
-        self._update_item_effects()
-
-    def _apply_form_changes(self) -> bool:
-        # Applies UI fields to current mon in self.data; returns True if applied
-        if not self.team_list.curselection():
-            return False
-        idx = self.team_list.curselection()[0]
-        mon = self.party[idx]
-        # Level
-        lv = self.level_var.get().strip()
-        if lv.isdigit():
-            if "level" in mon:
-                mon["level"] = int(lv)
-            elif "lvl" in mon:
-                mon["lvl"] = int(lv)
-        # Ability
-        aid = self.ability_ac.get_id()
-        if aid is not None:
-            if "abilityId" in mon:
-                mon["abilityId"] = aid
-            elif "ability" in mon:
-                mon["ability"] = aid
-        # Nature
-        ndisp = self.nature_cb.get().strip()
-        nid = None
-        if ndisp.endswith(')') and '(' in ndisp:
-            try:
-                nid = int(ndisp.rsplit('(',1)[1].rstrip(')'))
-            except Exception:
-                nid = None
-        if nid is not None:
-            if "natureId" in mon:
-                mon["natureId"] = nid
-            elif "nature" in mon:
-                mon["nature"] = nid
-        # IVs
-        new_ivs = []
-        valid_iv = True
-        for v in self.iv_vars:
-            s = v.get().strip()
-            if not s:
-                valid_iv = False
-                break
-            try:
-                val = int(s)
-                if val < 0:
-                    val = 0
-                if val > 31:
-                    val = 31
-                new_ivs.append(val)
-            except ValueError:
-                valid_iv = False
-                break
-        if valid_iv and len(new_ivs) == 6:
-            mon["ivs"] = new_ivs
-            # Update mon stat fields if present
-            try:
-                base = getattr(self, '_base_stats', None)
-                if base and len(base) == 6:
-                    lvl = self._get_level()
-                    calc = self._compute_stats(base, lvl, new_ivs)
-                    key_pairs = [("maxHp", "hp"), ("attack", "atk"), ("defense", "def"), ("spAttack", "spAtk"), ("spDefense", "spDef"), ("speed", "spd")]
-                    for i, (k1, k2) in enumerate(key_pairs):
-                        for k in (k1, k2):
-                            if k in mon:
-                                mon[k] = calc[i]
-            except Exception:
-                pass
-        # Moves
-        moves = []
-        for ac in self.move_acs:
-            mid = ac.get_id()
-            if mid is not None:
-                moves.append({"moveId": mid, "ppUp": 0, "ppUsed": 0})
-        if moves:
-            if "moveset" in mon:
-                mon["moveset"] = moves
-            elif "moveIds" in mon:
-                mon["moveIds"] = [m["moveId"] for m in moves]
-            elif "moves" in mon:
-                mon["moves"] = [m["moveId"] for m in moves]
-        # Held item
-        if hasattr(self, 'held_item_ac') and self.held_item_ac:
-            iid = self.held_item_ac.get_id()
-            if iid is not None:
-                if "heldItemId" in mon:
-                    mon["heldItemId"] = iid
-                elif "heldItem" in mon:
-                    mon["heldItem"] = iid
-                elif "item" in mon:
-                    mon["item"] = iid
-        else:
-            hv = self.held_item_var.get().strip()
-            if hv.isdigit():
-                hid = int(hv)
-                if "heldItemId" in mon:
-                    mon["heldItemId"] = hid
-                elif "heldItem" in mon:
-                    mon["heldItem"] = hid
-                elif "item" in mon:
-                    mon["item"] = hid
-        return True
-
-    def _save(self):
-        from rogueeditor.utils import slot_save_path, dump_json
-        if not self._apply_form_changes():
-            messagebox.showwarning("No selection", "Select a team member first")
-            return
-        save_path = slot_save_path(self.api.username, self.slot)
-        dump_json(save_path, self.data)
-        messagebox.showinfo("Saved", f"Wrote {save_path}")
-
-    def _upload(self):
-        if not messagebox.askyesno("Confirm Upload", "This will overwrite server slot data. Proceed?"):
-            return
-        try:
-            # Apply UI changes, write to file, then upload that file
-            from rogueeditor.utils import slot_save_path, dump_json, load_json
-            p = slot_save_path(self.api.username, self.slot)
-            self._apply_form_changes()
-            dump_json(p, self.data)
-            # Then read back and upload exactly that file
-            payload = load_json(p)
-            self.api.update_slot(self.slot, payload)
-            messagebox.showinfo("Uploaded", "Server updated successfully")
-        except Exception as e:
-            messagebox.showerror("Upload failed", str(e))
-
-    # --- IV/stat helpers ---
-    def _get_level(self) -> int:
-        try:
-            return int(self.level_var.get().strip())
-        except Exception:
-            try:
-                sel = self.team_list.curselection()[0]
-                mon = self.party[sel]
-                return int(mon.get('level') or mon.get('lvl') or 1)
-            except Exception:
-                return 1
-
-    def _parse_ivs(self) -> list[int] | None:
-        vals: list[int] = []
-        for v in self.iv_vars:
-            s = v.get().strip()
-            if not s or not s.isdigit():
-                return None
-            try:
-                iv = int(s)
-                if iv < 0:
-                    iv = 0
-                if iv > 31:
-                    iv = 31
-                vals.append(iv)
-            except ValueError:
-                return None
-        return vals if len(vals) == 6 else None
-
-    def _extract_actual_stats(self, mon: dict) -> list[int] | None:
-        pairs = [("maxHp", "hp"), ("attack", "atk"), ("defense", "def"), ("spAttack", "spAtk"), ("spDefense", "spDef"), ("speed", "spd")]
-        out: list[int] = []
-        for k1, k2 in pairs:
-            val = mon.get(k1)
-            if val is None:
-                val = mon.get(k2)
-            if val is None:
-                return None
-            try:
-                out.append(int(val))
-            except Exception:
-                return None
-        return out
-
-    def _infer_base_stats(self, level: int, ivs: list[int], actual: list[int]) -> list[int]:
-        def ev_effective(E: int) -> int:
-            return math.floor(math.ceil(math.sqrt(E)) / 4)
-        # Nature multipliers for current mon
-        try:
-            from rogueeditor.catalog import nature_multipliers_by_id
-            nid = self._get_nature_id()
-            mults = nature_multipliers_by_id().get(nid or -1, [1.0] * 6)
-        except Exception:
-            mults = [1.0] * 6
-        # Divide out item multipliers first
-        try:
-            sel = self.team_list.curselection()[0]
-            mon = self.party[sel]
-            item_mults = self._item_stat_multipliers(mon)
-            for i in range(6):
-                m = item_mults[i] if 0 <= i < len(item_mults) else 1.0
-                if m and abs(m - 1.0) > 1e-6:
-                    actual[i] = max(1, round(actual[i] / m))
-        except Exception:
-            pass
-        base: list[int] = []
-        # HP (no nature)
-        hp = actual[0]
-        hp_inner = ((hp - level - 10) * 100) / max(1, level)
-        two_b_plus_two_i = max(0, math.ceil(hp_inner) - ev_effective(0))
-        base.append(max(1, round((two_b_plus_two_i - 2 * ivs[0]) / 2)))
-        # Other stats: reverse nature first
-        for i in range(1, 6):
-            stat = actual[i]
-            m = mults[i] if i < len(mults) else 1.0
-            if m and m != 1.0:
-                stat = round(stat / m)
-            inner = ((stat - 5) * 100) / max(1, level)
-            two_b_plus_two_i = max(0, math.ceil(inner) - ev_effective(0))
-            base.append(max(1, round((two_b_plus_two_i - 2 * ivs[i]) / 2)))
-        return base
-
-    def _compute_stats(self, base: list[int], level: int, ivs: list[int]) -> list[int]:
-        def ev_effective(E: int) -> int:
-            return math.floor(math.ceil(math.sqrt(E)) / 4)
-        try:
-            from rogueeditor.catalog import nature_multipliers_by_id
-            nid = self._get_nature_id()
-            mults = nature_multipliers_by_id().get(nid or -1, [1.0] * 6)
-        except Exception:
-            mults = [1.0] * 6
-        hp = math.floor((((2 * (base[0] + ivs[0])) + ev_effective(0)) * level) / 100) + level + 10
-        out = [hp]
-        for i in range(1, 6):
-            val = math.floor((((2 * (base[i] + ivs[i])) + ev_effective(0)) * level) / 100) + 5
-            m = mults[i] if i < len(mults) else 1.0
-            val = math.floor(val * m + 1e-6)
-            out.append(val)
-        # Apply item-based stat multipliers (10% per stack)
-        try:
-            sel = self.team_list.curselection()[0]
-            mon = self.party[sel]
-            item_mults = self._item_stat_multipliers(mon)
-            out = [math.floor(out[i] * item_mults[i] + 1e-6) for i in range(6)]
-        except Exception:
-            pass
-        return out
-
-    def _init_base_and_update(self):
-        try:
-            sel = self.team_list.curselection()[0]
-            mon = self.party[sel]
-        except Exception:
-            return
-        ivs = self._parse_ivs()
-        if not ivs:
-            return
-        lvl = self._get_level()
-        # Prefer catalog base stats if available (from Source/data/base_stats.json)
-        base_from_catalog = None
-        try:
-            did = mon.get('species') or mon.get('dexId') or mon.get('speciesId')
-            if did is not None:
-                from rogueeditor.base_stats import get_base_stats_by_species_id
-                base_from_catalog = get_base_stats_by_species_id(int(did))
-        except Exception:
-            base_from_catalog = None
-        if base_from_catalog and len(base_from_catalog) == 6:
-            self._base_stats = base_from_catalog
-        else:
-            actual = self._extract_actual_stats(mon)
-            if actual:
-                self._base_stats = self._infer_base_stats(lvl, ivs, actual)
-            else:
-                self._base_stats = [50, 50, 50, 50, 50, 50]
-        self._update_calculated_stats()
-
-    def _update_calculated_stats(self):
-        ivs = self._parse_ivs()
-        base = getattr(self, '_base_stats', None)
-        if not ivs or not base or len(base) != 6:
-            for lbl in getattr(self, 'stat_lbls', []):
-                lbl.configure(text='-')
-            return
-        lvl = self._get_level()
-        vals = self._compute_stats(base, lvl, ivs)
-        # Show +/- markers for nature effects on non-HP stats
-        try:
-            from rogueeditor.catalog import nature_multipliers_by_id
-            arr = nature_multipliers_by_id().get(self._get_nature_id() or -1, [1.0]*6)
-        except Exception:
-            arr = [1.0]*6
-        for i, lbl in enumerate(self.stat_lbls):
-            suffix = ""
-            if i > 0:
-                if abs(arr[i]-1.1) < 1e-6:
-                    suffix = " (+)"
-                elif abs(arr[i]-0.9) < 1e-6:
-                    suffix = " (-)"
-            lbl.configure(text=f"{vals[i]}{suffix}")
-
-    def _on_nature_change(self):
-        # Recalc displays when nature changes
-        self._update_calculated_stats()
-        try:
-            from rogueeditor.catalog import nature_multipliers_by_id
-            arr = nature_multipliers_by_id().get(self._get_nature_id() or -1, [1.0]*6)
-        except Exception:
-            arr = [1.0]*6
-        self._update_nature_hint(arr)
-
-    def _update_nature_hint(self, arr: list[float]):
-        labs = ["HP","Atk","Def","SpA","SpD","Spe"]
-        up = next((labs[i] for i,v in enumerate(arr) if i>0 and abs(v-1.1)<1e-6), None)
-        dn = next((labs[i] for i,v in enumerate(arr) if i>0 and abs(v-0.9)<1e-6), None)
-        if not up or not dn or up == dn:
-            self.nature_hint.configure(text="neutral")
-        else:
-            self.nature_hint.configure(text=f"+{up} / -{dn}")
-    def _get_nature_id(self) -> int | None:
-        raw = self.nature_cb.get().strip()
-        if not raw:
-            return None
-        if raw.endswith(')') and '(' in raw:
-            try:
-                return int(raw.rsplit('(', 1)[1].rstrip(')'))
-            except Exception:
-                pass
-        try:
-            from rogueeditor.catalog import load_nature_catalog
-            name_to_id, _ = load_nature_catalog()
-            key = raw.strip().lower().replace(' ', '_')
-            return int(name_to_id.get(key)) if key in name_to_id else None
-        except Exception:
-            return None
-    def _on_move_ac_change(self, idx: int):
-        self._update_move_label(idx)
-
-    def _update_move_label(self, idx: int):
-        if 0 <= idx < len(self.move_acs):
-            ac = self.move_acs[idx]
-            text = ac.get().strip()
-            mid = None
-            if text.isdigit():
-                mid = int(text)
-            else:
-                if text.endswith(')') and '(' in text:
-                    try:
-                        mid = int(text.rsplit('(',1)[1].rstrip(')'))
-                    except Exception:
-                        mid = None
-                if mid is None:
-                    key = text.lower().replace(' ', '_')
-                    mid = self.move_name_to_id.get(key)
-            label = ''
-            if isinstance(mid, int):
-                name = self.move_id_to_name.get(mid, str(mid))
-                label = f"{name} (#{mid})"
-            self.move_lbls[idx].configure(text=label)
-
-    def _open_item_manager_for_current(self):
-        # Open the item/modifier manager with the currently selected Pokemon pre-selected
-        try:
-            if not self.team_list.curselection():
-                messagebox.showwarning("No selection", "Select a team member first")
-                return
-            sel = self.team_list.curselection()[0]
-            mon = self.party[sel]
-            mon_id = mon.get('id')
-        except Exception:
-            mon_id = None
-        try:
-            # Instantiate with optional preselect id
-            ItemManagerDialog(self, self.api, self.editor, self.slot, preselect_mon_id=mon_id)
-        except TypeError:
-            # Fallback if constructor signature not updated
-            ItemManagerDialog(self, self.api, self.editor, self.slot)
-
-    def _pick_from_catalog(self, ac: AutoCompleteEntry, name_to_id: dict[str, int], title: str):
-        sel = CatalogSelectDialog.select(self, name_to_id, title)
-        if sel is not None:
-            # find name by id
-            name = None
-            for k, v in name_to_id.items():
-                if v == sel:
-                    name = k
-                    break
-            ac.set_value(name or str(sel))
-
-    def _update_item_effects(self):
-        # Inspect modifiers targeting current mon and show multipliers summary
-        try:
-            if not self.team_list.curselection():
-                self.item_effects_lbl.configure(text='-')
-                return
-            idx = self.team_list.curselection()[0]
-            mon = self.party[idx]
-            mults = self._item_stat_multipliers(mon)
-            labels = ["HP","Atk","Def","SpA","SpD","Spe"]
-            parts = []
-            for i, m in enumerate(mults):
-                if abs(m - 1.0) > 1e-6:
-                    parts.append(f"{labels[i]} x{m:.2f}")
-            text = ', '.join(parts) if parts else 'None'
-            self.item_effects_lbl.configure(text=text)
-        except Exception:
-            self.item_effects_lbl.configure(text='-')
-
-    def _item_stat_multipliers(self, mon: dict) -> list[float]:
-        # Returns per-stat multipliers [HP, Atk, Def, SpA, SpD, Spe]
-        out = [1.0] * 6
-        try:
-            mon_id = mon.get('id')
-            mods = self.data.get('modifiers') or []
-            # Map typeId -> affected stat indices
-            type_to_indices = {
-                'CHOICE_BAND': [1],
-                'MUSCLE_BAND': [1],
-                'CHOICE_SPECS': [3],
-                'WISE_GLASSES': [3],
-                'CHOICE_SCARF': [5],
-                'EVIOLITE': [2, 4],
-            }
-            # Build stat id -> index mapping for BASE_STAT_BOOSTER
-            from rogueeditor.catalog import load_stat_catalog
-            _, stat_id_to_name = load_stat_catalog()
-            name_to_idx = {
-                'hp': 0,
-                'attack': 1,
-                'defense': 2,
-                'sp_attack': 3,
-                'sp_defense': 4,
-                'speed': 5,
-            }
-            for m in mods:
-                if not isinstance(m, dict):
-                    continue
-                args = m.get('args') or []
-                if not (args and isinstance(args, list) and isinstance(args[0], int) and args[0] == mon_id):
-                    continue
-                tid = str(m.get('typeId') or '').upper()
-                stacks = 0
-                try:
-                    stacks = int(m.get('stackCount') or 0)
-                except Exception:
-                    stacks = 0
-                if stacks <= 0:
-                    continue
-                indices = []
-                if tid == 'BASE_STAT_BOOSTER':
-                    sid = None
-                    if len(args) >= 2 and isinstance(args[1], int):
-                        sid = args[1]
-                    elif m.get('typePregenArgs') and isinstance(m.get('typePregenArgs'), list):
-                        try:
-                            sid = int(m.get('typePregenArgs')[0])
-                        except Exception:
-                            sid = None
-                    if isinstance(sid, int):
-                        name = stat_id_to_name.get(int(sid), '').strip().lower()
-                        name = name.replace(' ', '_')
-                        if name in name_to_idx:
-                            indices = [name_to_idx[name]]
-                else:
-                    indices = type_to_indices.get(tid, [])
-                if not indices:
-                    continue
-                factor = (1.1) ** stacks
-                for i in indices:
-                    if 0 <= i < 6:
-                        out[i] *= factor
-        except Exception:
-            return [1.0] * 6
-        return out
-
-    def _edit_item_stacks(self):
-        # Dialog to adjust stackCount for stat-boosting modifiers on current mon
-        if not self.team_list.curselection():
-            return
-        idx = self.team_list.curselection()[0]
-        mon = self.party[idx]
-        mon_id = mon.get('id')
-        mods = self.data.get('modifiers') or []
-        # Collect indexes for recognized modifiers
-        recognized = []
-        rec_types = {'CHOICE_BAND','MUSCLE_BAND','CHOICE_SPECS','WISE_GLASSES','CHOICE_SCARF','EVIOLITE','BASE_STAT_BOOSTER'}
-        for i, m in enumerate(mods):
-            if not isinstance(m, dict):
-                continue
-            args = m.get('args') or []
-            if args and isinstance(args, list) and isinstance(args[0], int) and args[0] == mon_id:
-                tid = str(m.get('typeId') or '').upper()
-                if tid in rec_types:
-                    recognized.append((i, m))
-        if not recognized:
-            messagebox.showinfo('No items', 'No recognized stat-boosting modifiers found for this PokÃƒÂ©mon.')
-            return
-        top = tk.Toplevel(self)
-        top.title('Adjust Item Stacks')
-        rows = []
-        for r, (i, m) in enumerate(recognized):
-            tid = str(m.get('typeId') or '')
-            ttk.Label(top, text=f"[{i}] {tid}").grid(row=r, column=0, sticky=tk.W, padx=6, pady=4)
-            var = tk.StringVar(value=str(m.get('stackCount') or 1))
-            ttk.Entry(top, textvariable=var, width=6).grid(row=r, column=1, sticky=tk.W)
-            rows.append((i, var))
-        def apply_changes():
-            changed = False
-            for i, var in rows:
-                try:
-                    val = int(var.get().strip())
-                except Exception:
-                    continue
-                if val < 0:
-                    val = 0
-                if mods[i].get('stackCount') != val:
-                    mods[i]['stackCount'] = val
-                    changed = True
-            if changed:
-                from rogueeditor.utils import slot_save_path, dump_json
-                p = slot_save_path(self.api.username, self.slot)
-                dump_json(p, self.data)
-                if messagebox.askyesno('Upload', 'Upload changes to server now?'):
-                    from rogueeditor.utils import load_json
-                    payload = load_json(p)
-                    try:
-                        self.api.update_slot(self.slot, payload)
-                        messagebox.showinfo('Uploaded', 'Server updated.')
-                    except Exception as e:
-                        messagebox.showerror('Upload failed', str(e))
-                # Refresh previews and stats
-                self._update_item_effects()
-                self._update_calculated_stats()
-            top.destroy()
-        ttk.Button(top, text='Apply', command=apply_changes).grid(row=len(rows), column=0, columnspan=2, pady=8)
-
-
-
-class _ItemManagerDialog_Legacy(tk.Toplevel):
-    def __init__(self, master: App, api: PokerogueAPI, editor: Editor, slot: int, preselect_mon_id: int | None = None):
-        super().__init__(master)
-        self.title(f"Modifiers & Items Manager - Slot {slot}")
-        self.geometry('900x520')
-        self.api = api
-        self.editor = editor
-        self.slot = slot
-        self._preselect_mon_id = preselect_mon_id
-        # Load slot data once
-        self.data = self.api.get_slot(slot)
-        self.party = self.data.get('party') or []
-        # Dirty state flags
-        self._dirty_local = False
-        self._dirty_server = False
-        self._build()
-        self._refresh()
-        self._preselect_party()
-        try:
-            master._modalize(self)
-        except Exception:
-            pass
-
-    def _build(self):
-        top = ttk.Frame(self)
-        top.pack(fill=tk.BOTH, expand=True, padx=6, pady=6)
-        # Left: target selector, party list, and current modifiers
-        left = ttk.LabelFrame(top, text='Target')
-        left.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=4, pady=4)
-        ttk.Label(left, text='Apply to:').pack(anchor=tk.W, padx=4, pady=(2,0))
-        self.target_var = tk.StringVar(value='Pokemon')
-        target_row = ttk.Frame(left)
-        target_row.pack(fill=tk.X, padx=4, pady=2)
-        ttk.Radiobutton(target_row, text='Pokemon', variable=self.target_var, value='Pokemon', command=self._on_target_change).pack(side=tk.LEFT)
-        ttk.Radiobutton(target_row, text='Trainer', variable=self.target_var, value='Trainer', command=self._on_target_change).pack(side=tk.LEFT, padx=8)
-        ttk.Label(left, text='Party:').pack(anchor=tk.W, padx=4)
-        self.party_list = tk.Listbox(left, height=10)
-        self.party_list.pack(fill=tk.BOTH, expand=True, padx=4, pady=4)
-        self.party_list.bind('<<ListboxSelect>>', lambda e: self._refresh_mods())
-        self.mod_list = tk.Listbox(left, height=10)
-        self.mod_list.pack(fill=tk.BOTH, expand=True, padx=4, pady=4)
-        self.mod_list.bind('<Double-Button-1>', lambda e: self._show_selected_detail())
-        btns = ttk.Frame(left)
-        btns.pack(fill=tk.X)
-        ttk.Button(btns, text='Edit Stacks...', command=self._edit_selected_stacks).pack(side=tk.LEFT, padx=4, pady=4)
-        ttk.Button(btns, text='Remove Selected', command=self._remove_selected).pack(side=tk.LEFT, padx=4, pady=4)
-        ttk.Button(btns, text='Refresh', command=self._refresh_mods).pack(side=tk.LEFT, padx=4, pady=4)
-
-        # Right: pickers to add items/modifiers
-        right = ttk.LabelFrame(top, text='Add Item / Modifier')
-        right.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=4, pady=4)
-        row = 0
-        ttk.Label(right, text='Category:').grid(row=row, column=0, sticky=tk.W)
-        self.cat_var = tk.StringVar(value='Common')
-        cat_opts = ['Common', 'Accuracy', 'Berries', 'Base Stat Booster', 'Observed', 'Player (Trainer)']
-        self.cat_cb = ttk.Combobox(right, textvariable=self.cat_var, values=cat_opts, state='readonly', width=24)
-        self.cat_cb.grid(row=row, column=1, sticky=tk.W, padx=4, pady=2)
-        self.cat_cb.bind('<<ComboboxSelected>>', lambda e: self._on_cat_change())
-        row += 1
-
-        # Common one-arg items
-        self.common_var = tk.StringVar()
-        self.common_cb = ttk.Combobox(right, textvariable=self.common_var, values=sorted(list(self._common_items())), width=28)
-        ttk.Label(right, text='Common:').grid(row=row, column=0, sticky=tk.W)
-        self.common_cb.grid(row=row, column=1, sticky=tk.W, padx=4, pady=2)
-        row += 1
-
-        # Accuracy items with boost
-        self.acc_var = tk.StringVar()
-        self.acc_cb = ttk.Combobox(right, textvariable=self.acc_var, values=['WIDE_LENS', 'MULTI_LENS'], width=28)
-        ttk.Label(right, text='Accuracy item:').grid(row=row, column=0, sticky=tk.W)
-        self.acc_cb.grid(row=row, column=1, sticky=tk.W, padx=4, pady=2)
-        ttk.Label(right, text='Boost:').grid(row=row, column=2, sticky=tk.E)
-        self.acc_boost = ttk.Entry(right, width=6)
-        self.acc_boost.insert(0, '5')
-        self.acc_boost.grid(row=row, column=3, sticky=tk.W)
-        row += 1
-
-        # Berries
-        from rogueeditor.catalog import load_berry_catalog
-        berry_n2i, berry_i2n = load_berry_catalog()
-        self.berry_var = tk.StringVar()
-        self.berry_cb = ttk.Combobox(right, textvariable=self.berry_var, values=sorted([f"{k} ({v})" for k,v in berry_n2i.items()]), width=28)
-        ttk.Label(right, text='Berry:').grid(row=row, column=0, sticky=tk.W)
-        self.berry_cb.grid(row=row, column=1, sticky=tk.W, padx=4, pady=2)
-        row += 1
-
-        # Base Stat Booster
-        from rogueeditor.catalog import load_stat_catalog
-        stat_n2i, stat_i2n = load_stat_catalog()
-        self.stat_var = tk.StringVar()
-        self.stat_cb = ttk.Combobox(right, textvariable=self.stat_var, values=sorted([f"{k} ({v})" for k,v in stat_n2i.items()]), width=28)
-        ttk.Label(right, text='Base stat:').grid(row=row, column=0, sticky=tk.W)
-        self.stat_cb.grid(row=row, column=1, sticky=tk.W, padx=4, pady=2)
-        # Hint about stat boosters per stack
-        try:
-            self.stat_hint = ttk.Label(right, text='')
-            self.stat_hint.grid(row=row, column=2, columnspan=2, sticky=tk.W)
-        except Exception:
-            pass
-        row += 1
-
-        # Observed from dumps
-        self.obs_var = tk.StringVar()
-        self.obs_cb = ttk.Combobox(right, textvariable=self.obs_var, values=[], width=28)
-        ttk.Label(right, text='Observed typeId:').grid(row=row, column=0, sticky=tk.W)
-        self.obs_cb.grid(row=row, column=1, sticky=tk.W, padx=4, pady=2)
-        row += 1
-
-        # Player (trainer) modifiers
-        ttk.Label(right, text='Player mod typeId:').grid(row=row, column=0, sticky=tk.W)
-        self.player_type_var = tk.StringVar()
-        self.player_type_cb = ttk.Combobox(right, textvariable=self.player_type_var, values=['EXP_CHARM','SUPER_EXP_CHARM','EXP_SHARE','MAP','IV_SCANNER','GOLDEN_POKEBALL'], width=28)
-        self.player_type_cb.grid(row=row, column=1, sticky=tk.W, padx=4, pady=2)
-        ttk.Label(right, text='Args (ints, comma-separated):').grid(row=row, column=2, sticky=tk.E)
-        self.player_args_var = tk.StringVar()
-        ttk.Entry(right, textvariable=self.player_args_var, width=18).grid(row=row, column=3, sticky=tk.W)
-        row += 1
-
-        ttk.Label(right, text='Stacks:').grid(row=row, column=2, sticky=tk.E)
-        self.stack_var = tk.StringVar(value='1')
-        ttk.Entry(right, textvariable=self.stack_var, width=6).grid(row=row, column=3, sticky=tk.W)
-        row += 1
-        self.btn_add = ttk.Button(right, text='Add', command=self._add, state=tk.DISABLED)
-        self.btn_add.grid(row=row, column=1, sticky=tk.W, padx=4, pady=6)
-        self.btn_save = ttk.Button(right, text='Save to file', command=self._save, state=tk.DISABLED)
-        self.btn_save.grid(row=row, column=2, sticky=tk.W, padx=4, pady=6)
-        self.btn_upload = ttk.Button(right, text='Upload', command=self._upload, state=tk.DISABLED)
-        self.btn_upload.grid(row=row, column=3, sticky=tk.W, padx=4, pady=6)
-
-    def _common_items(self) -> set[str]:
-        return {
-            "FOCUS_BAND", "MYSTICAL_ROCK", "SOOTHE_BELL", "SCOPE_LENS", "LEEK", "EVIOLITE",
-            "SOUL_DEW", "GOLDEN_PUNCH", "GRIP_CLAW", "QUICK_CLAW", "KINGS_ROCK", "LEFTOVERS",
-            "SHELL_BELL", "TOXIC_ORB", "FLAME_ORB", "BATON"
-        }
-
-    def _on_cat_change(self):
-        # Adjust available categories and hint text when switching contexts
-        try:
-            if hasattr(self, 'stat_hint'):
-                self.stat_hint.configure(text='')
-        except Exception:
-            pass
-        # When target changes, restrict categories accordingly
-        tgt = self.target_var.get()
-        if tgt == 'Trainer':
-            vals = ['Player (Trainer)']
-        else:
-            vals = ['Common', 'Accuracy', 'Berries', 'Base Stat Booster', 'Observed']
-        try:
-            self.cat_cb['values'] = vals
-            if self.cat_var.get() not in vals:
-                self.cat_var.set(vals[0])
-        except Exception:
-            pass
-
-    def _refresh(self):
-        # Populate party list and preserve selection
-        try:
-            prev = self.party_list.curselection()[0]
-        except Exception:
-            prev = None
-        self.party_list.delete(0, tk.END)
-        from rogueeditor.utils import invert_dex_map, load_pokemon_index
-        inv = invert_dex_map(load_pokemon_index())
-        for i, mon in enumerate(self.party, start=1):
-            did = str(mon.get('species') or mon.get('dexId') or mon.get('speciesId') or '?')
-            name = inv.get(did, did)
-            mid = mon.get('id')
-            self.party_list.insert(tk.END, f"{i}. {name} (id {mid})")
-        # Observed modifiers
-        self._reload_observed()
-        # Restore selection
-        try:
-            if prev is not None:
-                self.party_list.selection_set(prev)
-                self.party_list.activate(prev)
-                self.party_list.see(prev)
-        except Exception:
-            pass
-        self._refresh_mods()
-
-    def _preselect_party(self):
-        try:
-            if not isinstance(self._preselect_mon_id, int):
-                return
-            # Find index in party by mon id
-            for idx, mon in enumerate(self.party):
-                try:
-                    if int(mon.get('id')) == int(self._preselect_mon_id):
-                        self.party_list.selection_clear(0, tk.END)
-                        self.party_list.selection_set(idx)
-                        self.party_list.activate(idx)
-                        self.party_list.see(idx)
-                        self._refresh_mods()
-                        break
-                except Exception:
-                    continue
-        except Exception:
-            pass
-
-    def _reload_observed(self):
-        # Collect typeIds from this slot and local dumps
-        obs: set[str] = set()
-        mods = self.data.get('modifiers') or []
-        for m in mods:
-            if isinstance(m, dict) and m.get('typeId'):
-                obs.add(str(m.get('typeId')))
-        try:
-            from rogueeditor.utils import user_save_dir
-            base = user_save_dir(self.api.username)
-            for fname in os.listdir(base):
-                if not fname.endswith('.json'):
-                    continue
-                try:
-                    from rogueeditor.utils import load_json
-                    d = load_json(os.path.join(base, fname))
-                    for m in d.get('modifiers') or []:
-                        if isinstance(m, dict) and m.get('typeId'):
-                            obs.add(str(m.get('typeId')))
-                except Exception:
-                    continue
-        except Exception:
-            pass
-        # Merge with curated sets
-        obs |= self._common_items() | { 'WIDE_LENS', 'MULTI_LENS', 'BERRY', 'BASE_STAT_BOOSTER' }
-        self.obs_cb['values'] = sorted(list(obs))
-
-    def _current_mon(self):
-        try:
-            idx = self.party_list.curselection()[0]
-            return self.party[idx]
-        except Exception:
-            return None
-
-    def _refresh_mods(self):
-        self.mod_list.delete(0, tk.END)
-        target = self.target_var.get()
-        mods = self.data.get('modifiers') or []
-        if target == 'Trainer':
-            # Show player-level mods
-            party_ids = set(int((p.get('id'))) for p in self.party if isinstance(p.get('id'), int))
-            for i, m in enumerate(mods):
-                if not isinstance(m, dict):
-                    continue
-                args = m.get('args') or []
-                first = args[0] if (isinstance(args, list) and args) else None
-                if not (isinstance(first, int) and first in party_ids):
-                    self.mod_list.insert(tk.END, f"[{i}] {m.get('typeId')} args={m.get('args')} stack={m.get('stackCount')}")
-        else:
-            mon = self._current_mon()
-            if not mon:
-                return
-            mon_id = mon.get('id')
-            for i, m in enumerate(mods):
-                if not isinstance(m, dict):
-                    continue
-                args = m.get('args') or []
-                if args and isinstance(args, list) and isinstance(args[0], int) and args[0] == mon_id:
-                    self.mod_list.insert(tk.END, f"[{i}] {m.get('typeId')} args={m.get('args')} stack={m.get('stackCount')}")
-        # Adjust category and button states after refresh
-        try:
-            self._on_cat_change()
-        except Exception:
-            pass
-        try:
-            # Enable Save/Upload only if dirty flags say so
-            self.btn_save.configure(state=(tk.NORMAL if getattr(self, '_dirty_local', False) or getattr(self, '_dirty_server', False) else tk.DISABLED))
-            self.btn_upload.configure(state=(tk.NORMAL if getattr(self, '_dirty_server', False) else tk.DISABLED))
-        except Exception:
-            pass
-
-    def _remove_selected(self):
-        try:
-            sel = self.mod_list.get(self.mod_list.curselection())
-        except Exception:
-            return
-        if not sel.startswith('['):
-            return
-        try:
-            idx = int(sel.split(']',1)[0][1:])
-        except Exception:
-            return
-        if messagebox.askyesno('Confirm', f'Remove modifier index {idx}?'):
-            ok = self.editor.remove_modifier_by_index(self.slot, idx)
-            if ok:
-                # Reload latest slot snapshot
-                self.data = self.api.get_slot(self.slot)
-                self.party = self.data.get('party') or []
-                self._refresh_mods()
-            else:
-                messagebox.showwarning('Failed', 'Unable to remove modifier')
-
-    def _show_selected_detail(self):
-        try:
-            sel = self.mod_list.get(self.mod_list.curselection())
-        except Exception:
-            return
-        if not sel.startswith('['):
-            return
-        try:
-            idx = int(sel.split(']',1)[0][1:])
-        except Exception:
-            return
-        mods = self.data.get('modifiers') or []
-        if 0 <= idx < len(mods):
-            import json as _json
-            content = _json.dumps(mods[idx], ensure_ascii=False, indent=2)
-            self.master._show_text_dialog(f"Modifier Detail [{idx}]", content)
-
-    def _add(self):
-        target = self.target_var.get()
-        mon = self._current_mon()
-        mon_id = mon.get('id') if mon else None
-        cat = self.cat_var.get()
-        entry = None
-        try:
-            stacks = int((self.stack_var.get() or '1').strip())
-            if stacks < 0:
-                stacks = 0
-        except Exception:
-            stacks = 1
-        if cat == 'Player (Trainer)' or target == 'Trainer':
-            t = (self.player_type_var.get() or '').strip().upper()
-            if not t:
-                return
-            # Parse args as comma separated ints
-            s = (self.player_args_var.get() or '').strip()
-            args = None
-            if s:
-                try:
-                    args = [int(x.strip()) for x in s.split(',') if x.strip()]
-                except Exception:
-                    args = None
-            entry = { 'args': args, 'player': True, 'stackCount': stacks, 'typeId': t }
-        elif cat == 'Common':
-            t = (self.common_var.get() or '').strip().upper()
-            if not t:
-                return
-            entry = { 'args': [mon_id], 'player': True, 'stackCount': stacks, 'typeId': t }
-        elif cat == 'Accuracy':
-            t = (self.acc_var.get() or '').strip().upper()
-            if not t:
-                return
-            try:
-                boost = int(self.acc_boost.get().strip() or '5')
-            except ValueError:
-                boost = 5
-            entry = { 'args': [mon_id, boost], 'player': True, 'stackCount': stacks, 'typeId': t }
-        elif cat == 'Berries':
-            sel = (self.berry_var.get() or '').strip()
-            bid = None
-            if sel.endswith(')') and '(' in sel:
-                try:
-                    bid = int(sel.rsplit('(',1)[1].rstrip(')'))
-                except Exception:
-                    bid = None
-            if bid is None:
-                from rogueeditor.catalog import load_berry_catalog
-                n2i, _ = load_berry_catalog()
-                key = sel.lower().replace(' ', '_')
-                bid = n2i.get(key)
-            if not isinstance(bid, int):
-                messagebox.showwarning('Invalid', 'Select a berry')
-                return
-            entry = { 'args': [mon_id, bid], 'player': True, 'stackCount': stacks, 'typeId': 'BERRY', 'typePregenArgs': [bid] }
-        elif cat == 'Base Stat Booster':
-            sel = (self.stat_var.get() or '').strip()
-            sid = None
-            if sel.endswith(')') and '(' in sel:
-                try:
-                    sid = int(sel.rsplit('(',1)[1].rstrip(')'))
-                except Exception:
-                    sid = None
-            if not isinstance(sid, int):
-                from rogueeditor.catalog import load_stat_catalog
-                n2i, _ = load_stat_catalog()
-                key = sel.lower().replace(' ', '_')
-                sid = n2i.get(key)
-            if not isinstance(sid, int):
-                messagebox.showwarning('Invalid', 'Select a stat')
-                return
-            entry = { 'args': [mon_id, sid], 'player': True, 'stackCount': stacks, 'typeId': 'BASE_STAT_BOOSTER', 'typePregenArgs': [sid] }
-        else: # Observed
-            t = (self.obs_var.get() or '').strip().upper()
-            if not t:
-                return
-            # Best effort: attach with one arg (mon id)
-            entry = { 'args': [mon_id], 'player': True, 'stackCount': stacks, 'typeId': t }
-        if not entry:
-            return
-        mods = self.data.setdefault('modifiers', [])
-        mods.append(entry)
-        # Mark dirty and update UI (single add per submission)
-        try:
-            self._dirty_local = True
-            self._dirty_server = True
-        except Exception:
-            pass
-        self._refresh_mods()
-        try:
-            self.btn_save.configure(state=tk.NORMAL)
-            self.btn_upload.configure(state=tk.NORMAL)
-        except Exception:
-            pass
-
-    def _save(self):
-        from rogueeditor.utils import slot_save_path, dump_json
-        p = slot_save_path(self.api.username, self.slot)
-        dump_json(p, self.data)
-        try:
-            self._dirty_local = False
-            self.btn_save.configure(state=(tk.NORMAL if self._dirty_server else tk.DISABLED))
-        except Exception:
-            pass
-        messagebox.showinfo('Saved', f'Wrote {p}')
-
-    def _upload(self):
-        if not messagebox.askyesno('Confirm Upload', 'Upload item changes for this slot to the server?'):
-            return
-        try:
-            from rogueeditor.utils import slot_save_path, load_json
-            p = slot_save_path(self.api.username, self.slot)
-            data = load_json(p) if os.path.exists(p) else self.data
-            self.api.update_slot(self.slot, data)
-            messagebox.showinfo('Uploaded', 'Server updated successfully')
-            # Refresh snapshot and clear server dirty flag
-            try:
-                self.data = self.api.get_slot(self.slot)
-                self.party = self.data.get('party') or []
-                self._dirty_server = False
-                self.btn_upload.configure(state=tk.DISABLED)
-                if not self._dirty_local:
-                    self.btn_save.configure(state=tk.DISABLED)
-                self._refresh_mods()
-            except Exception:
-                pass
-        except Exception as e:
-            messagebox.showerror('Upload failed', str(e))
-
-    def _edit_selected_stacks(self):
-        try:
-            sel = self.mod_list.get(self.mod_list.curselection())
-        except Exception:
-            return
-        if not sel.startswith('['):
-            return
-        try:
-            idx = int(sel.split(']',1)[0][1:])
-        except Exception:
-            return
-        top = tk.Toplevel(self)
-        top.title(f'Edit Stacks [{idx}]')
-        ttk.Label(top, text='stackCount:').grid(row=0, column=0, padx=6, pady=6, sticky=tk.E)
-        var = tk.StringVar(value='1')
-        ttk.Entry(top, textvariable=var, width=8).grid(row=0, column=1, sticky=tk.W)
-        def apply():
-            try:
-                sc = int(var.get().strip())
-            except Exception:
-                sc = 1
-            if sc < 0:
-                sc = 0
-            mods = self.data.get('modifiers') or []
-            if 0 <= idx < len(mods):
-                mods[idx]['stackCount'] = sc
-                from rogueeditor.utils import slot_save_path, dump_json
-                p = slot_save_path(self.api.username, self.slot)
-                dump_json(p, self.data)
-                if messagebox.askyesno('Upload', 'Upload changes to server now?'):
-                    from rogueeditor.utils import load_json
-                    try:
-                        payload = load_json(p)
-                        self.api.update_slot(self.slot, payload)
-                        messagebox.showinfo('Uploaded', 'Server updated.')
-                    except Exception as e:
-                        messagebox.showerror('Upload failed', str(e))
-                self._refresh_mods()
-            top.destroy()
-        ttk.Button(top, text='Apply', command=apply).grid(row=1, column=0, columnspan=2, pady=8)
-
-class _TeamEditorDialog_Legacy(tk.Toplevel):
-    pass
-
-
-    def _on_target_change(self):
-        # Refresh lists and adjust categories when switching target
-        try:
-            self._refresh_mods()
-            self._on_cat_change()
-        except Exception:
-            pass
-
-
