@@ -50,3 +50,6 @@ debug/logs/
 # Tmp
 Tmp*.txt
 Tmp*.py
+
+# Dev time docs
+Source/TrackingAndDocs/

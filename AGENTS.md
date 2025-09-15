@@ -12,6 +12,14 @@
 - `debug/`: Dev utilities (`tests/`, `logs/`, `docs/`).
 - `README.md`: Usage and requirements.
 
+## Key Design Patterns
+- **Separation of concerns**: CLI and GUI share the same core API and editor modules
+- **Per-user isolation**: All saves, sessions, and backups are username-scoped
+- **Save-then-upload flow**: Local JSON files serve as the source of truth, with explicit upload steps
+- **Catalog-driven UI**: Autocomplete and pickers backed by JSON catalogs built from game data
+- **Non-blocking GUI**: Background tasks with progress indicators and error dialogs
+- **Don't repeat yourself**: Every piece of knowledge must have a single, unambiguous, authoritative representation within a system
+
 ## Build, Test, and Development
 - Run legacy: `python Source/RogueEditor.py`
 - Run modular: `python Source/cli.py`
