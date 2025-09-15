@@ -16,6 +16,9 @@ from .config import (
     CLIENT_SESSION_ID,
 )
 from .token import to_urlsafe_b64, to_standard_b64
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class PokerogueAPI:
@@ -34,6 +37,10 @@ class PokerogueAPI:
         self.max_retries = max_retries
         self.backoff_factor = backoff_factor
         self.client_session_id: Optional[str] = CLIENT_SESSION_ID
+
+        # Session validation tracking
+        self._session_manager = None
+        self._validate_session_before_upload = True
 
     # --- Auth ---
     def login(self) -> str:
@@ -62,6 +69,64 @@ class PokerogueAPI:
         self.client_session_id = data.get("clientSessionId")
         return token
 
+    def set_session_manager(self, session_manager) -> None:
+        """Set the session manager for automatic session validation."""
+        self._session_manager = session_manager
+
+    def _ensure_valid_session(self) -> bool:
+        """
+        Ensure session is valid before critical operations.
+
+        Returns:
+            True if session is valid, False otherwise
+        """
+        if not self._validate_session_before_upload:
+            return True
+
+        if not self.token:
+            logger.warning("No authentication token available")
+            return False
+
+        # Use session manager if available
+        if self._session_manager:
+            try:
+                return self._session_manager.ensure_valid_session()
+            except Exception as e:
+                logger.error(f"Session manager validation failed: {e}")
+                return False
+
+        # Fallback: basic token presence check
+        return bool(self.token)
+
+    def _handle_auth_error(self, error: Exception, operation: str) -> None:
+        """
+        Handle authentication errors with enhanced messaging.
+
+        Args:
+            error: The original exception
+            operation: Description of the operation that failed
+        """
+        error_msg = str(error).lower()
+
+        if "401" in error_msg or "unauthorized" in error_msg:
+            if "illegal base64" in error_msg:
+                raise RuntimeError(
+                    f"{operation} failed: Session token is corrupted or malformed. "
+                    f"This often indicates session expiration. Please try refreshing your session."
+                ) from error
+            else:
+                raise RuntimeError(
+                    f"{operation} failed: Authentication expired or invalid. "
+                    f"Please refresh your session and try again."
+                ) from error
+        elif "403" in error_msg or "forbidden" in error_msg:
+            raise RuntimeError(
+                f"{operation} failed: Access denied. Please check your permissions."
+            ) from error
+        else:
+            # Re-raise with enhanced context
+            raise RuntimeError(f"{operation} failed: {error}") from error
+
     # --- Trainer ---
     def get_trainer(self) -> Dict[str, Any]:
         # Prefer system save when clientSessionId is available; otherwise fall back to account info
@@ -75,17 +140,24 @@ class PokerogueAPI:
         return self._json(resp)
 
     def update_trainer(self, trainer_data: Dict[str, Any]) -> Dict[str, Any]:
-        # Align with server: system data update via savedata/system/update
-        if self.client_session_id:
-            return self.update_system(trainer_data)
-        # Fallbacks retained for legacy behavior
-        resp = self._request(
-            "post",
-            TRAINER_DATA_URL,
-            headers=self._auth_headers(json_content=True),
-            json=trainer_data,
-        )
-        return self._json(resp)
+        # Validate session before upload
+        if not self._ensure_valid_session():
+            raise RuntimeError("Cannot update trainer: Session validation failed")
+
+        try:
+            # Align with server: system data update via savedata/system/update
+            if self.client_session_id:
+                return self.update_system(trainer_data)
+            # Fallbacks retained for legacy behavior
+            resp = self._request(
+                "post",
+                TRAINER_DATA_URL,
+                headers=self._auth_headers(json_content=True),
+                json=trainer_data,
+            )
+            return self._json(resp)
+        except Exception as e:
+            self._handle_auth_error(e, "Trainer data upload")
 
     # --- System (trainer-like persistent data) ---
     def get_system(self) -> Dict[str, Any]:
@@ -98,23 +170,31 @@ class PokerogueAPI:
     def update_system(self, system_data: Dict[str, Any]) -> Dict[str, Any]:
         if not self.client_session_id:
             raise RuntimeError("clientSessionId is required for system update. Set via env/--csid or .env")
-        # Ensure session active by touching GET (server marks active if not)
+
+        # Validate session before upload
+        if not self._ensure_valid_session():
+            raise RuntimeError("Cannot update system: Session validation failed")
+
         try:
-            _ = self.get_system()
-        except Exception:
-            pass
-        url = f"{BASE_URL}/savedata/system/update?clientSessionId={self.client_session_id}"
-        resp = self._request(
-            "post",
-            url,
-            headers=self._auth_headers(json_content=True),
-            json=system_data,
-        )
-        # Server returns 204 No Content; coerce to empty dict for consistency
-        try:
-            return self._json(resp)
-        except RuntimeError:
-            return {}
+            # Ensure session active by touching GET (server marks active if not)
+            try:
+                _ = self.get_system()
+            except Exception:
+                pass
+            url = f"{BASE_URL}/savedata/system/update?clientSessionId={self.client_session_id}"
+            resp = self._request(
+                "post",
+                url,
+                headers=self._auth_headers(json_content=True),
+                json=system_data,
+            )
+            # Server returns 204 No Content; coerce to empty dict for consistency
+            try:
+                return self._json(resp)
+            except RuntimeError:
+                return {}
+        except Exception as e:
+            self._handle_auth_error(e, "System data upload")
 
     def system_verify(self) -> Dict[str, Any]:
         if not self.client_session_id:
@@ -132,23 +212,16 @@ class PokerogueAPI:
                 "pass --csid to CLI, or add 'clientSessionId = <value>' to .env/env_data.txt"
             )
         # Prefer zero-based indexing server-side; UI uses 1-5
-        zero = max(0, slot - 1)
+        zero = max(0, int(slot) - 1)
         primary = f"{BASE_URL}/savedata/session/get?slot={zero}&clientSessionId={self.client_session_id}"
         try:
             resp = self._request("get", primary, headers=self._auth_headers())
             return self._json(resp)
         except RuntimeError as primary_err:
             errors: list[str] = [f"GET {primary} -> {primary_err}"]
-            # Fallback to as-entered slot in case of deployment differences
-            alt = f"{BASE_URL}/savedata/session/get?slot={slot}&clientSessionId={self.client_session_id}"
-            try:
-                resp = self._request("get", alt, headers=self._auth_headers())
-                return self._json(resp)
-            except RuntimeError as e2:
-                errors.append(f"GET {alt} -> {e2}")
             # As a final fallback, iterate configured candidates (defensive)
             csid = self.client_session_id
-            for idx in (slot, slot - 1):
+            for idx in (zero,):
                 for tmpl in SLOT_FETCH_PATHS:
                     if "{csid}" in tmpl and not csid:
                         continue
@@ -166,48 +239,106 @@ class PokerogueAPI:
     def update_slot(self, slot: int, save_data: Dict[str, Any]) -> Dict[str, Any]:
         if not self.client_session_id:
             raise RuntimeError("clientSessionId is required for slot update. Set via env/--csid or .env")
-        # Ensure session is marked active and not stale
+
+        # Validate session before upload
+        if not self._ensure_valid_session():
+            raise RuntimeError("Cannot update slot: Session validation failed")
+
         try:
-            _ = self.get_slot(slot)
-        except Exception:
-            pass
-        zero = max(0, slot - 1)
-        headers = self._auth_headers(json_content=True)
-        tried: set[str] = set()
-        errors: list[str] = []
-        candidates: list[str] = []
-        # Primary canonical endpoints
-        candidates.append(f"{BASE_URL}/savedata/session/update?slot={zero}&clientSessionId={self.client_session_id}")
-        if slot != zero:
-            candidates.append(f"{BASE_URL}/savedata/session/update?slot={slot}&clientSessionId={self.client_session_id}")
-        # Alternative 'set' endpoints sometimes used in deployments
-        candidates.append(f"{BASE_URL}/savedata/session/set?slot={zero}&clientSessionId={self.client_session_id}")
-        if slot != zero:
-            candidates.append(f"{BASE_URL}/savedata/session/set?slot={slot}&clientSessionId={self.client_session_id}")
-        # Config-driven fallbacks
-        csid = self.client_session_id
-        for idx in (slot, slot - 1):
-            for tmpl in SLOT_UPDATE_PATHS:
-                if "{csid}" in tmpl and not csid:
-                    continue
-                path = tmpl.format(i=idx, csid=csid)
-                url = path if path.startswith("http") else f"{BASE_URL}{path}"
-                candidates.append(url)
-        # Attempt in order, skipping duplicates
-        for url in candidates:
-            if url in tried:
-                continue
-            tried.add(url)
+            # Ensure session is marked active and not stale
             try:
-                resp = self._request("post", url, headers=headers, json=save_data)
+                _ = self.get_slot(slot)
+            except Exception:
+                pass
+            zero = max(0, int(slot) - 1)
+            headers = self._auth_headers(json_content=True)
+            tried: set[str] = set()
+            errors: list[str] = []
+            candidates: list[str] = []
+            # Primary canonical endpoints
+            candidates.append(f"{BASE_URL}/savedata/session/update?slot={zero}&clientSessionId={self.client_session_id}")
+            # Alternative 'set' endpoints sometimes used in deployments
+            candidates.append(f"{BASE_URL}/savedata/session/set?slot={zero}&clientSessionId={self.client_session_id}")
+            # Config-driven fallbacks
+            csid = self.client_session_id
+            for idx in (zero,):
+                for tmpl in SLOT_UPDATE_PATHS:
+                    if "{csid}" in tmpl and not csid:
+                        continue
+                    path = tmpl.format(i=idx, csid=csid)
+                    url = path if path.startswith("http") else f"{BASE_URL}{path}"
+                    candidates.append(url)
+            # Attempt in order, skipping duplicates
+            for url in candidates:
+                if url in tried:
+                    continue
+                tried.add(url)
                 try:
-                    return self._json(resp)
-                except RuntimeError:
-                    return {}
-            except RuntimeError as e:
-                errors.append(f"POST {url} -> {e}")
+                    resp = self._request("post", url, headers=headers, json=save_data)
+                    try:
+                        return self._json(resp)
+                    except RuntimeError:
+                        return {}
+                except RuntimeError as e:
+                    errors.append(f"POST {url} -> {e}")
+                    continue
+            raise RuntimeError("All slot update endpoints failed: " + "; ".join(errors[-3:]))
+        except Exception as e:
+            self._handle_auth_error(e, f"Slot {slot} data upload")
+
+    def get_available_slots(self) -> list[int]:
+        """
+        Detect which slots (1-5) are available/exist on the server.
+
+        Returns a list of slot numbers that exist (have non-empty data).
+        """
+        available_slots = []
+
+        for slot_num in range(1, 6):  # Slots 1-5
+            try:
+                data = self.get_slot(slot_num)
+
+                # Check if slot has meaningful data
+                if data and self._is_slot_non_empty(data):
+                    available_slots.append(slot_num)
+
+            except Exception:
+                # If we can't fetch the slot or it errors, assume it doesn't exist
                 continue
-        raise RuntimeError("All slot update endpoints failed: " + "; ".join(errors[-3:]))
+
+        return available_slots
+
+    def _is_slot_non_empty(self, slot_data: Dict[str, Any]) -> bool:
+        """
+        Check if slot data indicates a non-empty/active slot.
+
+        A slot is considered non-empty if it has:
+        - A party with Pokemon, or
+        - Playtime > 0, or
+        - Other indicators of an active save
+        """
+        if not slot_data:
+            return False
+
+        # Check for party with Pokemon
+        party = slot_data.get('party', [])
+        if party and len(party) > 0:
+            return True
+
+        # Check for playtime
+        play_time = slot_data.get('playTime', 0)
+        if play_time and play_time > 0:
+            return True
+
+        # Check for other indicators of active save
+        # These are common fields that indicate progress
+        indicators = ['arena', 'gameMode', 'modifiers', 'enemyModifiers', 'challenges']
+        for field in indicators:
+            value = slot_data.get(field)
+            if value:  # Non-empty, non-zero, non-None
+                return True
+
+        return False
 
     # --- Core request with retry/backoff ---
     def _request(self, method: str, url: str, headers: Optional[Dict[str, str]] = None, data: Any = None, json: Any = None) -> requests.Response:

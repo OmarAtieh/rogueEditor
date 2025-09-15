@@ -31,6 +31,7 @@ DATA_TYPE_COLORS_JSON = repo_path("data", "type_colors.json")
 
 def _parse_ts_enum(path: str) -> Dict[str, int]:
     # Parses a TS enum where identifiers increment implicitly or have explicit assignments
+    # Skips line (//) and block (/* ... */) comments robustly.
     enum: Dict[str, int] = {}
     if not os.path.exists(path):
         return enum
@@ -38,8 +39,32 @@ def _parse_ts_enum(path: str) -> Dict[str, int]:
         lines = f.readlines()
     current = -1
     in_enum = False
+    in_block_comment = False
     for raw in lines:
-        line = raw.strip()
+        line = raw
+        # Handle multi-line block comments
+        if in_block_comment:
+            if "*/" in line:
+                line = line.split("*/", 1)[1]
+                in_block_comment = False
+            else:
+                continue
+        # Strip inline /* ... */ comments (possibly multiple per line)
+        while "/*" in line:
+            pre, rest = line.split("/*", 1)
+            if "*/" in rest:
+                rest = rest.split("*/", 1)[1]
+                line = pre + rest
+                # Continue in case of multiple comment sections
+                continue
+            else:
+                # Starts a block comment; discard rest of line and mark state
+                line = pre
+                in_block_comment = True
+                break
+        if in_block_comment:
+            continue
+        line = line.strip()
         if line.startswith("export enum"):
             in_enum = True
             current = -1
@@ -50,22 +75,22 @@ def _parse_ts_enum(path: str) -> Dict[str, int]:
             break
         if not line or line.startswith("/**") or line.startswith("*"):
             continue
-        # Remove trailing commas and comments
+        # Remove trailing // comments
         line = re.sub(r"//.*$", "", line).strip()
         if not line:
             continue
         # Cases: NAME = 123, or NAME,
-        m = re.match(r"([A-Z0-9_]+)\s*=\s*([0-9]+)", line)
+        m = re.match(r"^([A-Z0-9_]+)\s*=\s*([0-9]+)\s*,?\s*$", line)
         if m:
             name, val = m.group(1), int(m.group(2))
             enum[name] = val
             current = val
-        else:
-            m2 = re.match(r"([A-Z0-9_]+)\s*,?$", line)
-            if m2:
-                name = m2.group(1)
-                current += 1
-                enum[name] = current
+            continue
+        m2 = re.match(r"^([A-Z0-9_]+)\s*,?\s*$", line)
+        if m2:
+            name = m2.group(1)
+            current += 1
+            enum[name] = current
     return enum
 
 
@@ -126,8 +151,23 @@ def build_clean_catalogs_from_tmp() -> None:
       - data/abilities.json: { name_to_id, id_to_name }
       - data/ability_attr.json: { attr_name: value }
     """
+    # Helper to choose GameData path across versions (/, /1, /2)
+    def _gd_path(*rel):
+        base = repo_path("..", "tmpServerFiles", "GameData")
+        # Prefer unversioned, then v1, then v2
+        candidates = [
+            os.path.join(base, *rel),
+            os.path.join(base, "1", *rel),
+            os.path.join(base, "2", *rel),
+        ]
+        for p in candidates:
+            if os.path.exists(p):
+                return p
+        # Fallback to the first for error context
+        return candidates[0]
+
     # Moves
-    move_enum = _parse_ts_enum(repo_path("..", "tmpServerFiles", "GameData", "move-id.ts"))
+    move_enum = _parse_ts_enum(_gd_path("move-id.ts"))
     if move_enum:
         nti = {k.lower(): v for k, v in move_enum.items()}
         itn = {v: k for k, v in move_enum.items()}

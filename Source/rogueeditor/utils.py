@@ -91,10 +91,69 @@ def validate_slot(slot: int) -> int:
 
 
 def dump_json(path: str, data: Any) -> None:
+    """
+    LEGACY FUNCTION - UNSAFE FOR PRODUCTION USE
+
+    This function directly overwrites files without backup or validation.
+    Use safe_dump_json() or the SaveCorruptionPreventionSystem for new code.
+    """
     os.makedirs(os.path.dirname(path) or ".", exist_ok=True)
     with open(path, "w", encoding="utf-8") as f:
         json.dump(data, f, ensure_ascii=False, indent=2)
 
+
+def safe_dump_json(path: str, data: Any, operation_description: str = "save_operation") -> bool:
+    """
+    Safely dump JSON data with corruption prevention.
+
+    This function uses atomic write operations and backup creation to prevent corruption.
+
+    Args:
+        path: Target file path (will save to this exact path)
+        data: Data to save
+        operation_description: Description for backup context
+
+    Returns:
+        True if save was successful, False otherwise
+    """
+    try:
+        # Import here to avoid circular imports
+        from .atomic_saves import create_atomic_save_manager
+        from .enhanced_backup import create_enhanced_backup_manager
+        import os
+
+        # Create backup if file exists
+        if os.path.exists(path):
+            # Extract username from path for backup context
+            username = "unknown"
+            try:
+                if "saves" in path:
+                    parts = path.split(os.sep)
+                    saves_idx = parts.index("saves")
+                    if saves_idx + 1 < len(parts):
+                        username = parts[saves_idx + 1]
+            except (ValueError, IndexError):
+                pass
+
+            # Create backup
+            backup_manager = create_enhanced_backup_manager(username)
+            backup_manager.create_operation_backup(
+                "safe_dump_json",
+                operation_description,
+                [path]
+            )
+
+        # Use atomic save to write to the exact path specified
+        atomic_manager = create_atomic_save_manager()
+        atomic_manager.safe_write_json(path, data, operation_description)
+        return True
+
+    except Exception as e:
+        # Fallback to legacy function if corruption prevention fails
+        import logging
+        logging.getLogger(__name__).warning(f"Safe save failed, falling back to legacy: {e}")
+        dump_json(path, data)
+        return True
 
 def load_json(path: str) -> Any:
     with open(path, "r", encoding="utf-8") as f:

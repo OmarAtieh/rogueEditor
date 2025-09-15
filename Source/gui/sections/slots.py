@@ -19,13 +19,13 @@ def build(parent: tk.Widget, app) -> dict:
     ttk.Button(tb, text="Refresh", command=app._safe(app._refresh_slots)).pack(side=tk.LEFT)
     ttk.Label(
         tb,
-        text="Select a slot in this list to set the target for various actions below.\n(Scroll down for more actions)",
+        text="Shows only available save slots. Select a slot to set the target for actions below.\n(Scroll down for more actions)",
         foreground="green",
     ).pack(side=tk.LEFT, padx=8)
 
-    cols = ("slot", "party", "playtime", "local")
+    cols = ("slot", "party", "playtime", "wave", "local")
     slot_tree = ttk.Treeview(boxS, columns=cols, show="headings", height=6)
-    for c, w in (("slot", 60), ("party", 80), ("playtime", 120), ("local", 220)):
+    for c, w in (("slot", 40), ("party", 60), ("playtime", 100), ("wave", 60), ("local", 180)):
         slot_tree.heading(c, text=c.capitalize())
         slot_tree.column(c, width=w, anchor=tk.W)
     slot_tree.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=4, pady=4)
@@ -33,6 +33,8 @@ def build(parent: tk.Widget, app) -> dict:
     slot_tree.configure(yscrollcommand=sb.set)
     sb.pack(side=tk.RIGHT, fill=tk.Y)
     slot_tree.tag_configure('empty', foreground='grey')
+    # Configure selected item highlighting
+    slot_tree.tag_configure('selected', background='#0078d4', foreground='white')
     slot_tree.bind('<<TreeviewSelect>>', app._on_slot_select)
     # Refresh button moved to toolbar
 

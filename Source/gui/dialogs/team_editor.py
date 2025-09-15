@@ -102,6 +102,8 @@ def _booster_multipliers_for_mon(slot_data: dict, mon_id: int) -> Tuple[List[flo
     mults = [1.0] * 6
     boosted = [False] * 6
     counts = [0] * 6
+    # Aggregate stacks by stat index first to avoid compounding factors across separate entries
+    by_idx: dict[int, int] = {}
     mods = (slot_data.get("modifiers") if isinstance(slot_data, dict) else None) or []
     for m in mods:
         if not isinstance(m, dict):
@@ -116,45 +118,61 @@ def _booster_multipliers_for_mon(slot_data: dict, mon_id: int) -> Tuple[List[flo
         stat_id = None
         if len(args) >= 2 and isinstance(args[1], int):
             stat_id = args[1]
+        # Fallback to typePregenArgs when args[1] missing
+        if stat_id is None:
+            tpa = m.get("typePregenArgs") or []
+            if isinstance(tpa, list) and tpa and isinstance(tpa[0], int):
+                stat_id = tpa[0]
         stacks = int(m.get("stackCount") or 1)
-        # Map stat_id (from catalog) to index 1..5; assume stat ids align to catalog mapping in data/stats.json
-        # We only know index mapping for names via nature effects; lacking reverse map, apply to all non-HP when unknown
+        # Map stat_id (from catalog) to index 0..5; prefer direct id mapping (stats.json aligns ids)
         idx = None
-        # Robust mapping: use stat id -> name catalog, then name -> index
-        try:
-            _, stat_i2n = load_stat_catalog()
-            name = stat_i2n.get(int(stat_id)) if isinstance(stat_id, int) else None
-            name_key = str(name or "").strip().lower().replace(" ", "_")
-            name_to_idx = {
-                "attack": 1,
-                "defense": 2,
-                "sp_attack": 3,
-                "sp_defense": 4,
-                "speed": 5,
-            }
-            idx = name_to_idx.get(name_key)
-        except Exception:
-            idx = None
-        stacks = max(0, stacks)
-        factor = 1.0 + 0.10 * stacks  # +10% per stack
-        if idx is not None:
-            mults[idx] *= factor
-            boosted[idx] = True
-            counts[idx] += stacks
+        if isinstance(stat_id, int) and 0 <= stat_id <= 5:
+            idx = stat_id
         else:
-            # Fallback: mark as boosted unknown (no-op or spread minimal effect)
-            pass
+            try:
+                _, stat_i2n = load_stat_catalog()
+                name = stat_i2n.get(int(stat_id)) if isinstance(stat_id, int) else None
+                name_key = str(name or "").strip().lower().replace(" ", "_")
+                name_to_idx = {
+                    "hp": 0,
+                    "atk": 1,
+                    "attack": 1,
+                    "def": 2,
+                    "defense": 2,
+                    "spatk": 3,
+                    "sp_atk": 3,
+                    "spdef": 4,
+                    "sp_def": 4,
+                    "spd": 5,
+                    "speed": 5,
+                }
+                idx = name_to_idx.get(name_key)
+            except Exception:
+                idx = None
+        if idx is None:
+            continue
+        by_idx[idx] = by_idx.get(idx, 0) + max(0, stacks)
+    for idx, total in by_idx.items():
+        factor = 1.0 + 0.10 * total  # +10% per stack
+        mults[idx] = factor
+        boosted[idx] = True
+        counts[idx] = total
     return mults, boosted, counts
 
 
 class TeamEditorDialog(tk.Toplevel):
     def __init__(self, master: "App", api: PokerogueAPI, editor: Editor, slot: int):
         super().__init__(master)
-        self.title(f"Team Editor - Slot {slot}")
+        try:
+            s = int(slot)
+        except Exception:
+            s = 1
+        s = 1 if s < 1 else (5 if s > 5 else s)
+        self.title(f"Team Editor - Slot {s}")
         self.geometry("1000x640")
         self.api = api
         self.editor = editor
-        self.slot = int(slot)
+        self.slot = s
         # Snapshot
         self.data: Dict[str, Any] = self.api.get_slot(self.slot)
         self.party: List[dict] = self.data.get("party") or []
@@ -264,6 +282,7 @@ class TeamEditorDialog(tk.Toplevel):
         self._build_form_visuals(self.tab_poke_form)
         # Trainer tabs (Basics)
         self.tab_trainer_basics = ttk.Frame(self.tabs)
+        self.tab_trainer_basics.grid_rowconfigure(0, weight=0)  # Don't expand vertically
         self._build_trainer_basics(self.tab_trainer_basics)
         # Trainer: Team Summary (type defense)
         self.tab_team_summary = ttk.Frame(self.tabs)
@@ -276,6 +295,10 @@ class TeamEditorDialog(tk.Toplevel):
         self.btn_upload = ttk.Button(bar, text="Upload", command=self._upload, state=tk.DISABLED)
         self.btn_save.pack(side=tk.LEFT)
         self.btn_upload.pack(side=tk.LEFT, padx=6)
+        try:
+            ttk.Label(bar, text=f"Target Slot: {self.slot}", foreground='gray').pack(side=tk.RIGHT)
+        except Exception:
+            pass
         # Initial view
         self._apply_target_visibility()
 
@@ -710,8 +733,19 @@ class TeamEditorDialog(tk.Toplevel):
             pass
 
     def _show_ctx_menu(self, event):
+        # Guard against race: dialog may be destroyed by the time this fires
+        try:
+            if not self.winfo_exists():
+                return
+        except Exception:
+            return
         w = event.widget
-        menu = tk.Menu(self, tearoff=0)
+        # Attach menu to the app root rather than this dialog to avoid bad window path after destroy
+        try:
+            root = self.winfo_toplevel()
+        except Exception:
+            root = self
+        menu = tk.Menu(root, tearoff=0)
         readonly = self._widget_readonly(w)
         try:
             menu.add_command(label="Cut", command=lambda: self._do_cut(w), state=(tk.DISABLED if readonly else tk.NORMAL))
@@ -720,10 +754,14 @@ class TeamEditorDialog(tk.Toplevel):
             menu.add_command(label="Delete", command=lambda: self._do_delete(w), state=(tk.DISABLED if readonly else tk.NORMAL))
             menu.add_separator()
             menu.add_command(label="Select All", command=lambda: self._do_select_all(w))
-            menu.tk_popup(event.x_root, event.y_root)
+            try:
+                menu.tk_popup(event.x_root, event.y_root)
+            except Exception:
+                pass
         finally:
             try:
-                menu.grab_release()
+                if menu.winfo_exists():
+                    menu.grab_release()
             except Exception:
                 pass
 
@@ -983,6 +1021,12 @@ class TeamEditorDialog(tk.Toplevel):
 
     def _build_trainer_basics(self, parent: ttk.Frame):
         parent.grid_columnconfigure(1, weight=1)
+        # Configure parent to not expand vertically
+        parent.grid_rowconfigure(0, weight=0)
+        parent.grid_rowconfigure(1, weight=0)
+        parent.grid_rowconfigure(2, weight=0)
+        parent.grid_rowconfigure(3, weight=0)
+        
         ttk.Label(parent, text="Money:").grid(row=0, column=0, sticky=tk.E, padx=6, pady=6)
         self.var_money = tk.StringVar(value="")
         ent = ttk.Entry(parent, textvariable=self.var_money, width=12)
@@ -1008,13 +1052,13 @@ class TeamEditorDialog(tk.Toplevel):
         ttk.Button(parent, text="Full Team Heal (Local)", command=self._full_team_heal).grid(row=1, column=3, sticky=tk.W, padx=6)
         # Quick open items/modifiers manager
         ttk.Button(parent, text="Open Modifiers / Items…", command=self._open_item_mgr_trainer).grid(row=2, column=1, sticky=tk.W, pady=(8, 0))
-        # Display-only Play Time and Game Mode
+        # Display-only Play Time and Game Mode (combined on same row)
         ttk.Label(parent, text="Play Time:").grid(row=3, column=0, sticky=tk.E, padx=6)
         self.lbl_playtime = ttk.Label(parent, text="-")
         self.lbl_playtime.grid(row=3, column=1, sticky=tk.W)
-        ttk.Label(parent, text="Game Mode:").grid(row=4, column=0, sticky=tk.E, padx=6)
+        ttk.Label(parent, text="Game Mode:").grid(row=3, column=2, sticky=tk.E, padx=6)
         self.lbl_gamemode = ttk.Label(parent, text="-")
-        self.lbl_gamemode.grid(row=4, column=1, sticky=tk.W)
+        self.lbl_gamemode.grid(row=3, column=3, sticky=tk.W)
 
     def _build_team_summary(self, parent: ttk.Frame):
         frm = ttk.Frame(parent)
@@ -2090,19 +2134,34 @@ class TeamEditorDialog(tk.Toplevel):
 
     # --- Persistence ---
     def _save(self):
-        # Save slot if changed
+        # Save slot if changed using safe save system
         p = slot_save_path(self.api.username, self.slot)
         if self._dirty_local or not os.path.exists(p):
-            dump_json(p, self.data)
-            self._dirty_local = False
+            try:
+                # Use safe save system with corruption prevention
+                from rogueeditor.utils import safe_dump_json
+                success = safe_dump_json(p, self.data, f"team_editor_save_slot_{self.slot}")
+
+                if success:
+                    self._dirty_local = False
+                    messagebox.showinfo("Saved", f"Safely wrote {p}\nBackup created for safety.")
+                else:
+                    messagebox.showwarning("Save Warning", "Save completed with warnings. Check logs for details.")
+
+            except Exception as e:
+                messagebox.showerror("Save Failed", f"Failed to save: {e}\nFalling back to basic save.")
+                # Emergency fallback to basic save
+                dump_json(p, self.data)
+                self._dirty_local = False
+                messagebox.showinfo("Saved", f"Emergency save to {p}")
+
         try:
             self.btn_save.configure(state=(tk.NORMAL if self._dirty_server else tk.DISABLED))
         except Exception:
             pass
-        messagebox.showinfo("Saved", f"Wrote {p}")
 
     def _upload(self):
-        if not messagebox.askyesno("Confirm Upload", "Upload changes to the server?"):
+        if not messagebox.askyesno("Confirm Upload", f"Upload changes for slot {self.slot} to the server?"):
             return
         try:
             # Upload slot changes only (team editor focuses on slot/session)

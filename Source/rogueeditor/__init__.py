@@ -6,4 +6,5 @@ This package enables incremental migration away from the monolithic
 """
 
 from .api import PokerogueAPI  # re-export for convenience
+from .session_manager import SessionManager, SessionObserver, SessionState  # session management
 
