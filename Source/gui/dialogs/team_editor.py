@@ -34,6 +34,12 @@ from rogueeditor.utils import (
 )
 from rogueeditor.catalog import (
     load_move_catalog,
+    build_move_label_catalog,
+    get_move_label,
+    get_move_type_name,
+    get_move_entry,
+    get_move_base_pp,
+    compute_ppup_bounds,
     load_ability_catalog,
     load_nature_catalog,
     nature_multipliers_by_id,
@@ -160,16 +166,16 @@ def _booster_multipliers_for_mon(slot_data: dict, mon_id: int) -> Tuple[List[flo
     return mults, boosted, counts
 
 
-class TeamEditorDialog(tk.Toplevel):
-    def __init__(self, master: "App", api: PokerogueAPI, editor: Editor, slot: int):
+class TeamManagerDialog(tk.Toplevel):
+    def __init__(self, master, api: PokerogueAPI, editor: Editor, slot: int):
         super().__init__(master)
         try:
             s = int(slot)
         except Exception:
             s = 1
         s = 1 if s < 1 else (5 if s > 5 else s)
-        self.title(f"Team Editor - Slot {s}")
-        self.geometry("1000x640")
+        self.title(f"Team Manager - Slot {s}")
+        self.geometry("1000x760")
         self.api = api
         self.editor = editor
         self.slot = s
@@ -184,7 +190,13 @@ class TeamEditorDialog(tk.Toplevel):
         self._trainer_dirty_local: bool = False
         self._trainer_dirty_server: bool = False
         # Catalogs
-        self.move_n2i, self.move_i2n = load_move_catalog()
+        # Prefer unified move labels from moves_data.json
+        try:
+            self.move_n2i, self.move_i2n = build_move_label_catalog()
+            if not self.move_n2i or not self.move_i2n:
+                self.move_n2i, self.move_i2n = load_move_catalog()
+        except Exception:
+            self.move_n2i, self.move_i2n = load_move_catalog()
         self.abil_n2i, self.abil_i2n = load_ability_catalog()
         self.nat_n2i, self.nat_i2n = load_nature_catalog()
         self.nature_mults_by_id = nature_multipliers_by_id()
@@ -274,19 +286,26 @@ class TeamEditorDialog(tk.Toplevel):
         self._build_stats(self.tab_poke_stats)
         self.tab_poke_moves = ttk.Frame(self.tabs)
         self._build_moves(self.tab_poke_moves)
-        # Type Matchups tab
+        # Defensive Matchups tab
         self.tab_poke_matchups = ttk.Frame(self.tabs)
         self._build_matchups(self.tab_poke_matchups)
+        # Offensive Matchups tab
+        self.tab_poke_coverage = ttk.Frame(self.tabs)
+        self._build_offensive_coverage(self.tab_poke_coverage)
         # Pokemon tab: Form & Visuals
         self.tab_poke_form = ttk.Frame(self.tabs)
         self._build_form_visuals(self.tab_poke_form)
         # Trainer tabs (Basics)
         self.tab_trainer_basics = ttk.Frame(self.tabs)
-        self.tab_trainer_basics.grid_rowconfigure(0, weight=0)  # Don't expand vertically
         self._build_trainer_basics(self.tab_trainer_basics)
-        # Trainer: Team Summary (type defense)
-        self.tab_team_summary = ttk.Frame(self.tabs)
-        self._build_team_summary(self.tab_team_summary)
+
+        # Team Defensive Analysis (standalone tab)
+        self.tab_team_defensive = ttk.Frame(self.tabs)
+        self._build_defensive_analysis(self.tab_team_defensive)
+
+        # Team Offensive Analysis (standalone tab)
+        self.tab_team_offensive = ttk.Frame(self.tabs)
+        self._build_offensive_analysis(self.tab_team_offensive)
 
         # Save/Upload bar
         bar = ttk.Frame(right)
@@ -357,7 +376,7 @@ class TeamEditorDialog(tk.Toplevel):
         ttk.Label(frm, textvariable=self.var_growth).grid(row=r, column=1, sticky=tk.W)
         r += 1
         # EXP note about >100 assumption
-        self.exp_note = ttk.Label(frm, text="Note: Levels beyond the table use last EXP step (assumption)", foreground="gray")
+        self.exp_note = ttk.Label(frm, text="Note: Levels beyond 100 use last EXP step (supports 200+)", foreground="gray")
         self.exp_note.grid(row=r, column=0, columnspan=4, sticky=tk.W, padx=4)
         r += 1
         ttk.Label(frm, text="Friendship:").grid(row=r, column=0, sticky=tk.E, padx=4, pady=3)
@@ -472,6 +491,71 @@ class TeamEditorDialog(tk.Toplevel):
         except Exception:
             pass
 
+        # Pokemon Reordering Section (moved to party list context menu elsewhere)
+
+    def _move_pokemon_up(self):
+        """Move currently selected Pokemon up one position in the party."""
+        try:
+            current_idx = int(self.party_list.curselection()[0])
+            if current_idx > 0 and self.party:
+                # Swap with previous Pokemon
+                self.party[current_idx], self.party[current_idx - 1] = self.party[current_idx - 1], self.party[current_idx]
+                self._refresh_party()
+                # Maintain selection on the moved Pokemon
+                self.party_list.selection_set(current_idx - 1)
+                self.party_list.activate(current_idx - 1)
+                self._on_party_selected()
+        except Exception:
+            pass
+
+    def _move_pokemon_down(self):
+        """Move currently selected Pokemon down one position in the party."""
+        try:
+            current_idx = int(self.party_list.curselection()[0])
+            if current_idx < len(self.party) - 1 and self.party:
+                # Swap with next Pokemon
+                self.party[current_idx], self.party[current_idx + 1] = self.party[current_idx + 1], self.party[current_idx]
+                self._refresh_party()
+                # Maintain selection on the moved Pokemon
+                self.party_list.selection_set(current_idx + 1)
+                self.party_list.activate(current_idx + 1)
+                self._on_party_selected()
+        except Exception:
+            pass
+
+    def _move_pokemon_to_start(self):
+        """Move currently selected Pokemon to the beginning of the party."""
+        try:
+            current_idx = int(self.party_list.curselection()[0])
+            if current_idx > 0 and self.party:
+                # Move Pokemon to start
+                pokemon = self.party.pop(current_idx)
+                self.party.insert(0, pokemon)
+                self._refresh_party()
+                # Maintain selection on the moved Pokemon
+                self.party_list.selection_set(0)
+                self.party_list.activate(0)
+                self._on_party_selected()
+        except Exception:
+            pass
+
+    def _move_pokemon_to_end(self):
+        """Move currently selected Pokemon to the end of the party."""
+        try:
+            current_idx = int(self.party_list.curselection()[0])
+            if current_idx < len(self.party) - 1 and self.party:
+                # Move Pokemon to end
+                pokemon = self.party.pop(current_idx)
+                self.party.append(pokemon)
+                self._refresh_party()
+                # Maintain selection on the moved Pokemon
+                new_idx = len(self.party) - 1
+                self.party_list.selection_set(new_idx)
+                self.party_list.activate(new_idx)
+                self._on_party_selected()
+        except Exception:
+            pass
+
     def _build_stats(self, parent: ttk.Frame):
         frm = ttk.Frame(parent)
         frm.pack(fill=tk.BOTH, expand=True)
@@ -527,22 +611,203 @@ class TeamEditorDialog(tk.Toplevel):
     def _build_moves(self, parent: ttk.Frame):
         frm = ttk.Frame(parent)
         frm.pack(fill=tk.BOTH, expand=True)
+        # Header row
+        headers = [
+            ("#", 0), ("Type", 1), ("Cat.", 2), ("Move", 3), ("Max PP", 5),
+            ("PP Up", 6), ("PP Used", 7), ("Acc.", 8), ("Effect", 9)
+        ]
+        for text, col in headers:
+            ttk.Label(frm, text=text).grid(row=0, column=col, sticky=tk.W, padx=4, pady=(2, 6))
+
         self.move_vars: List[tk.StringVar] = [tk.StringVar(value="") for _ in range(4)]
         self.move_ppup_vars: List[tk.StringVar] = [tk.StringVar(value="") for _ in range(4)]
         self.move_ppused_vars: List[tk.StringVar] = [tk.StringVar(value="") for _ in range(4)]
+        # Per-row visuals: type chip, category icon, max pp, acc, effect
+        self._move_type_labels: List[tk.Label] = []
+        self._move_cat_labels: List[tk.Label] = []
+        self._move_maxpp_labels: List[tk.Label] = []
+        self._move_acc_labels: List[tk.Label] = []
+        self._move_effect_labels: List[tk.Label] = []
+        self._move_cat_images: List[object] = [None, None, None, None]
         for i in range(4):
-            ttk.Label(frm, text=f"Move {i+1}:").grid(row=i, column=0, sticky=tk.E, padx=4, pady=3)
+            r = i + 1
+            # Index
+            ttk.Label(frm, text=str(i+1)).grid(row=r, column=0, sticky=tk.W, padx=6)
+            # Type chip
+            type_lbl = tk.Label(frm, text="", bg="#DDDDDD", bd=1, relief=tk.SOLID, padx=6, pady=2)
+            type_lbl.grid(row=r, column=1, sticky=tk.W, padx=(4, 2))
+            self._move_type_labels.append(type_lbl)
+            # Category icon
+            cat_lbl = tk.Label(frm, text="", bd=0)
+            cat_lbl.grid(row=r, column=2, sticky=tk.W, padx=(2, 2))
+            self._move_cat_labels.append(cat_lbl)
+            # Move entry + pick
             ent = ttk.Entry(frm, textvariable=self.move_vars[i], width=24)
-            ent.grid(row=i, column=1, sticky=tk.W)
-            ttk.Button(frm, text="Pick…", command=lambda idx=i: self._pick_move(idx)).grid(row=i, column=2, padx=4)
-            # PP fields (read-only until base PP catalog is available)
-            ttk.Label(frm, text="PP Up:").grid(row=i, column=3, sticky=tk.E)
-            ttk.Entry(frm, textvariable=self.move_ppup_vars[i], width=5, state='readonly').grid(row=i, column=4, sticky=tk.W)
-            ttk.Label(frm, text="PP Used:").grid(row=i, column=5, sticky=tk.E)
-            ttk.Entry(frm, textvariable=self.move_ppused_vars[i], width=6, state='readonly').grid(row=i, column=6, sticky=tk.W)
+            ent.grid(row=r, column=3, sticky=tk.W)
+            ttk.Button(frm, text="Pick…", width=6, command=lambda idx=i: self._pick_move(idx)).grid(row=r, column=4, sticky=tk.W, padx=(4, 4))
+            # Max PP label
+            maxpp = ttk.Label(frm, text="-")
+            maxpp.grid(row=r, column=5, sticky=tk.W, padx=(6, 2))
+            self._move_maxpp_labels.append(maxpp)
+            # PP Up (editable)
+            up_entry = ttk.Entry(frm, textvariable=self.move_ppup_vars[i], width=5)
+            up_entry.grid(row=r, column=6, sticky=tk.W)
+            # PP Used (editable)
+            used_entry = ttk.Entry(frm, textvariable=self.move_ppused_vars[i], width=6)
+            used_entry.grid(row=r, column=7, sticky=tk.W)
+            # Accuracy label
+            accl = ttk.Label(frm, text="-")
+            accl.grid(row=r, column=8, sticky=tk.W, padx=(6, 2))
+            self._move_acc_labels.append(accl)
+            # Effect label
+            effl = ttk.Label(frm, text="", foreground="gray")
+            effl.grid(row=r, column=9, sticky=tk.W, padx=(6, 0))
+            self._move_effect_labels.append(effl)
+            # Validate PP fields on focus-out only (allow free typing/blank while focused)
+            def _bind_pp_validation(idx: int, widget: tk.Widget):
+                try:
+                    widget.bind('<FocusOut>', lambda e: self._validate_pp_fields(idx))
+                except Exception:
+                    pass
+            _bind_pp_validation(i, up_entry)
+            _bind_pp_validation(i, used_entry)
+            # Live preview traces (no clamping) to refresh Max PP display while typing
+            def _make_live(idx: int):
+                return lambda *args: self._update_move_row_visuals(idx, self._parse_id_from_combo(self.move_vars[idx].get(), self.move_n2i) or 0)
+            try:
+                self.move_ppup_vars[i].trace_add('write', _make_live(i))
+                self.move_ppused_vars[i].trace_add('write', _make_live(i))
+            except Exception:
+                pass
         # Note for PP fields
-        ttk.Label(frm, text="PP Up/Used are read-only until base PP data is available.", foreground="gray").grid(row=5, column=0, columnspan=7, sticky=tk.W, padx=4, pady=(4,0))
-        ttk.Button(frm, text="Apply Moves to Local", command=self._apply_moves).grid(row=5, column=0, columnspan=2, sticky=tk.W, padx=4, pady=(8, 4))
+        ttk.Label(frm, text="PP Up max: 3 per 5 base PP; PP Used clamped to max.", foreground="gray").grid(row=6, column=0, columnspan=10, sticky=tk.W, padx=4, pady=(8,0))
+        ttk.Button(frm, text="Apply Moves to Local", command=self._apply_moves).grid(row=7, column=0, columnspan=3, sticky=tk.W, padx=4, pady=(8, 4))
+
+    def _update_move_row_visuals(self, row_index: int, move_id: int) -> None:
+        try:
+            if not (0 <= row_index < 4):
+                return
+            # Type chip
+            tname = get_move_type_name(move_id) or ""
+            chip = self._move_type_labels[row_index]
+            if tname:
+                chip.configure(text=str(tname).title(), bg=self._color_for_type(str(tname)))
+            else:
+                chip.configure(text="", bg="#DDDDDD")
+            # Category icon
+            entry = get_move_entry(move_id) or {}
+            cat = str(entry.get("move_category") or "").strip().lower()
+            icon_path = None
+            if cat == "physical":
+                icon_path = os.path.join(os.path.dirname(__file__), "..", "..", "data", "thumbnails", "Moves", "move-physical.png")
+            elif cat == "special":
+                icon_path = os.path.join(os.path.dirname(__file__), "..", "..", "data", "thumbnails", "Moves", "move-special.png")
+            elif cat == "status":
+                icon_path = os.path.join(os.path.dirname(__file__), "..", "..", "data", "thumbnails", "Moves", "move-status.png")
+            elif cat == "z-move" or cat == "z-move".replace('-', '_'):
+                icon_path = os.path.join(os.path.dirname(__file__), "..", "..", "data", "thumbnails", "Moves", "move-zmove.png")
+            elif cat == "dynamax" or cat == "max" or "max" in cat:
+                icon_path = os.path.join(os.path.dirname(__file__), "..", "..", "data", "thumbnails", "Moves", "move-dynamax.png")
+            # G-Max keyword in label
+            if not icon_path and ("g-max" in (entry.get("ui_label") or "").lower() or "gmax" in (entry.get("ui_label") or "").lower()):
+                icon_path = os.path.join(os.path.dirname(__file__), "..", "..", "data", "thumbnails", "Moves", "move-gmax.png")
+            try:
+                if icon_path and os.path.exists(icon_path):
+                    img = tk.PhotoImage(file=icon_path)
+                    self._move_cat_images[row_index] = img
+                    self._move_cat_labels[row_index].configure(image=img, text="")
+                else:
+                    self._move_cat_labels[row_index].configure(image="", text="")
+            except Exception:
+                self._move_cat_labels[row_index].configure(image="", text="")
+            # Details / columns
+            base_pp = get_move_base_pp(move_id)
+            max_extra, max_total = compute_ppup_bounds(base_pp)
+            acc = entry.get("accuracy")
+            acc_txt = "—" if acc is None else f"{int(acc)}%"
+            effect_txt = str(entry.get("effect") or "").strip()
+            sec_chance = entry.get("secondary_effect_chance")
+            if effect_txt:
+                if isinstance(sec_chance, (int, float)):
+                    effect_txt = f"{effect_txt} ({int(sec_chance)}%)"
+            # Current max with PP Up entered
+            # Read PP Up (do not clamp here during typing; clamp in focus-out validator)
+            try:
+                pp_up_in = int((self.move_ppup_vars[row_index].get() or '0').strip() or '0')
+            except Exception:
+                pp_up_in = 0
+            # Compute current max
+            if base_pp is not None:
+                cur_max = max(0, (base_pp or 0) + (pp_up_in or 0))
+            else:
+                cur_max = 0
+            # Read PP Used (no clamp during typing)
+            try:
+                pp_used_in = int((self.move_ppused_vars[row_index].get() or '0').strip() or '0')
+            except Exception:
+                pp_used_in = 0
+            # Compute available = cur_max - used
+            if base_pp is not None:
+                available = cur_max - pp_used_in
+                if available < 0:
+                    available = 0
+                if available > cur_max:
+                    available = cur_max
+                pp_txt = f"{available}/{cur_max}"
+            else:
+                pp_txt = "—"
+            # Assign to dedicated columns
+            try:
+                self._move_maxpp_labels[row_index].configure(text=pp_txt)
+            except Exception:
+                pass
+            try:
+                self._move_acc_labels[row_index].configure(text=acc_txt)
+            except Exception:
+                pass
+            try:
+                self._move_effect_labels[row_index].configure(text=effect_txt)
+            except Exception:
+                pass
+        except Exception:
+            pass
+
+    def _validate_pp_fields(self, row_index: int) -> None:
+        try:
+            if not (0 <= row_index < 4):
+                return
+            # Resolve move id
+            mid = self._parse_id_from_combo(self.move_vars[row_index].get(), self.move_n2i) or 0
+            base_pp = get_move_base_pp(int(mid))
+            max_extra, _ = compute_ppup_bounds(base_pp)
+            # Validate PP Up
+            try:
+                raw_up = (self.move_ppup_vars[row_index].get() or '').strip()
+                pp_up_in = int(raw_up) if raw_up != '' else 0
+            except Exception:
+                pp_up_in = 0
+            if pp_up_in < 0:
+                pp_up_in = 0
+            if base_pp is not None and pp_up_in > max_extra:
+                pp_up_in = max_extra
+            self.move_ppup_vars[row_index].set(str(pp_up_in))
+            # Compute max with clamped PP Up
+            cur_max = (base_pp or 0) + (pp_up_in or 0) if base_pp is not None else 0
+            # Validate PP Used
+            try:
+                raw_used = (self.move_ppused_vars[row_index].get() or '').strip()
+                pp_used_in = int(raw_used) if raw_used != '' else 0
+            except Exception:
+                pp_used_in = 0
+            if pp_used_in < 0:
+                pp_used_in = 0
+            if base_pp is not None and pp_used_in > cur_max:
+                pp_used_in = cur_max
+            self.move_ppused_vars[row_index].set(str(pp_used_in))
+            # Refresh visuals to update Max PP column
+            self._update_move_row_visuals(row_index, int(mid))
+        except Exception:
+            pass
 
     def _build_matchups(self, parent: ttk.Frame):
         frm = ttk.Frame(parent)
@@ -572,6 +837,454 @@ class TeamEditorDialog(tk.Toplevel):
         frm.grid_columnconfigure(0, weight=1)
         # Hook tab
         self.tabs.add(parent, text="Type Matchups")
+
+    def _build_offensive_coverage(self, parent: ttk.Frame):
+        """Build the offensive Matchups analysis tab."""
+        frm = ttk.Frame(parent)
+        frm.pack(fill=tk.BOTH, expand=True, padx=6, pady=6)
+
+        # Description
+        desc_frame = ttk.Frame(frm)
+        desc_frame.pack(fill=tk.X, pady=(0, 10))
+        # Tips (left) + Recalculate (right) on same row
+        tips = ttk.Frame(desc_frame)
+        tips.pack(fill=tk.X)
+        tips_left = ttk.Frame(tips)
+        tips_left.pack(side=tk.LEFT, fill=tk.X, expand=True)
+        ttk.Label(tips_left, text="Offensive type coverage analysis based on damaging moves.", foreground="gray").pack(anchor=tk.W)
+        ttk.Label(tips_left, text="Coverage refreshes automatically when moves change.", foreground="gray").pack(anchor=tk.W)
+        ttk.Label(tips_left, text="Note: Mega Rayquaza's Delta Stream ability neutralizes Flying-type weaknesses.", foreground="orange").pack(anchor=tk.W)
+        tips_right = ttk.Frame(tips)
+        tips_right.pack(side=tk.RIGHT)
+        ttk.Button(tips_right, text="Recalculate", command=self._force_recalc_coverage).pack(side=tk.RIGHT)
+
+        # Local coverage cache: mon_key -> { 'sig': tuple(move_ids), 'coverage': dict }
+        self._mon_coverage_cache: dict = {}
+
+        # Current moves section (compact, non-scrollable)
+        moves_frame = ttk.LabelFrame(frm, text="Current Damaging Moves")
+        moves_frame.pack(fill=tk.X, pady=(0, 8))
+        self.coverage_moves_frame = ttk.Frame(moves_frame)
+        self.coverage_moves_frame.pack(fill=tk.X)
+
+        # Side-by-side layout for effectiveness + bosses
+        self._offense_side = ttk.Frame(frm)
+        self._offense_side.pack(fill=tk.BOTH, expand=True)
+        coverage_frame = ttk.LabelFrame(self._offense_side, text="Type Effectiveness Overview")
+        coverage_frame.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, pady=(0, 10), padx=(0, 5))
+        # Limit height with a scrollable inner frame
+        cov_canvas = tk.Canvas(coverage_frame, height=220, width=360)
+        cov_scroll = ttk.Scrollbar(coverage_frame, orient="vertical", command=cov_canvas.yview)
+        cov_inner = ttk.Frame(cov_canvas)
+        cov_canvas.configure(yscrollcommand=cov_scroll.set)
+        cov_canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        cov_scroll.pack(side=tk.RIGHT, fill=tk.Y)
+        cov_canvas.create_window((0, 0), window=cov_inner, anchor="nw")
+        cov_inner.bind("<Configure>", lambda e: cov_canvas.configure(scrollregion=cov_canvas.bbox("all")))
+        self._coverage_inner = cov_inner
+
+        # Create effectiveness sections (split 2x vs 4x)
+        effectiveness_sections = [
+            ("Excellent (4x)", "excellent_4x", "#2E7D32"),            # Darker green
+            ("Good (2x)", "good_2x", "#4CAF50"),                     # Green
+            ("Neutral (1x)", "neutral", "#FFC107"),                   # Amber
+            ("Not Very Effective (0 < x < 1)", "not_very_effective", "#FF9800"),  # Orange
+            ("No Effect (0x)", "no_effect", "#F44336")               # Red
+        ]
+
+        self.coverage_sections = {}
+        for i, (title, key, color) in enumerate(effectiveness_sections):
+            section = ttk.LabelFrame(self._coverage_inner, text=title)
+            section.pack(fill=tk.X, padx=5, pady=2)
+
+            # Frame for type chips
+            chips_frame = ttk.Frame(section)
+            chips_frame.pack(fill=tk.X, padx=5, pady=5)
+            self.coverage_sections[key] = chips_frame
+
+        # Boss analysis section (right pane) - compact, non-scrollable
+        boss_frame = ttk.LabelFrame(self._offense_side, text="Boss Pokemon Analysis")
+        boss_frame.pack(side=tk.LEFT, fill=tk.BOTH, expand=False, pady=(0, 10), padx=(5, 0))
+
+        self.boss_labels = {}
+        boss_pokemon = [
+            ("Eternatus", "eternatus"),
+            ("Rayquaza", "rayquaza"),
+            ("Mega Rayquaza", "mega_rayquaza")
+        ]
+
+        for i, (name, key) in enumerate(boss_pokemon):
+            # Bound each boss in its own subsection for resilience
+            boss_box = ttk.LabelFrame(boss_frame, text=name)
+            boss_box.pack(fill=tk.X, padx=5, pady=4)
+            top_row = ttk.Frame(boss_box)
+            top_row.pack(fill=tk.X, padx=5, pady=2)
+
+            # Boss type chips
+            from rogueeditor.coverage_calculator import BOSS_POKEMON
+            boss_data = BOSS_POKEMON.get(key, {})
+            boss_types = boss_data.get('types', [])
+
+            if boss_types:
+                type_frame = ttk.Frame(top_row)
+                type_frame.pack(side=tk.LEFT, padx=(5, 10))
+
+                for boss_type in boss_types:
+                    type_chip = tk.Label(type_frame, text=boss_type.title(),
+                                       bg=self._color_for_type(boss_type),
+                                       bd=1, relief=tk.SOLID, padx=4, pady=1)
+                    type_chip.pack(side=tk.LEFT, padx=1)
+
+            # Status + per-boss dynamic container
+            status_label = ttk.Label(top_row, text="Analyzing...", foreground="gray")
+            status_label.pack(side=tk.LEFT, padx=(10, 0))
+            # Container to render move-type effectiveness chips (flow, 4 per row)
+            dyn = ttk.Frame(boss_box)
+            dyn.pack(fill=tk.X, padx=10, pady=2)
+            self.boss_labels[key] = status_label
+            setattr(self, f"_boss_dyn_{key}", dyn)
+
+        # Walls section (below side-by-side)
+        self._walls_frame = ttk.LabelFrame(frm, text="Type Combos That Wall This Pokemon")
+        self._walls_frame.pack(fill=tk.BOTH, expand=True, padx=5, pady=(4, 6))
+        # Make walls section scrollable and extensible
+        walls_canvas = tk.Canvas(self._walls_frame, height=100)
+        walls_scroll = ttk.Scrollbar(self._walls_frame, orient="vertical", command=walls_canvas.yview)
+        walls_inner = ttk.Frame(walls_canvas)
+        walls_canvas.configure(yscrollcommand=walls_scroll.set)
+        walls_canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        walls_scroll.pack(side=tk.RIGHT, fill=tk.Y)
+        walls_canvas.create_window((0, 0), window=walls_inner, anchor="nw")
+        walls_inner.bind("<Configure>", lambda e: walls_canvas.configure(scrollregion=walls_canvas.bbox("all")))
+        self._walls_inner = walls_inner
+
+        # Initialize coverage display
+        self._refresh_offensive_coverage()
+
+    def _refresh_offensive_coverage(self):
+        """Refresh the offensive Matchups analysis display."""
+        try:
+            mon = self._current_mon()
+            if not mon:
+                self._clear_coverage_display()
+                return
+
+            # Import coverage calculator
+            from rogueeditor.coverage_calculator import get_coverage_for_pokemon
+
+            # Extract move IDs from current Pokemon
+            # Try both 'moveset' (actual save format) and 'moves' (team editor format)
+            moves = mon.get("moveset", []) or mon.get("moves", [])
+            move_ids = []
+            for move in moves:
+                if isinstance(move, dict):
+                    move_id = move.get("moveId")
+                    if move_id is not None:
+                        move_ids.append(move_id)
+                elif isinstance(move, int):
+                    move_ids.append(move)
+
+            if not move_ids:
+                self._clear_coverage_display()
+                return
+
+            # Calculate coverage with caching per-mon and move signature
+            from rogueeditor.coverage_calculator import invalidate_coverage_cache
+            try:
+                mon_key = str(mon.get('id')) if isinstance(mon.get('id'), int) else str(self.party.index(mon))
+            except Exception:
+                mon_key = 'current'
+            move_sig = tuple(sorted(move_ids))
+            cached = self._mon_coverage_cache.get(mon_key)
+            if cached and cached.get('sig') == move_sig:
+                coverage = cached.get('coverage') or {}
+            else:
+                try:
+                    invalidate_coverage_cache(mon_key)
+                except Exception:
+                    pass
+                coverage = get_coverage_for_pokemon(move_ids, mon_key)
+                self._mon_coverage_cache[mon_key] = {'sig': move_sig, 'coverage': coverage}
+
+            # Update display
+            self._update_coverage_display(coverage)
+
+        except Exception as e:
+            print(f"Error refreshing offensive Matchups: {e}")
+            # Clear display on error
+            self._clear_coverage_display()
+
+    def _clear_coverage_display(self):
+        """Clear the coverage display when no data is available."""
+        try:
+            # Clear moves display
+            for widget in self.coverage_moves_frame.winfo_children():
+                widget.destroy()
+
+            ttk.Label(self.coverage_moves_frame, text="No damaging moves found",
+                     foreground="gray").pack(anchor=tk.W, padx=5, pady=5)
+
+            # Clear coverage sections
+            for section_frame in self.coverage_sections.values():
+                for widget in section_frame.winfo_children():
+                    widget.destroy()
+                ttk.Label(section_frame, text="No coverage data",
+                         foreground="gray").pack(anchor=tk.W, padx=5, pady=2)
+
+            # Clear boss analysis
+            for label in self.boss_labels.values():
+                label.config(text="No moves", foreground="gray")
+            for key in ("eternatus", "rayquaza", "mega_rayquaza"):
+                try:
+                    dyn = getattr(self, f"_boss_dyn_{key}")
+                    for w in dyn.winfo_children():
+                        w.destroy()
+                except Exception:
+                    pass
+
+        except Exception as e:
+            print(f"Error clearing coverage display: {e}")
+
+    def _force_recalc_coverage(self):
+        """User-triggered coverage recalculation (e.g., after manual edits)."""
+        try:
+            # Clear local cache for current mon
+            mon = self._current_mon()
+            try:
+                mon_key = str(mon.get('id')) if (mon and isinstance(mon.get('id'), int)) else str(self.party.index(mon))
+            except Exception:
+                mon_key = 'current'
+            if isinstance(getattr(self, '_mon_coverage_cache', None), dict):
+                self._mon_coverage_cache.pop(mon_key, None)
+            # Invalidate calculator cache for this mon
+            try:
+                from rogueeditor.coverage_calculator import invalidate_coverage_cache
+                invalidate_coverage_cache(mon_key)
+            except Exception:
+                pass
+        except Exception:
+            pass
+        # Refresh UI
+        try:
+            self._refresh_offensive_coverage()
+        except Exception:
+            pass
+
+    def _update_coverage_display(self, coverage: dict):
+        """Update the coverage display with calculated coverage data."""
+        try:
+            # Clear existing widgets
+            for widget in self.coverage_moves_frame.winfo_children():
+                widget.destroy()
+
+            # Display damaging moves in two side-by-side stacks (up to 2 per column)
+            damaging_moves = coverage.get("damaging_moves", [])
+            if damaging_moves:
+                grid = ttk.Frame(self.coverage_moves_frame)
+                grid.pack(fill=tk.X, padx=5, pady=(2, 4))
+                left = ttk.Frame(grid)
+                left.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=(0, 4))
+                right = ttk.Frame(grid)
+                right.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=(4, 0))
+                def render_table(container, rows):
+                    header = ttk.Frame(container)
+                    header.pack(fill=tk.X)
+                    ttk.Label(header, text="#", width=3).pack(side=tk.LEFT)
+                    ttk.Label(header, text="Type", width=10).pack(side=tk.LEFT)
+                    ttk.Label(header, text="Name", width=20).pack(side=tk.LEFT)
+                    ttk.Label(header, text="Pow", width=6).pack(side=tk.LEFT)
+                    ttk.Label(header, text="Acc", width=6).pack(side=tk.LEFT)
+                    for num, move in rows:
+                        row = ttk.Frame(container)
+                        row.pack(fill=tk.X, pady=1)
+                        ttk.Label(row, text=str(num), width=3).pack(side=tk.LEFT)
+                        mtype = str(move.get("type", "unknown")).strip().lower()
+                        chip = tk.Label(row, text=mtype.title(), bg=self._color_for_type(mtype), bd=1, relief=tk.SOLID, padx=6, pady=2, width=8)
+                        chip.pack(side=tk.LEFT, padx=(0, 6))
+                        ttk.Label(row, text=str(move.get("name", "Unknown")), width=20).pack(side=tk.LEFT)
+                        pwr = move.get("power")
+                        ttk.Label(row, text=("—" if pwr in (None, 0) else str(pwr)), width=6).pack(side=tk.LEFT)
+                        acc = move.get("accuracy")
+                        ttk.Label(row, text=("—" if acc is None else f"{int(acc)}%"), width=6).pack(side=tk.LEFT)
+                # Prepare row-major then split into two tables with two rows each
+                numbered = list(enumerate(damaging_moves[:4], start=1))
+                left_rows = [(n, m) for (n, m) in numbered if n in (1, 3)]
+                right_rows = [(n, m) for (n, m) in numbered if n in (2, 4)]
+                if left_rows:
+                    render_table(left, left_rows)
+                if right_rows:
+                    render_table(right, right_rows)
+            else:
+                ttk.Label(self.coverage_moves_frame, text="No damaging moves found",
+                         foreground="gray").pack(anchor=tk.W, padx=5, pady=5)
+
+            # Update coverage sections by testing each defender against all move types and binning top effectiveness
+            coverage_summary = coverage.get("coverage_summary", {})
+            move_types = set(coverage_summary.get("move_types", []))
+            # Build bins fresh (custom thresholds split 2x vs 4x)
+            bins = {
+                "excellent_4x": [],     # >2
+                "good_2x": [],          # ==2
+                "neutral": [],          # ==1
+                "not_very_effective": [], # (0,1)
+                "no_effect": [],        # ==0
+            }
+            # Use matrix to recompute best effectiveness per defender
+            from rogueeditor.catalog import load_type_matchup_matrix
+            mat = getattr(self, "_type_matrix", None) or load_type_matchup_matrix()
+            # Derive list of type names from matrix keys
+            defenders = sorted([k for k in mat.keys() if isinstance(mat.get(k), dict)])
+            for def_t in defenders:
+                best = 0.0
+                for att in move_types:
+                    eff = 1.0
+                    try:
+                        # defense-oriented lookup
+                        row = mat.get(def_t) or {}
+                        if att in row:
+                            eff = float(row.get(att) or 1.0)
+                        else:
+                            row2 = mat.get(att) or {}
+                            if def_t in row2:
+                                eff = float(row2.get(def_t) or 1.0)
+                    except Exception:
+                        eff = 1.0
+                    if eff > best:
+                        best = eff
+                # Bin once per defender by best effectiveness (custom thresholds)
+                if best == 0.0:
+                    bins["no_effect"].append(def_t)
+                elif 0.0 < best < 1.0:
+                    bins["not_very_effective"].append(def_t)
+                elif best == 1.0:
+                    bins["neutral"].append(def_t)
+                elif best == 2.0:
+                    bins["good_2x"].append(def_t)
+                elif best > 2.0:
+                    bins["excellent_4x"].append(def_t)
+
+            # Render bins top to bottom; types appear only in their highest-qualifying bin
+            for section_key in ("excellent_4x", "good_2x", "neutral", "not_very_effective", "no_effect"):
+                section_frame = self.coverage_sections[section_key]
+                for widget in section_frame.winfo_children():
+                    widget.destroy()
+                tlist = bins.get(section_key) or []
+                if tlist:
+                    labels = [t.title() for t in tlist]
+                    colors = [self._color_for_type(t) for t in tlist]
+                    # Allow up to 9 chips per row to use more horizontal space
+                    self._render_type_chips(section_frame, labels, colors, per_row=9)
+                else:
+                    ttk.Label(section_frame, text="None", foreground="gray").pack(anchor=tk.W, padx=5, pady=2)
+
+            # Type-combo walls: show dual type combos that wall all move types (render below side-by-side area)
+            try:
+                target_inner = getattr(self, '_walls_inner', None)
+                parent_to_clear = target_inner if target_inner is not None else self._walls_frame
+                for w in parent_to_clear.winfo_children():
+                    w.destroy()
+                from rogueeditor.coverage_calculator import find_type_combo_walls
+                move_types_list = list(move_types)
+                walls = find_type_combo_walls(move_types_list, mat) if move_types_list else {"single": [], "dual": []}
+                duals = [(a, b) for (a, b) in (walls.get("dual") or [])]
+                if duals:
+                    container = getattr(self, '_walls_inner', None) or self._walls_frame
+                    # Render only colored bracketed chips; they wrap every 6 combos (12 chips)
+                    chips = ttk.Frame(container)
+                    chips.pack(fill=tk.X, padx=5, pady=(0,2))
+                    rowf = None
+                    count = 0
+                    for (a, b) in duals:
+                        if count % 6 == 0:
+                            rowf = ttk.Frame(chips)
+                            rowf.pack(fill=tk.X, anchor=tk.W)
+                        tk.Label(rowf, text="[", bd=0).pack(side=tk.LEFT)
+                        tk.Label(rowf, text=a.title(), bg=self._color_for_type(a), bd=1, relief=tk.SOLID, padx=4, pady=1).pack(side=tk.LEFT, padx=(0,2))
+                        tk.Label(rowf, text=", ", bd=0).pack(side=tk.LEFT)
+                        tk.Label(rowf, text=b.title(), bg=self._color_for_type(b), bd=1, relief=tk.SOLID, padx=4, pady=1).pack(side=tk.LEFT, padx=(0,2))
+                        tk.Label(rowf, text="]", bd=0).pack(side=tk.LEFT)
+                        if (a, b) != duals[-1]:
+                            tk.Label(rowf, text=", ", bd=0).pack(side=tk.LEFT, padx=(2,2))
+                        count += 1
+                    # No text wrapping label used; chips wrap by row chunking
+                else:
+                    container = getattr(self, '_walls_inner', None) or self._walls_frame
+                    ttk.Label(container, text="None", foreground="gray").pack(anchor=tk.W, padx=5, pady=2)
+            except Exception:
+                pass
+
+            # Update boss analysis (three subsections; two rows each)
+            boss_analysis = coverage.get("boss_analysis", {})
+            for boss_key, boss_label in self.boss_labels.items():
+                if boss_key in boss_analysis:
+                    analysis = boss_analysis[boss_key]
+                    status = analysis.get("status", "unknown")
+                    effectiveness = analysis.get("best_effectiveness", 0)
+                    move_type = str(analysis.get("best_move_type", "none")).strip().lower()
+
+                    status_colors = {
+                        "excellent": "green",
+                        "good": "blue",
+                        "poor": "orange",
+                        "none": "red"
+                    }
+
+                    # Map 'ok' to neutral coloring
+                    if status == "neutral":
+                        color = "#FFC107"
+                    else:
+                        color = status_colors.get(status, "gray")
+                    # First row: boss name is static label before boss_label; boss_label shows overall evaluation
+                    def _fmt_eff(e: float) -> str:
+                        try:
+                            if e in (0.0, 0, 0.25, 0.5, 1.0, 2.0, 4.0):
+                                if e == 1.0:
+                                    return "x1"
+                                if e == 0.0:
+                                    return "x0"
+                                if e == 2.0:
+                                    return "x2"
+                                if e == 4.0:
+                                    return "x4"
+                                if e == 0.5:
+                                    return "x0.5"
+                                if e == 0.25:
+                                    return "x0.25"
+                            return f"x{e:.1f}"
+                        except Exception:
+                            return "x1"
+                    boss_label.config(text=f"Evaluation: {status.title()} ({_fmt_eff(float(effectiveness))})", foreground=color)
+                    # Second row: per-move-type chips labeled with effectiveness only (no words)
+                    try:
+                        dyn = getattr(self, f"_boss_dyn_{boss_key}")
+                        for w in dyn.winfo_children():
+                            w.destroy()
+                        # Build list of move types and their effectiveness vs boss types
+                        mt = (coverage.get("coverage_summary", {}) or {}).get("move_types", [])
+                        from rogueeditor.coverage_calculator import get_type_effectiveness, BOSS_POKEMON, _effectiveness_vs_boss
+                        boss_def = (BOSS_POKEMON.get(boss_key, {}) or {})
+                        boss_types = boss_def.get("types", [])
+                        types_sorted = sorted(set(mt))
+                        if types_sorted:
+                            rowf = None
+                            for i, t in enumerate(types_sorted):
+                                if i % 4 == 0:
+                                    rowf = ttk.Frame(dyn)
+                                    rowf.pack(fill=tk.X, anchor=tk.W)
+                                # Use boss-aware effectiveness (handles Delta Stream etc.)
+                                eff = _effectiveness_vs_boss(t, boss_key, boss_types, boss_def, getattr(self, "_type_matrix", None) or load_type_matchup_matrix())
+                                chip = tk.Label(rowf, text=str(t).title(), bg=self._color_for_type(t), bd=1, relief=tk.SOLID, padx=6, pady=2)
+                                chip.pack(side=tk.LEFT, padx=3, pady=3)
+                                ttk.Label(rowf, text=_fmt_eff(float(eff))).pack(side=tk.LEFT, padx=(4, 12))
+                        else:
+                            ttk.Label(dyn, text="No damaging move types", foreground="gray").pack(anchor=tk.W)
+                    except Exception:
+                        pass
+                else:
+                    boss_label.config(text="No data", foreground="gray")
+
+        except Exception as e:
+            print(f"Error updating coverage display: {e}")
 
     def _detect_form_slug(self, mon: dict) -> Optional[str]:
         # Try explicit fields
@@ -775,7 +1488,7 @@ class TeamEditorDialog(tk.Toplevel):
                 level = 1
             # Nature multipliers
             nat = _get(mon, ("natureId", "nature"))
-            mults = self.nature_multipliers_by_id.get(int(nat)) if isinstance(nat, int) else [1.0] * 6
+            mults = self.nature_mults_by_id.get(int(nat)) if isinstance(nat, int) else [1.0] * 6
             # Base stats (prefer catalog)
             species_id = _get_species_id(mon)
             base_raw = None
@@ -1021,11 +1734,8 @@ class TeamEditorDialog(tk.Toplevel):
 
     def _build_trainer_basics(self, parent: ttk.Frame):
         parent.grid_columnconfigure(1, weight=1)
-        # Configure parent to not expand vertically
-        parent.grid_rowconfigure(0, weight=0)
-        parent.grid_rowconfigure(1, weight=0)
-        parent.grid_rowconfigure(2, weight=0)
-        parent.grid_rowconfigure(3, weight=0)
+        # Add bottom spacer to expand vertically like other tabs
+        parent.grid_rowconfigure(99, weight=1)
         
         ttk.Label(parent, text="Money:").grid(row=0, column=0, sticky=tk.E, padx=6, pady=6)
         self.var_money = tk.StringVar(value="")
@@ -1060,35 +1770,134 @@ class TeamEditorDialog(tk.Toplevel):
         self.lbl_gamemode = ttk.Label(parent, text="-")
         self.lbl_gamemode.grid(row=3, column=3, sticky=tk.W)
 
-    def _build_team_summary(self, parent: ttk.Frame):
-        frm = ttk.Frame(parent)
-        frm.pack(fill=tk.BOTH, expand=True)
-        # Layout: left = team members list; right = summary bins stacked; bottom = Top risks
-        frm.grid_columnconfigure(0, weight=3)
-        frm.grid_columnconfigure(1, weight=4)
+        # Spacer to expand vertically like other tabs
+        ttk.Label(parent, text="").grid(row=99, column=0, sticky=tk.EW)
+
+
+    def _build_defensive_analysis(self, parent: ttk.Frame):
+        """Build the defensive analysis section."""
+        # Control button at top
+        control_frame = ttk.Frame(parent)
+        control_frame.pack(fill=tk.X, padx=6, pady=(6, 0))
+        ttk.Button(control_frame, text="Recompute Analysis", command=self._recompute_team_summary).pack(side=tk.LEFT)
+
+        # Main content area
+        content_frame = ttk.Frame(parent)
+        content_frame.pack(fill=tk.BOTH, expand=True, padx=0, pady=6)
+        content_frame.grid_columnconfigure(0, weight=3)
+        content_frame.grid_columnconfigure(1, weight=4)
+
         # Note about scope
-        ttk.Label(frm, text="Defensive matchup. Ignores abilities, passives, held items, and special forms like Mega/Tera.", foreground="gray").grid(row=0, column=1, sticky=tk.W, padx=6, pady=(4,2))
+        ttk.Label(content_frame, text="Team defensive analysis. Shows how incoming attacks affect the team. Ignores abilities, passives, held items, and special forms like Mega/Tera.", foreground="gray").grid(row=0, column=0, columnspan=2, sticky=tk.W, padx=6, pady=(4,2))
+
         # Team members (left)
-        members_lf = ttk.LabelFrame(frm, text="Team Members")
+        members_lf = ttk.LabelFrame(content_frame, text="Team Members")
         members_lf.grid(row=1, column=0, rowspan=7, sticky=tk.NSEW, padx=6, pady=6)
         self._team_members_frame = ttk.Frame(members_lf)
         self._team_members_frame.pack(fill=tk.BOTH, expand=True)
-        # Summary bins (right, vertically stacked)
+        # Defensive summary bins (right, vertically stacked)
         sections = [("Immune (x0)", "immune"), ("x0.25", "x0_25"), ("x0.5", "x0_5"), ("x1", "x1"), ("x2", "x2"), ("x4", "x4")]
         self._team_bins = {}
         for i, (title, key) in enumerate(sections):
-            lf = ttk.LabelFrame(frm, text=title)
-            lf.grid(row=i+1, column=1, sticky=tk.NSEW, padx=6, pady=6)
+            lf = ttk.LabelFrame(content_frame, text=title)
+            lf.grid(row=i+1, column=1, sticky=tk.NSEW, padx=6, pady=2)
             inner = ttk.Frame(lf)
             inner.pack(fill=tk.BOTH, expand=True)
             self._team_bins[key] = inner
-        # Top risks (bottom spanning)
-        risks_lf = ttk.LabelFrame(frm, text="Top Risks")
+
+        # Defensive risks (bottom spanning)
+        risks_lf = ttk.LabelFrame(content_frame, text="Defensive Weaknesses & Risks")
         risks_lf.grid(row=7, column=0, columnspan=2, sticky=tk.EW, padx=6, pady=(0,6))
         self._team_risks_frame = ttk.Frame(risks_lf)
         self._team_risks_frame.pack(fill=tk.X, anchor=tk.W, padx=6, pady=4)
-        # Control bar
-        ttk.Button(frm, text="Recompute", command=self._recompute_team_summary).grid(row=8, column=0, sticky=tk.W, padx=6, pady=(0,6))
+
+    def _build_offensive_analysis(self, parent: ttk.Frame):
+        """Build the offensive analysis section."""
+        # Control button at top
+        control_frame = ttk.Frame(parent)
+        control_frame.pack(fill=tk.X, padx=6, pady=(6, 0))
+        ttk.Button(control_frame, text="Recompute Analysis", command=self._compute_team_offensive_coverage).pack(side=tk.LEFT)
+
+        # Note about scope
+        ttk.Label(parent, text="Team offensive analysis. Shows type coverage based on damaging moves across all team members.", foreground="gray").pack(anchor=tk.W, padx=6, pady=(4,2))
+
+        # Create main content frame (no scrolling needed with current layout)
+        self._team_offense_frame = ttk.Frame(parent)
+        self._team_offense_frame.pack(fill=tk.BOTH, expand=True, padx=6, pady=6)
+
+        # Create top row with moves and coverage side by side
+        top_row = ttk.Frame(self._team_offense_frame)
+        top_row.pack(fill=tk.X, padx=6, pady=6)
+        top_row.grid_columnconfigure(0, weight=1)
+        top_row.grid_columnconfigure(1, weight=1)
+
+        # 1. Damaging Moves per Team Member (left column)
+        moves_lf = ttk.LabelFrame(top_row, text="Damaging Moves by Team Member")
+        moves_lf.grid(row=0, column=0, sticky=tk.NSEW, padx=(0, 6), pady=0)
+        self._team_moves_frame = ttk.Frame(moves_lf)
+        self._team_moves_frame.pack(fill=tk.BOTH, expand=True, padx=6, pady=6)
+
+        # 2. Team Type Coverage Analysis (right column)
+        coverage_lf = ttk.LabelFrame(top_row, text="Team Type Coverage")
+        coverage_lf.grid(row=0, column=1, sticky=tk.NSEW, padx=(6, 0), pady=0)
+        self._team_coverage_frame = ttk.Frame(coverage_lf)
+        self._team_coverage_frame.pack(fill=tk.BOTH, expand=True, padx=6, pady=6)
+
+        # Create coverage bins (similar to individual Pokemon but with multipliers)
+        self._team_coverage_bins = {}
+        coverage_sections = [
+            ("Super Effective (x2+)", "super_effective", "green"),
+            ("Neutral (x1)", "neutral", "gray"),
+            ("Not Very Effective (x0.5)", "not_very_effective", "orange"),
+            ("No Effect (x0)", "no_effect", "red")
+        ]
+
+        for title, key, color in coverage_sections:
+            section_frame = ttk.LabelFrame(self._team_coverage_frame, text=title)
+            section_frame.pack(fill=tk.X, pady=2)
+            inner_frame = ttk.Frame(section_frame)
+            inner_frame.pack(fill=tk.X, padx=6, pady=4)
+            self._team_coverage_bins[key] = inner_frame
+
+        # Create second row with boss analysis and walls side by side
+        bottom_row = ttk.Frame(self._team_offense_frame)
+        bottom_row.pack(fill=tk.X, padx=6, pady=(8, 6))
+        bottom_row.grid_columnconfigure(0, weight=1)
+        bottom_row.grid_columnconfigure(1, weight=1)
+
+        # 3. Boss Coverage Analysis (left column)
+        boss_lf = ttk.LabelFrame(bottom_row, text="Boss Coverage Analysis")
+        boss_lf.grid(row=0, column=0, sticky=tk.NSEW, padx=(0, 6), pady=0)
+        self._team_boss_frame = ttk.Frame(boss_lf)
+        self._team_boss_frame.pack(fill=tk.BOTH, expand=True, padx=6, pady=6)
+
+        # 4. Team Walls Analysis (right column) - Scrollable
+        walls_lf = ttk.LabelFrame(bottom_row, text="Type Combinations that Wall the Team")
+        walls_lf.grid(row=0, column=1, sticky=tk.NSEW, padx=(6, 0), pady=0)
+
+        # Create scrollable container for walls analysis
+        walls_canvas = tk.Canvas(walls_lf, highlightthickness=0)
+        walls_scrollbar = ttk.Scrollbar(walls_lf, orient="vertical", command=walls_canvas.yview)
+        self._team_walls_frame = ttk.Frame(walls_canvas)
+
+        self._team_walls_frame.bind("<Configure>",
+                                   lambda e: walls_canvas.configure(scrollregion=walls_canvas.bbox("all")))
+
+        walls_canvas.create_window((0, 0), window=self._team_walls_frame, anchor="nw")
+        walls_canvas.configure(yscrollcommand=walls_scrollbar.set)
+
+        walls_canvas.pack(side="left", fill="both", expand=True, padx=(6, 0), pady=6)
+        walls_scrollbar.pack(side="right", fill="y", pady=6)
+
+        # 5. Legend (full width at bottom)
+        legend_frame = ttk.Frame(self._team_offense_frame)
+        legend_frame.pack(fill=tk.X, padx=6, pady=(6, 6))
+
+        legend_text = ("Legend: ❌ = No coverage  •  ⚠️ = Risk (one team member only)  •  "
+                      "CRITICAL = No effect or resisted  •  CONCERN = Neutral at best  •  "
+                      "RISK = Single member coverage  •  (fire×2) = 2 team members have fire moves")
+        ttk.Label(legend_frame, text=legend_text, foreground="gray",
+                 font=('TkDefaultFont', 8), wraplength=800).pack(anchor=tk.W, padx=6, pady=4)
 
     def _recompute_team_summary(self):
         try:
@@ -1206,8 +2015,442 @@ class TeamEditorDialog(tk.Toplevel):
                         ttk.Label(form_line, text=f"Form: {friendly}", foreground="gray").pack(side=tk.LEFT, padx=24)
                 except Exception:
                     continue
+
+            # Compute team offensive matchups
+            self._compute_team_offensive_coverage()
         except Exception:
             pass
+
+    def _compute_team_offensive_coverage(self):
+        """Compute and display team-wide offensive matchups."""
+        try:
+            # Clear existing sections
+            for widget in self._team_moves_frame.winfo_children():
+                widget.destroy()
+            for bin_frame in self._team_coverage_bins.values():
+                for widget in bin_frame.winfo_children():
+                    widget.destroy()
+            for widget in self._team_boss_frame.winfo_children():
+                widget.destroy()
+            for widget in self._team_walls_frame.winfo_children():
+                widget.destroy()
+
+            if not self.party:
+                ttk.Label(self._team_moves_frame, text="No Pokemon in party",
+                         foreground="gray").pack(anchor=tk.W)
+                return
+
+            # Import coverage calculator and catalog
+            from rogueeditor.coverage_calculator import (
+                OffensiveCoverageCalculator, get_coverage_for_team,
+                find_type_combo_walls, load_type_matrix
+            )
+            from rogueeditor.catalog import load_pokemon_catalog
+
+            calculator = OffensiveCoverageCalculator()
+            cat = load_pokemon_catalog() or {}
+            by_dex = cat.get("by_dex") or {}
+
+            # 1. DAMAGING MOVES PER TEAM MEMBER (Two-column layout for compactness)
+            has_moves = False
+            pokemon_data = []
+
+            # Collect all Pokemon with their moves first
+            for i, mon in enumerate(self.party, 1):
+                # Extract moves from Pokemon
+                moves = mon.get("moveset", []) or mon.get("moves", [])
+                move_ids = []
+                for move in moves:
+                    if isinstance(move, dict):
+                        move_id = move.get("moveId")
+                        if move_id is not None:
+                            move_ids.append(move_id)
+                    elif isinstance(move, int):
+                        move_ids.append(move)
+
+                if not move_ids:
+                    continue
+
+                # Get Pokemon coverage to find damaging moves
+                coverage = calculator.get_pokemon_coverage(move_ids, str(mon.get("id", f"pokemon_{i}")))
+                damaging_moves = coverage.get("damaging_moves", [])
+
+                if not damaging_moves:
+                    continue
+
+                has_moves = True
+
+                # Get species name
+                species_id = _get_species_id(mon)
+                entry = by_dex.get(str(species_id or -1)) or {}
+                species_name = entry.get("name", f"Species_{species_id}")
+
+                pokemon_data.append((i, species_name, damaging_moves[:4]))
+
+            if has_moves:
+                # Display Pokemon with names above and moves below horizontally
+                moves_container = ttk.Frame(self._team_moves_frame)
+                moves_container.pack(fill=tk.BOTH, expand=True, padx=6, pady=6)
+
+                for pokemon_num, species_name, damaging_moves in pokemon_data:
+                    mon_frame = ttk.Frame(moves_container)
+                    mon_frame.pack(fill=tk.X, pady=4)
+
+                    # Pokemon name on its own line
+                    ttk.Label(mon_frame, text=f"{pokemon_num}. {species_name}",
+                             font=('TkDefaultFont', 9, 'bold')).pack(anchor=tk.W)
+
+                    # Moves as horizontal chips below the name
+                    moves_row = ttk.Frame(mon_frame)
+                    moves_row.pack(fill=tk.X, padx=12, pady=(2, 0))
+
+                    for move in damaging_moves:
+                        move_name = move.get("name", "Unknown")
+                        move_type = move.get("type", "unknown")
+
+                        # Use move name in chip instead of type name
+                        move_chip = tk.Label(moves_row, text=move_name,
+                                           bg=self._color_for_type(move_type),
+                                           bd=1, relief=tk.SOLID, padx=3, pady=1,
+                                           font=('TkDefaultFont', 8))
+                        move_chip.pack(side=tk.LEFT, padx=(0, 2), pady=1)
+            else:
+                ttk.Label(self._team_moves_frame, text="No damaging moves found in team",
+                         foreground="gray").pack(anchor=tk.W, padx=6, pady=6)
+
+            # 2. TEAM TYPE COVERAGE ANALYSIS WITH MULTIPLIERS
+            team_coverage = get_coverage_for_team(self.party)
+            coverage_summary = team_coverage.get("coverage_summary", {})
+
+            # Count how many Pokemon have each attacking type
+            all_team_move_types = {}  # type_name -> count
+            for mon in self.party:
+                moves = mon.get("moveset", []) or mon.get("moves", [])
+                move_ids = []
+                for move in moves:
+                    if isinstance(move, dict) and move.get("moveId") is not None:
+                        move_ids.append(move.get("moveId"))
+                    elif isinstance(move, int):
+                        move_ids.append(move)
+
+                if move_ids:
+                    coverage = calculator.get_pokemon_coverage(move_ids)
+                    move_types = coverage.get("coverage_summary", {}).get("move_types", [])
+                    for move_type in move_types:
+                        all_team_move_types[move_type] = all_team_move_types.get(move_type, 0) + 1
+
+            # Get all defensive types from type matrix to analyze coverage properly
+            type_matrix = load_type_matrix()
+            all_defensive_types = sorted([k for k in type_matrix.keys() if isinstance(type_matrix.get(k), dict)])
+
+            # Calculate team coverage properly by finding best effectiveness for each defending type
+            team_coverage_by_defender = {}
+            team_coverage_contributors = {}  # Track which attacking types contribute to each defender
+
+            for defending_type in all_defensive_types:
+                best_effectiveness = 0.0
+                contributing_types = []
+
+                for att_type, count in all_team_move_types.items():
+                    from rogueeditor.coverage_calculator import get_type_effectiveness
+                    eff = get_type_effectiveness(att_type, [defending_type], type_matrix)
+                    if eff > best_effectiveness:
+                        best_effectiveness = eff
+
+                    # Track all contributing types with their counts
+                    if eff >= 1.0:  # Neutral or better
+                        contributing_types.append((att_type, count, eff))
+
+                team_coverage_by_defender[defending_type] = best_effectiveness
+                team_coverage_contributors[defending_type] = contributing_types
+
+            # Categorize defending types by effectiveness
+            coverage_bins = {
+                "super_effective": [],
+                "neutral": [],
+                "not_very_effective": [],
+                "no_effect": []
+            }
+
+            risk_types = []  # Types covered by only one team member
+
+            for defending_type, best_eff in team_coverage_by_defender.items():
+                # Count unique team members that can hit this type effectively
+                contributors = team_coverage_contributors[defending_type]
+                total_contributors = sum(count for _, count, eff in contributors if eff >= 1.0)
+
+                # Risk detection: only one team member can handle this type
+                if total_contributors == 1:
+                    risk_types.append(defending_type)
+
+                # Categorize by effectiveness
+                if best_eff >= 2.0:
+                    coverage_bins["super_effective"].append(defending_type)
+                elif best_eff == 1.0:
+                    coverage_bins["neutral"].append(defending_type)
+                elif best_eff > 0.0:
+                    coverage_bins["not_very_effective"].append(defending_type)
+                else:
+                    coverage_bins["no_effect"].append(defending_type)
+
+            # Render coverage bins with proper attacking type information
+            for bin_key, types_list in coverage_bins.items():
+                bin_frame = self._team_coverage_bins[bin_key]
+                if types_list:
+                    labels = []
+                    colors = []
+
+                    for type_name in types_list:
+                        # Get contributors for this defending type in this effectiveness category
+                        contributors = team_coverage_contributors.get(type_name, [])
+                        relevant_contributors = []
+
+                        for att_type, count, eff in contributors:
+                            if bin_key == "super_effective" and eff >= 2.0:
+                                relevant_contributors.append(f"{att_type}×{count}")
+                            elif bin_key == "neutral" and eff == 1.0:
+                                relevant_contributors.append(f"{att_type}×{count}")
+                            elif bin_key == "not_very_effective" and 0.0 < eff < 1.0:
+                                relevant_contributors.append(f"{att_type}×{count}")
+
+                        # Build label with risk indicator
+                        risk_indicator = " ⚠" if type_name in risk_types else ""
+                        if relevant_contributors:
+                            label = f"{type_name.title()} ({', '.join(relevant_contributors[:2])}){risk_indicator}"
+                        else:
+                            label = f"{type_name.title()}{risk_indicator}"
+
+                        labels.append(label)
+                        colors.append(self._color_for_type(type_name))
+
+                    self._render_type_chips(bin_frame, labels, colors, per_row=3)  # 3 per row as requested
+                else:
+                    ttk.Label(bin_frame, text="None", foreground="gray").pack(anchor=tk.W, padx=5, pady=2)
+
+            # 3. BOSS ANALYSIS WITH TYPE CHIPS
+            team_boss_analysis = team_coverage.get("team_boss_analysis", {})
+            if team_boss_analysis:
+                for boss_key, analysis in team_boss_analysis.items():
+                    boss_row = ttk.Frame(self._team_boss_frame)
+                    boss_row.pack(fill=tk.X, padx=5, pady=3)
+
+                    boss_name = analysis.get("name", boss_key.title())
+                    status = analysis.get("status", "unknown")
+                    effectiveness = analysis.get("best_effectiveness", 0)
+                    best_pokemon = analysis.get("best_pokemon", -1)
+
+                    # Boss name and evaluation
+                    name_label = ttk.Label(boss_row, text=f"{boss_name}:",
+                                         font=('TkDefaultFont', 9, 'bold'))
+                    name_label.pack(side=tk.LEFT, padx=(0, 8))
+
+                    # Boss type chips
+                    boss_types = analysis.get("types", [])
+                    if boss_types:
+                        type_frame = ttk.Frame(boss_row)
+                        type_frame.pack(side=tk.LEFT, padx=(0, 8))
+
+                        for boss_type in boss_types:
+                            type_chip = tk.Label(type_frame, text=boss_type.title(),
+                                               bg=self._color_for_type(boss_type),
+                                               bd=1, relief=tk.SOLID, padx=4, pady=1)
+                            type_chip.pack(side=tk.LEFT, padx=1)
+
+                    # Status and effectiveness
+                    status_colors = {
+                        "excellent": "green", "good": "blue", "ok": "#FFC107",
+                        "poor": "orange", "none": "red"
+                    }
+                    color = status_colors.get(status, "gray")
+
+                    if best_pokemon >= 0 and best_pokemon < len(self.party):
+                        pokemon_info = f" (Pokemon #{best_pokemon + 1})"
+                    else:
+                        pokemon_info = ""
+
+                    status_text = f"{status.title()}: x{effectiveness:.1f}{pokemon_info}"
+                    ttk.Label(boss_row, text=status_text, foreground=color).pack(side=tk.LEFT)
+            else:
+                ttk.Label(self._team_boss_frame, text="No boss analysis available",
+                         foreground="gray").pack(anchor=tk.W, padx=5, pady=5)
+
+            # 4. ENHANCED TEAM WALLS ANALYSIS WITH COVERAGE DETAILS
+            if all_team_move_types:
+                type_matrix = load_type_matrix()
+                move_types_list = list(all_team_move_types.keys())
+
+                # Analyze coverage for critical types
+                types_with_no_se = []  # No super effective coverage
+                types_with_one_se = []  # Only one team member has super effective coverage
+                types_neutral_at_best = []  # Best we can do is neutral (1.0x)
+                types_resisted_at_best = []  # Best we can do is resisted (<1.0x) - WORST CASE
+
+                for defending_type in all_defensive_types:
+                    super_effective_count = 0
+                    se_contributors = []
+                    best_effectiveness = 0.0
+
+                    for att_type, count in all_team_move_types.items():
+                        from rogueeditor.coverage_calculator import get_type_effectiveness
+                        eff = get_type_effectiveness(att_type, [defending_type], type_matrix)
+                        if eff >= 2.0:
+                            super_effective_count += count
+                            se_contributors.append((att_type, count))
+                        if eff > best_effectiveness:
+                            best_effectiveness = eff
+
+                    if super_effective_count == 0:
+                        # No super effective coverage, categorize by best available
+                        if best_effectiveness == 0.0:
+                            types_with_no_se.append(defending_type)  # No effect at all
+                        elif best_effectiveness < 1.0:
+                            types_resisted_at_best.append(defending_type)  # Resisted at best
+                        elif best_effectiveness == 1.0:
+                            types_neutral_at_best.append(defending_type)  # Neutral at best
+                    elif super_effective_count == 1:
+                        types_with_one_se.append((defending_type, se_contributors[0]))
+
+                # Show critical coverage gaps first (most severe to least severe)
+
+                # 1. No effect at all (most critical)
+                if types_with_no_se:
+                    no_se_frame = ttk.Frame(self._team_walls_frame)
+                    no_se_frame.pack(fill=tk.X, padx=5, pady=5)
+                    ttk.Label(no_se_frame, text="❌ CRITICAL: No effect at all against:",
+                             font=('TkDefaultFont', 9, 'bold'), foreground="red").pack(anchor=tk.W)
+
+                    labels = [t.title() for t in types_with_no_se]  # Show all
+                    colors = [self._color_for_type(t) for t in types_with_no_se]
+                    chips_frame = ttk.Frame(no_se_frame)
+                    chips_frame.pack(fill=tk.X, padx=10, pady=(2, 0))
+                    self._render_type_chips(chips_frame, labels, colors, per_row=6)
+
+                # 2. Resisted at best (second most critical)
+                if types_resisted_at_best:
+                    resisted_frame = ttk.Frame(self._team_walls_frame)
+                    resisted_frame.pack(fill=tk.X, padx=5, pady=5)
+                    ttk.Label(resisted_frame, text="⚠️ CRITICAL: Best coverage is resisted against:",
+                             font=('TkDefaultFont', 9, 'bold'), foreground="red").pack(anchor=tk.W)
+
+                    labels = [t.title() for t in types_resisted_at_best]  # Show all
+                    colors = [self._color_for_type(t) for t in types_resisted_at_best]
+                    chips_frame = ttk.Frame(resisted_frame)
+                    chips_frame.pack(fill=tk.X, padx=10, pady=(2, 0))
+                    self._render_type_chips(chips_frame, labels, colors, per_row=6)
+
+                # 3. Neutral at best (concerning but not critical)
+                if types_neutral_at_best:
+                    neutral_frame = ttk.Frame(self._team_walls_frame)
+                    neutral_frame.pack(fill=tk.X, padx=5, pady=5)
+                    ttk.Label(neutral_frame, text="⚠️ CONCERN: Best coverage is neutral against:",
+                             font=('TkDefaultFont', 9, 'bold'), foreground="orange").pack(anchor=tk.W)
+
+                    labels = [t.title() for t in types_neutral_at_best]  # Show all
+                    colors = [self._color_for_type(t) for t in types_neutral_at_best]
+                    chips_frame = ttk.Frame(neutral_frame)
+                    chips_frame.pack(fill=tk.X, padx=10, pady=(2, 0))
+                    self._render_type_chips(chips_frame, labels, colors, per_row=6)
+
+                # 4. Only one member has super effective coverage (risk)
+                if types_with_one_se:
+                    one_se_frame = ttk.Frame(self._team_walls_frame)
+                    one_se_frame.pack(fill=tk.X, padx=5, pady=5)
+                    ttk.Label(one_se_frame, text="⚠️ RISK: Only one team member has super effective coverage:",
+                             font=('TkDefaultFont', 9, 'bold'), foreground="orange").pack(anchor=tk.W)
+
+                    labels = []
+                    colors = []
+                    for defending_type, (att_type, count) in types_with_one_se:  # Show all
+                        label = f"{defending_type.title()} ({att_type}×{count})"
+                        labels.append(label)
+                        colors.append(self._color_for_type(defending_type))
+
+                    chips_frame = ttk.Frame(one_se_frame)
+                    chips_frame.pack(fill=tk.X, padx=10, pady=(2, 0))
+                    self._render_type_chips(chips_frame, labels, colors, per_row=4)
+
+                # Traditional walls analysis (types that resist most moves)
+                walls = find_type_combo_walls(move_types_list, type_matrix)
+                dual_walls = walls.get("dual", [])
+                single_walls = walls.get("single", [])
+
+                if dual_walls or single_walls:
+                    # Add separator if we showed critical types
+                    if types_with_no_se or types_with_one_se:
+                        separator = ttk.Separator(self._team_walls_frame, orient='horizontal')
+                        separator.pack(fill=tk.X, padx=5, pady=10)
+
+                    if dual_walls:
+                        dual_frame = ttk.Frame(self._team_walls_frame)
+                        dual_frame.pack(fill=tk.X, padx=5, pady=5)
+                        ttk.Label(dual_frame, text="Type combinations that resist most team moves:",
+                                 font=('TkDefaultFont', 9, 'bold')).pack(anchor=tk.W)
+
+                        # Analyze coverage for each dual type combination
+                        dual_analysis = []
+                        for type1, type2 in dual_walls:  # Show all dual type combinations
+                            # Find what team moves can hit this combo effectively (>= 1.0)
+                            effective_moves = []
+                            for att_type, count in all_team_move_types.items():
+                                from rogueeditor.coverage_calculator import get_type_effectiveness
+                                eff = get_type_effectiveness(att_type, [type1, type2], type_matrix)
+                                if eff >= 1.0:
+                                    effective_moves.append((att_type, count, eff))
+
+                            coverage_info = ""
+                            if not effective_moves:
+                                coverage_info = " ❌"  # No coverage
+                            elif len(effective_moves) == 1 and effective_moves[0][1] == 1:
+                                att_type, _, eff = effective_moves[0]
+                                coverage_info = f" ⚠️{att_type}×1"  # Only one member
+                            elif len(effective_moves) <= 2:
+                                # Show up to 2 effective types
+                                moves_str = ",".join([f"{att}×{cnt}" for att, cnt, _ in effective_moves[:2]])
+                                coverage_info = f" ({moves_str})"
+
+                            dual_analysis.append((type1, type2, coverage_info))
+
+                        # Render dual type combinations with coverage info
+                        combo_row = ttk.Frame(dual_frame)
+                        combo_row.pack(fill=tk.X, padx=10, pady=(2, 0))
+
+                        for type1, type2, coverage_info in dual_analysis:
+                            combo_frame = ttk.Frame(combo_row)
+                            combo_frame.pack(side=tk.LEFT, padx=3, pady=1)
+
+                            container = ttk.Frame(combo_frame)
+                            container.pack()
+
+                            types_frame = ttk.Frame(container)
+                            types_frame.pack(side=tk.LEFT)
+
+                            tk.Label(types_frame, text="[", bd=0, font=('TkDefaultFont', 8)).pack(side=tk.LEFT)
+                            tk.Label(types_frame, text=type1.title(),
+                                   bg=self._color_for_type(type1),
+                                   bd=1, relief=tk.SOLID, padx=2, pady=1,
+                                   font=('TkDefaultFont', 8)).pack(side=tk.LEFT)
+                            tk.Label(types_frame, text="/", bd=0, font=('TkDefaultFont', 8)).pack(side=tk.LEFT)
+                            tk.Label(types_frame, text=type2.title(),
+                                   bg=self._color_for_type(type2),
+                                   bd=1, relief=tk.SOLID, padx=2, pady=1,
+                                   font=('TkDefaultFont', 8)).pack(side=tk.LEFT)
+                            tk.Label(types_frame, text="]", bd=0, font=('TkDefaultFont', 8)).pack(side=tk.LEFT)
+
+                            if coverage_info:
+                                tk.Label(container, text=coverage_info, font=('TkDefaultFont', 7),
+                                       foreground="red" if "❌" in coverage_info else "orange" if "⚠️" in coverage_info else "gray").pack(side=tk.LEFT)
+
+                if not (types_with_no_se or types_resisted_at_best or types_neutral_at_best or types_with_one_se or dual_walls or single_walls):
+                    ttk.Label(self._team_walls_frame, text="🎯 Excellent type coverage - no major walls or gaps found!",
+                             foreground="green", font=('TkDefaultFont', 9, 'bold')).pack(anchor=tk.W, padx=5, pady=5)
+            else:
+                ttk.Label(self._team_walls_frame, text="No attacking moves found in team",
+                         foreground="gray").pack(anchor=tk.W, padx=5, pady=5)
+
+        except Exception as e:
+            print(f"Error computing team offensive matchups: {e}")
+            ttk.Label(self._team_moves_frame, text="Error computing coverage",
+                     foreground="red").pack(anchor=tk.W)
 
     # --- Data binding / refresh ---
     def _refresh_party(self):
@@ -1271,7 +2514,8 @@ class TeamEditorDialog(tk.Toplevel):
         if tgt == "Trainer":
             try:
                 self.tabs.add(self.tab_trainer_basics, text="Basics")
-                self.tabs.add(self.tab_team_summary, text="Team Summary")
+                self.tabs.add(self.tab_team_defensive, text="Team Defensive")
+                self.tabs.add(self.tab_team_offensive, text="Team Offensive")
             except Exception:
                 pass
             # Load trainer snapshot on switch
@@ -1286,7 +2530,8 @@ class TeamEditorDialog(tk.Toplevel):
                 self.tabs.add(self.tab_poke_stats, text="Stats")
                 self.tabs.add(self.tab_poke_moves, text="Moves")
                 self.tabs.add(self.tab_poke_form, text="Form & Visuals")
-                self.tabs.add(self.tab_poke_matchups, text="Type Matchups")
+                self.tabs.add(self.tab_poke_matchups, text="Defensive Matchups")
+                self.tabs.add(self.tab_poke_coverage, text="Offensive Matchups")
             except Exception:
                 pass
 
@@ -1513,6 +2758,12 @@ class TeamEditorDialog(tk.Toplevel):
         except Exception:
             pass
 
+        # Refresh offensive matchups when Pokemon selection changes
+        try:
+            self._refresh_offensive_coverage()
+        except Exception as e:
+            print(f"Error refreshing coverage after party selection: {e}")
+
     # --- Actions ---
     def _open_item_mgr(self):
         mon = self._current_mon()
@@ -1545,7 +2796,20 @@ class TeamEditorDialog(tk.Toplevel):
     def _pick_move(self, idx: int):
         res = CatalogSelectDialog.select(self, self.move_n2i, title=f"Select Move {idx+1}")
         if res is not None:
-            self.move_vars[idx].set(f"{self.move_i2n.get(int(res), res)} ({res})")
+            try:
+                rid = int(res)
+            except Exception:
+                rid = None
+            if isinstance(rid, int):
+                label = get_move_label(rid) or self.move_i2n.get(int(res), res)
+                self.move_vars[idx].set(f"{label} ({res})")
+                # Update visuals for this row
+                try:
+                    self._update_move_row_visuals(idx, rid)
+                except Exception:
+                    pass
+            else:
+                self.move_vars[idx].set(f"{self.move_i2n.get(int(res), res)} ({res})")
 
     def _parse_id_from_combo(self, text: str, fallback_map: dict[str, int]) -> Optional[int]:
         t = text.strip()
@@ -1906,10 +3170,53 @@ class TeamEditorDialog(tk.Toplevel):
                     out[i] = mid_i
                 else:
                     out.append(mid_i)
+            # Clamp and apply PP fields if dict shape
+            try:
+                base_pp = get_move_base_pp(mid_i)
+                max_extra, max_total = compute_ppup_bounds(base_pp)
+                # Parse user inputs
+                try:
+                    pp_up_in = int((self.move_ppup_vars[i].get() or '').strip() or '0')
+                except Exception:
+                    pp_up_in = 0
+                if pp_up_in < 0:
+                    pp_up_in = 0
+                if base_pp is not None:
+                    # In unified rule, ppUp represents extra PP (not count of items)
+                    if pp_up_in > max_extra:
+                        pp_up_in = max_extra
+                else:
+                    pp_up_in = 0
+                try:
+                    pp_used_in = int((self.move_ppused_vars[i].get() or '').strip() or '0')
+                except Exception:
+                    pp_used_in = 0
+                if pp_used_in < 0:
+                    pp_used_in = 0
+                if base_pp is not None:
+                    max_pp_now = (base_pp or 0) + (pp_up_in or 0)
+                    if pp_used_in > max_pp_now:
+                        pp_used_in = max_pp_now
+                else:
+                    pp_used_in = 0
+                # Apply only if dict shape (moveset objects)
+                target = out[i] if i < len(out) else None
+                if isinstance(target, dict):
+                    target['ppUp'] = pp_up_in
+                    target['ppUsed'] = pp_used_in
+                    out[i] = target
+            except Exception:
+                pass
         # Truncate to 4 entries
         out = out[:4]
         mon[key] = out
         self._mark_dirty()
+
+        # Refresh offensive matchups when moves change
+        try:
+            self._refresh_offensive_coverage()
+        except Exception as e:
+            print(f"Error refreshing coverage after move change: {e}")
 
     def _recalc_stats(self):
         mon = self._current_mon()
@@ -2105,9 +3412,18 @@ class TeamEditorDialog(tk.Toplevel):
         for i in range(4):
             mid = ids[i] if i < len(ids) else 0
             if isinstance(mid, int) and mid > 0:
-                self.move_vars[i].set(f"{self.move_i2n.get(mid, mid)} ({mid})")
+                label = get_move_label(mid) or self.move_i2n.get(mid, mid)
+                self.move_vars[i].set(f"{label} ({mid})")
+                try:
+                    self._update_move_row_visuals(i, mid)
+                except Exception:
+                    pass
             else:
                 self.move_vars[i].set("")
+                try:
+                    self._update_move_row_visuals(i, 0)
+                except Exception:
+                    pass
             # Populate PP fields if present
             try:
                 cur = lst[i] if i < len(lst) else None

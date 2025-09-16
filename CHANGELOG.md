@@ -5,6 +5,32 @@ All notable changes to this project will be documented in this file.
 The format follows a simplified Keep a Changelog style.
 
 ## [Unreleased]
+- Team Manager: Interface Restructure & Improvements
+  - Rebranded "Team Editor" to "Team Manager" for clearer functionality description
+  - Moved defensive and offensive analysis from Team Summary tab to standalone tabs
+  - Restructured tab layout with consistent frame heights between trainer and party targets
+  - Enhanced UI organization with standalone "Team Defensive" and "Team Offensive" analysis tabs
+  - Updated button text from "Edit Team" to "Manage Team" in main interface
+  - Improved team management workflow with dedicated analysis sections
+  - Made type combinations that wall the team scrollable for better navigation
+  - Enhanced two-type combo analysis with complete coverage display (removed display limits)
+  - Added Mega Venusaur (form ID 48) to rare form change item presets based on save data analysis
+- Team Editor: Offensive Matchups Analysis
+  - Added new "Offensive Matchups" tab showing comprehensive type effectiveness analysis based on damaging moves
+  - Real-time coverage calculation that refreshes automatically when moves change or Pokemon selection changes
+  - Colored type chips visual display using existing type color system for effectiveness categories (Super Effective, Neutral, Not Very Effective, No Effect)
+  - Boss-specific analysis for key encounters (Eternatus, Rayquaza, Mega Rayquaza) with special handling for Mega Rayquaza's Delta Stream ability
+  - Delta Stream ability correctly neutralizes Flying-type weaknesses while preserving resistances and immunities
+  - Enhanced moves database with proper CSV parsing from PokemonMovesList.xlsx with manual corrections for incorrect type mappings
+  - Fixed move type detection issues (Ice Beam correctly identified as Ice type, not Grass)
+  - Improved move classification system distinguishing damaging vs status moves with comprehensive keyword detection
+  - Boss effectiveness calculations now properly apply custom resistances and weaknesses from boss data
+  - Coverage calculator module with caching for performance optimization
+- Team Editor: Team-wide Offensive Matchups Summary
+  - Added "Team Offensive Matchups" section to Team Summary tab showing aggregated team coverage analysis
+  - Team boss analysis displaying best coverage options across all team members
+  - Comprehensive coverage breakdown by effectiveness categories with colored type chips
+- Pokemon List Reordering: Team editor already includes comprehensive Pokemon reordering functionality with up/down/to-start/to-end buttons
 - Trainer-wide modifier management (list/add/remove) in GUI/CLI.
 - Richer autocomplete with id labels across all pickers.
 - Name-based held item catalog (pending item enum) across GUI/CLI.

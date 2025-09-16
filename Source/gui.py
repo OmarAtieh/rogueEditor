@@ -33,6 +33,8 @@ import math
 from rogueeditor import PokerogueAPI
 from rogueeditor.editor import Editor
 from rogueeditor.session_manager import SessionManager, SessionObserver, SessionState
+from rogueeditor.save_corruption_prevention import SafeSaveManager
+# Enhanced item manager import removed - functionality integrated into main item manager
 from rogueeditor.utils import (
     list_usernames,
     sanitize_username,
@@ -51,7 +53,7 @@ from rogueeditor.catalog import (
 )
 from gui.common.widgets import AutoCompleteEntry
 from gui.common.catalog_select import CatalogSelectDialog
-from gui.dialogs.team_editor import TeamEditorDialog
+from gui.dialogs.team_editor import TeamManagerDialog
 from gui.sections.slots import build as build_slots_section
 from gui.dialogs.item_manager import ItemManagerDialog
 # Enhanced feedback systems
@@ -107,6 +109,7 @@ class App(ttk.Frame):
         self.api: PokerogueAPI | None = None
         self.editor: Editor | None = None
         self.username: str | None = None
+        self.safe_save_manager: SafeSaveManager = SafeSaveManager()
         self._available_slots = []  # Initialize empty, will be populated by _refresh_slots
         
         # Slot selection
@@ -171,6 +174,17 @@ class App(ttk.Frame):
         except Exception:
             self.hint_font = None
             self._debug_log("Hint font configuration failed, using default")
+
+        # Set application icon
+        try:
+            icon_path = os.path.join(os.path.dirname(__file__), "data", "icon.ico")
+            if os.path.exists(icon_path):
+                self.iconbitmap(icon_path)
+                self._debug_log(f"Application icon set: {icon_path}")
+            else:
+                self._debug_log(f"Application icon not found: {icon_path}")
+        except Exception as e:
+            self._debug_log(f"Failed to set application icon: {e}")
 
         # Top warning banner (disclaimer) - simplified layout
         try:
@@ -560,25 +574,12 @@ class App(ttk.Frame):
             foreground='gray50',
             font=(self.hint_font if self.hint_font else None),
         ).pack(fill=tk.X, padx=6, pady=(2, 0))
-        ttk.Button(box2, text="Analyze Team", command=self._analyze_team_dialog).pack(side=tk.LEFT, padx=4, pady=4)
-        ttk.Button(box2, text="Edit Team", command=self._safe(self._edit_team_dialog)).pack(side=tk.LEFT, padx=4, pady=4)
-        ttk.Button(box2, text="Analyze Run Conditions", command=self._analyze_run_conditions).pack(side=tk.LEFT, padx=4, pady=4)
-        ttk.Button(box2, text="Edit Run Weather", command=self._safe(self._edit_run_weather)).pack(side=tk.LEFT, padx=4, pady=4)
+        # Team management and modifiers section
+        ttk.Button(box2, text="Manage Team", command=self._safe(self._edit_team_dialog)).pack(side=tk.LEFT, padx=4, pady=4)
+        ttk.Button(box2, text="Open Modifiers & Items Manager", command=self._safe(self._open_item_mgr)).pack(side=tk.LEFT, padx=4, pady=4)
+        ttk.Button(box2, text="⚠️ Edit Run Weather", command=self._safe(self._edit_run_weather)).pack(side=tk.LEFT, padx=4, pady=4)
 
-        # Modifiers
-        box3 = ttk.LabelFrame(inner, text="Modifiers / Items")
-        box3.pack(fill=tk.BOTH, padx=6, pady=6)
-        ttk.Label(
-            box3,
-            text="Affects modifiers and items in the selected slot's current run (slot file).",
-            foreground='gray50',
-            font=(self.hint_font if self.hint_font else None),
-        ).pack(fill=tk.X, padx=6, pady=(2, 0))
-        # Modifiers manager
-        mod_btns = ttk.Frame(box3)
-        mod_btns.pack(fill=tk.X)
-        ttk.Button(mod_btns, text="Open Modifiers & Items Manager", command=self._safe(self._open_item_mgr)).pack(side=tk.LEFT, padx=4, pady=4)
-        ttk.Button(mod_btns, text="Analyze Modifiers", command=self._analyze_mods_dialog).pack(side=tk.LEFT, padx=4, pady=4)
+        # Note: Modifiers / Items section removed - functionality moved to team section above
 
         # Starters
         box4 = ttk.LabelFrame(inner, text="Starters")
@@ -942,54 +943,7 @@ class App(ttk.Frame):
             except Exception:
                 pass
 
-    def _analyze_mods_dialog(self):
-        if not self.editor:
-            messagebox.showwarning('Not logged in', 'Please login first')
-            return
-        try:
-            slot = int(self.slot_var.get())
-        except Exception:
-            slot = self._ask_slot()
-        if not slot:
-            return
-        def work():
-            data = self.api.get_slot(slot)
-            mods = data.get('modifiers') or []
-            total = len(mods)
-            type_counts: dict[str, int] = {}
-            player_cnt = 0
-            target_cnt = 0
-            target_map: dict[int, int] = {}
-            for m in mods:
-                if not isinstance(m, dict):
-                    continue
-                t = str(m.get('typeId') or m.get('type') or m.get('id') or 'UNKNOWN')
-                type_counts[t] = type_counts.get(t, 0) + 1
-                if m.get('player'):
-                    player_cnt += 1
-                args = m.get('args') or []
-                if isinstance(args, list) and args and isinstance(args[0], int):
-                    target_cnt += 1
-                    target_map[args[0]] = target_map.get(args[0], 0) + 1
-            # Build report
-            lines: list[str] = []
-            lines.append(f"Slot {slot} Modifiers Summary")
-            lines.append("".rstrip())
-            lines.append(f"Total modifiers: {total}")
-            lines.append(f"Player-only: {player_cnt}")
-            lines.append(f"Targeted (pokemon): {target_cnt}")
-            lines.append("")
-            lines.append("By typeId (count):")
-            for t, c in sorted(type_counts.items(), key=lambda kv: (-kv[1], kv[0])):
-                lines.append(f"  - {t}: {c}")
-            if target_map:
-                lines.append("")
-                lines.append("Top targets (party ids):")
-                for tid, c in sorted(target_map.items(), key=lambda kv: (-kv[1], kv[0]))[:10]:
-                    lines.append(f"  - id {tid}: {c}")
-            report = "\n".join(lines)
-            self.after(0, lambda: self._show_text_dialog(f"Analyze Modifiers - Slot {slot}", report))
-        self._run_async(f"Analyzing modifiers for slot {slot}...", work)
+    # _analyze_mods_dialog removed - marked for removal
 
     # --- Actions ---
     def _new_user_dialog(self):
@@ -1616,7 +1570,8 @@ class App(ttk.Frame):
                 def show_error():
                     self.feedback.error_handler.show_error(e, ErrorContext("uploading trainer data"))
                 self.after(0, show_error)
-                
+        
+        # Run the upload asynchronously to avoid freezing the UI
         self._run_async("Uploading trainer data...", work)
 
     def _update_slot_dialog(self):
@@ -2412,27 +2367,9 @@ class App(ttk.Frame):
         ttk.Button(top, text="Upload", command=do_upload).grid(row=3, column=0, padx=6, pady=10, sticky=tk.W)
         ttk.Button(top, text="Close", command=top.destroy).grid(row=3, column=1, padx=6, pady=10, sticky=tk.W)
 
-    def _analyze_team_dialog(self):
-        if not self.editor:
-            messagebox.showwarning("Not logged in", "Please login first")
-            return
-        try:
-            slot = int(self.slot_var.get())
-        except Exception:
-            slot = self._ask_slot()
-        if slot:
-            self._run_and_show_output(f"Team Analysis - Slot {slot}", lambda: self.editor.analyze_team(slot))
+    # _analyze_team_dialog removed - marked for removal
 
-    def _analyze_run_conditions(self):
-        if not self.editor:
-            messagebox.showwarning("Not logged in", "Please login first")
-            return
-        try:
-            slot = int(self.slot_var.get())
-        except Exception:
-            slot = self._ask_slot()
-        if slot:
-            self._run_and_show_output(f"Run Conditions - Slot {slot}", lambda: self.editor.analyze_run_conditions(slot))
+    # _analyze_run_conditions removed - marked for removal
 
     def _edit_run_weather(self):
         try:
@@ -2478,10 +2415,13 @@ class App(ttk.Frame):
                 messagebox.showwarning('Invalid', 'Select a valid weather')
                 return
             data[wkey] = val
-            from rogueeditor.utils import slot_save_path, dump_json
+            from rogueeditor.utils import slot_save_path
             p = slot_save_path(self.api.username, slot)
-            dump_json(p, data)
-            self._log(f"Updated weather to {val}; wrote {p}")
+            # Use safe save operation with backup
+            backup_path = self.safe_save_manager.safe_dump_json(
+                p, data, f"Weather change to {val} for slot {slot}"
+            )
+            self._log(f"Updated weather to {val}; wrote {p} (backup: {backup_path})")
             if messagebox.askyesno('Upload', 'Upload changes to server?'):
                 try:
                     self.api.update_slot(slot, data)
@@ -2497,8 +2437,10 @@ class App(ttk.Frame):
         except Exception:
             slot = self._ask_slot()
         if slot:
-            TeamEditorDialog(self, self.api, self.editor, slot)
+            TeamManagerDialog(self, self.api, self.editor, slot)
             self._log(f"Opened team editor for slot {slot}")
+
+    # _enhanced_item_manager_dialog removed - marked for removal, functionality integrated into main item manager
 
     def _list_mods_dialog(self):
         if not self.editor:
@@ -2787,10 +2729,13 @@ class App(ttk.Frame):
                     }
                     mods = data.setdefault("modifiers", [])
                     mods.append(entry)
-                    from rogueeditor.utils import slot_save_path, dump_json
+                    from rogueeditor.utils import slot_save_path
                     p = slot_save_path(self.api.username, slot)
-                    dump_json(p, data)
-                    self._log(f"Attached BASE_STAT_BOOSTER({stat_id}) to slot {idx}; wrote {p}")
+                    # Use safe save operation with backup
+                    backup_path = self.safe_save_manager.safe_dump_json(
+                        p, data, f"Added BASE_STAT_BOOSTER({stat_id}) to slot {slot} position {idx}"
+                    )
+                    self._log(f"Attached BASE_STAT_BOOSTER({stat_id}) to slot {idx}; wrote {p} (backup: {backup_path})")
                     if messagebox.askyesno("Upload", "Upload changes to server?"):
                         try:
                             self.api.update_slot(slot, data)
@@ -2884,10 +2829,13 @@ class App(ttk.Frame):
         entry["valueReduction"] = value_reduction
         s[key] = entry
         # Save locally then offer upload
-        from rogueeditor.utils import trainer_save_path, dump_json
+        from rogueeditor.utils import trainer_save_path
         p = trainer_save_path(self.api.username)
-        dump_json(p, data)
-        messagebox.showinfo("Saved", f"Wrote {p}")
+        # Use safe save operation with backup
+        backup_path = self.safe_save_manager.safe_dump_json(
+            p, data, f"Starter data update: abilityAttr={ability_attr}, passiveAttr={passive_attr}, valueReduction={value_reduction}"
+        )
+        messagebox.showinfo("Saved", f"Wrote {p} (backup: {backup_path})")
         if messagebox.askyesno("Upload", "Upload trainer changes to server?"):
             self.api.update_trainer(data)
             messagebox.showinfo("Uploaded", "Server updated.")
@@ -2909,10 +2857,13 @@ class App(ttk.Frame):
         entry = s.get(key) or {"moveset": None, "eggMoves": 15, "candyCount": 0, "abilityAttr": 7, "passiveAttr": 0, "valueReduction": 0}
         entry["candyCount"] = max(0, int(entry.get("candyCount", 0)) + delta)
         s[key] = entry
-        from rogueeditor.utils import trainer_save_path, dump_json
+        from rogueeditor.utils import trainer_save_path
         p = trainer_save_path(self.api.username)
-        dump_json(p, data)
-        messagebox.showinfo("Saved", f"Wrote {p}")
+        # Use safe save operation with backup
+        backup_path = self.safe_save_manager.safe_dump_json(
+            p, data, f"Candy count increment by {delta} for starter {sid}"
+        )
+        messagebox.showinfo("Saved", f"Wrote {p} (backup: {backup_path})")
         if messagebox.askyesno("Upload", "Upload trainer changes to server?"):
             self.api.update_trainer(data)
             messagebox.showinfo("Uploaded", "Server updated.")
@@ -2942,10 +2893,13 @@ class App(ttk.Frame):
             "3": max(0, cur("3") + d3),
         }
         data["voucherCounts"] = updated
-        from rogueeditor.utils import trainer_save_path, dump_json
+        from rogueeditor.utils import trainer_save_path
         p = trainer_save_path(self.api.username)
-        dump_json(p, data)
-        messagebox.showinfo("Saved", f"Wrote {p}")
+        # Use safe save operation with backup
+        backup_path = self.safe_save_manager.safe_dump_json(
+            p, data, f"Gacha voucher update: C/R/E/L = {d0}/{d1}/{d2}/{d3}"
+        )
+        messagebox.showinfo("Saved", f"Wrote {p} (backup: {backup_path})")
         if messagebox.askyesno("Upload", "Upload trainer changes to server?"):
             self.api.update_trainer(data)
             messagebox.showinfo("Uploaded", "Gacha tickets updated on server")
