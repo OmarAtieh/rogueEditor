@@ -845,8 +845,16 @@ class TeamManagerDialog(tk.Toplevel):
         ttk.Radiobutton(trow, text="Trainer", variable=self.target_var, value="Trainer", command=self._on_target_changed).pack(side=tk.LEFT)
         ttk.Radiobutton(trow, text="Party", variable=self.target_var, value="Party", command=self._on_target_changed).pack(side=tk.LEFT, padx=8)
         ttk.Label(left, text="Party:").pack(anchor=tk.W, pady=(6, 0))
-        self.party_list = tk.Listbox(left, height=12, exportselection=False)
-        self.party_list.pack(fill=tk.Y, expand=False)
+        self.party_list = tk.Listbox(left, height=12, exportselection=False, selectmode=tk.SINGLE)
+        # Horizontal scrollbar for long labels
+        try:
+            self.party_hscroll = ttk.Scrollbar(left, orient="horizontal", command=self.party_list.xview)
+            self.party_list.configure(xscrollcommand=self.party_hscroll.set)
+            self.party_list.pack(fill=tk.Y, expand=False)
+            self.party_hscroll.pack(fill=tk.X, padx=0, pady=(0, 4))
+        except Exception:
+            # Fallback without scrollbar
+            self.party_list.pack(fill=tk.Y, expand=False)
         # Helper text to clarify selection-only and where to reorder
         try:
             ttk.Label(left,
@@ -854,7 +862,13 @@ class TeamManagerDialog(tk.Toplevel):
                      foreground='gray').pack(anchor=tk.W, pady=(4, 0))
         except Exception:
             pass
-        # Simple, reliable selection handler
+        # Mouse-based selection: lock selection on click, disable drag-to-select to prevent drift
+        try:
+            self.party_list.bind("<Button-1>", lambda e: self._on_party_click(e))
+            self.party_list.bind("<B1-Motion>", lambda e: "break")  # prevent drag selection
+        except Exception:
+            pass
+        # Keyboard or programmatic selection fallback
         self.party_list.bind("<<ListboxSelect>>", lambda e: self._on_party_list_select_event())
 
         # Right
@@ -1139,9 +1153,7 @@ class TeamManagerDialog(tk.Toplevel):
                 self.party[current_idx], self.party[current_idx - 1] = self.party[current_idx - 1], self.party[current_idx]
                 self._refresh_party()
                 # Maintain selection on the moved Pokemon
-                self.party_list.selection_set(current_idx - 1)
-                self.party_list.activate(current_idx - 1)
-                self._on_party_selected()
+                self._set_party_selection(current_idx - 1, render=True)
         except Exception:
             pass
 
@@ -1154,9 +1166,7 @@ class TeamManagerDialog(tk.Toplevel):
                 self.party[current_idx], self.party[current_idx + 1] = self.party[current_idx + 1], self.party[current_idx]
                 self._refresh_party()
                 # Maintain selection on the moved Pokemon
-                self.party_list.selection_set(current_idx + 1)
-                self.party_list.activate(current_idx + 1)
-                self._on_party_selected()
+                self._set_party_selection(current_idx + 1, render=True)
         except Exception:
             pass
 
@@ -1170,18 +1180,7 @@ class TeamManagerDialog(tk.Toplevel):
                 self.party.insert(0, pokemon)
                 self._refresh_party()
                 # Maintain selection on the moved Pokemon
-                # Suppress re-entrancy while updating selection
-                self._handling_selection = True
-                self.party_list.selection_set(0)
-                self.party_list.activate(0)
-                self.after(0, lambda: setattr(self, '_handling_selection', False))
-                # Debounce notify
-                try:
-                    if hasattr(self, '_select_after_id') and self._select_after_id:
-                        self.after_cancel(self._select_after_id)
-                except Exception:
-                    pass
-                self._select_after_id = self.after(50, self._on_party_selected)
+                self._set_party_selection(0, render=True)
         except Exception:
             pass
 
@@ -1196,9 +1195,7 @@ class TeamManagerDialog(tk.Toplevel):
                 self._refresh_party()
                 # Maintain selection on the moved Pokemon
                 new_idx = len(self.party) - 1
-                self.party_list.selection_set(new_idx)
-                self.party_list.activate(new_idx)
-                self._on_party_selected()
+                self._set_party_selection(new_idx, render=True)
         except Exception:
             pass
 
@@ -2663,76 +2660,8 @@ class TeamManagerDialog(tk.Toplevel):
                 debug_log(f"Error rendering wall sections: {e}")
                 pass
 
-            # Update boss analysis (three subsections; two rows each)
-            boss_analysis = coverage.get("boss_analysis", {})
-            for boss_key, boss_label in self.boss_labels.items():
-                if boss_key in boss_analysis:
-                    analysis = boss_analysis[boss_key]
-                    status = analysis.get("status", "unknown")
-                    effectiveness = analysis.get("best_effectiveness", 0)
-                    move_type = str(analysis.get("best_move_type", "none")).strip().lower()
-
-                    status_colors = {
-                        "excellent": "green",
-                        "good": "blue",
-                        "poor": "orange",
-                        "none": "red"
-                    }
-
-                    # Map 'ok' to neutral coloring
-                    if status == "neutral":
-                        color = "#FFC107"
-                    else:
-                        color = status_colors.get(status, "gray")
-                    # First row: boss name is static label before boss_label; boss_label shows overall evaluation
-                    def _fmt_eff(e: float) -> str:
-                        try:
-                            if e in (0.0, 0, 0.25, 0.5, 1.0, 2.0, 4.0):
-                                if e == 1.0:
-                                    return "x1"
-                                if e == 0.0:
-                                    return "x0"
-                                if e == 2.0:
-                                    return "x2"
-                                if e == 4.0:
-                                    return "x4"
-                                if e == 0.5:
-                                    return "x0.5"
-                                if e == 0.25:
-                                    return "x0.25"
-                            return f"x{e:.1f}"
-                        except Exception:
-                            return "x1"
-                    boss_label.config(text=f"Evaluation: {status.title()} ({_fmt_eff(float(effectiveness))})", foreground=color)
-                    # Second row: per-move-type chips labeled with effectiveness only (no words)
-                    try:
-                        dyn = getattr(self, f"_boss_dyn_{boss_key}")
-                        for w in dyn.winfo_children():
-                            w.destroy()
-                        # Build list of move types and their effectiveness vs boss types
-                        mt = (coverage.get("coverage_summary", {}) or {}).get("move_types", [])
-                        from rogueeditor.coverage_calculator import get_type_effectiveness, BOSS_POKEMON, _effectiveness_vs_boss
-                        boss_def = (BOSS_POKEMON.get(boss_key, {}) or {})
-                        boss_types = boss_def.get("types", [])
-                        types_sorted = sorted(set(mt))
-                        if types_sorted:
-                            rowf = None
-                            for i, t in enumerate(types_sorted):
-                                if i % 4 == 0:
-                                    rowf = ttk.Frame(dyn)
-                                    rowf.pack(fill=tk.X, anchor=tk.W)
-                                # Use boss-aware effectiveness (handles Delta Stream etc.)
-                                eff = _effectiveness_vs_boss(t, boss_key, boss_types, boss_def, getattr(self, "_type_matrix", None) or load_type_matchup_matrix())
-                                # Show type name with effectiveness in parentheses
-                                chip_text = f"{t.title()} ({_fmt_eff(float(eff))})"
-                                chip = tk.Label(rowf, text=chip_text, bg=self._color_for_type(t), bd=1, relief=tk.SOLID, padx=6, pady=2)
-                                chip.pack(side=tk.LEFT, padx=3, pady=3)
-                        else:
-                            ttk.Label(dyn, text="No damaging move types", foreground="gray").pack(anchor=tk.W)
-                    except Exception:
-                        pass
-                else:
-                    boss_label.config(text="No data", foreground="gray")
+            # Boss analysis is rendered exclusively by _update_coverage_bosses_guarded
+            # to avoid duplicate/competing renders that cause flicker.
 
         except Exception as e:
             print(f"Error updating coverage display: {e}")
@@ -2802,7 +2731,7 @@ class TeamManagerDialog(tk.Toplevel):
 
     def _update_coverage_bosses_guarded(self, expected_token: int, coverage: dict):
         try:
-            # Since we removed the token system, just update the display
+            # Sole renderer for boss analysis to avoid flicker/duplication
             from rogueeditor.coverage_calculator import BOSS_POKEMON, _effectiveness_vs_boss
             from rogueeditor.catalog import load_type_matchup_matrix
             damaging_moves = coverage.get("damaging_moves", [])
@@ -2816,13 +2745,17 @@ class TeamManagerDialog(tk.Toplevel):
                 boss = BOSS_POKEMON.get(key, {})
                 btypes = boss.get('types', [])
                 bdef = boss.get('defense', {})
-                for move in damaging_moves:
-                    mtype = str(move.get("type", "unknown")).strip().lower()
+                # Use unique move types only (no move names) for stable chips
+                move_types = sorted(set([
+                    str(m.get("type", "unknown")).strip().lower()
+                    for m in damaging_moves if isinstance(m, dict)
+                ]))
+                for mtype in move_types:
                     try:
                         eff = _effectiveness_vs_boss(mtype, key, btypes, bdef, getattr(self, "_type_matrix", None) or load_type_matchup_matrix())
                     except Exception:
                         eff = 1
-                    chip = tk.Label(dyn, text=f"{move.get('name','?')} ({mtype.title()}) x{eff}", bg=self._color_for_type(mtype), bd=1, relief=tk.SOLID, padx=6, pady=2)
+                    chip = tk.Label(dyn, text=f"{mtype.title()} (x{float(eff):g})", bg=self._color_for_type(mtype), bd=1, relief=tk.SOLID, padx=6, pady=2)
                     chip.pack(side=tk.LEFT, padx=2, pady=2)
                 if key in self.boss_labels:
                     self.boss_labels[key].config(text="Analyzed", foreground="green")
@@ -4235,9 +4168,14 @@ class TeamManagerDialog(tk.Toplevel):
             return
 
         try:
+            # Capture generation to avoid restoring stale selections
+            start_gen = int(getattr(self, '_selection_gen', 0))
             # Get previous selection safely
             try:
-                prev = self.party_list.curselection()[0]
+                # Prefer remembered index if available
+                prev = int(getattr(self, '_last_selected_index', None))
+                if prev is None:
+                    prev = int(self.party_list.curselection()[0])
             except Exception:
                 prev = 0
 
@@ -4276,37 +4214,25 @@ class TeamManagerDialog(tk.Toplevel):
                     except Exception:
                         form_disp = None
 
-                    # Build label
+                    # Build label: order. Name (Form) • Dex #### • id #### • Lv ####
+                    parts = [f"{i}.", name]
                     if form_disp:
-                        label = f"{i}. {int(did):04d} {name} ({form_disp})"
-                    else:
-                        label = f"{i}. {int(did):04d} {name}"
-
-                    # Add basic info
+                        parts[-1] = f"{name} ({form_disp})"
+                    dex_part = f"Dex {int(did):04d}"
                     mid = mon.get("id", "?")
                     lvl = _get(mon, ("level", "lvl")) or "?"
-                    self.party_list.insert(tk.END, f"{label} • id {mid} • Lv {lvl}")
+                    label = f"{' '.join(parts)} • {dex_part} • id {mid} • Lv {lvl}"
+                    self.party_list.insert(tk.END, label)
 
                 except Exception as e:
                     debug_log(f"Error processing party member {i}: {e}")
                     # Add fallback entry
                     self.party_list.insert(tk.END, f"{i}. Pokemon #{i}")
 
-            # Restore selection safely
-            try:
-                if prev < self.party_list.size():
-                    self.party_list.selection_set(prev)
-                    self.party_list.activate(prev)
-            except Exception:
-                pass
-
-            # Call safe version of party selection (avoid blocking UI operations)
-            try:
-                debug_log("Calling safe _on_party_selected...")
-                self._on_party_selected()
-                debug_log("Safe _on_party_selected completed")
-            except Exception as e:
-                debug_log(f"Error in _on_party_selected: {e}")
+            # Restore selection deterministically using helper
+            if start_gen == int(getattr(self, '_selection_gen', 0)):
+                target_idx = prev if prev < self.party_list.size() else 0
+                self._set_party_selection(target_idx, render=not bool(self.party_list.curselection()))
 
             # Refresh party reordering section if it exists (simplified)
             try:
@@ -4346,12 +4272,79 @@ class TeamManagerDialog(tk.Toplevel):
         self._current_pokemon_index = index
         self._select_pokemon(index)
 
+    def _set_party_selection(self, index: int, render: bool = True, bump_gen: bool = True):
+        """Unified selection setter with event suppression and state updates.
+        When render=True and bump_gen=True, increments the selection generation to cancel stale renders.
+        """
+        try:
+            if index is None:
+                return
+            total = self.party_list.size() if hasattr(self, 'party_list') else 0
+            if total <= 0:
+                return
+            if index < 0:
+                index = 0
+            if index >= total:
+                index = total - 1
+
+            # Suppress event and set selection
+            self._suppress_list_event = True
+            self.party_list.selection_clear(0, tk.END)
+            self.party_list.selection_set(index)
+            self.party_list.activate(index)
+            self.party_list.see(index)
+            self._suppress_list_event = False
+
+            # Update tracked indices
+            try:
+                self._last_selected_index = index
+                self._current_pokemon_index = index
+            except Exception:
+                pass
+
+            # Render current selection if requested
+            if render:
+                if bump_gen:
+                    try:
+                        self._selection_gen = int(getattr(self, '_selection_gen', 0)) + 1
+                    except Exception:
+                        self._selection_gen = 1
+                self._on_party_selected()
+        except Exception:
+            try:
+                self._suppress_list_event = False
+            except Exception:
+                pass
+
     def _current_mon(self) -> Optional[dict]:
         if not hasattr(self, 'party_list'):
             return None
+        # Prefer last known selected index, then current listbox selection, else 0
+        idx: Optional[int] = None
         try:
-            idx = int(self.party_list.curselection()[0])
-            return self.party[idx]
+            idx = int(getattr(self, '_last_selected_index', None))
+        except Exception:
+            idx = None
+        if idx is None:
+            try:
+                sel = self.party_list.curselection()
+                idx = int(sel[0]) if sel else None
+            except Exception:
+                idx = None
+        if idx is None:
+            try:
+                idx = int(getattr(self, '_current_pokemon_index', 0) or 0)
+            except Exception:
+                idx = 0
+        try:
+            total = len(self.party or [])
+            if total <= 0:
+                return None
+            if idx < 0:
+                idx = 0
+            if idx >= total:
+                idx = total - 1
+            return (self.party or [])[idx]
         except Exception:
             return None
 
@@ -4415,7 +4408,7 @@ class TeamManagerDialog(tk.Toplevel):
                 pass
 
     def _on_party_selected(self):
-        """Simple, reliable party selection handler."""
+        """Simple, reliable party selection handler with generation guard."""
         try:
             # Prevent re-entrancy
             if getattr(self, '_handling_selection', False):
@@ -4428,11 +4421,12 @@ class TeamManagerDialog(tk.Toplevel):
                 self._handling_selection = False
                 return
 
-            # Get current selection index
+            # Get current selection index (pin target to avoid drift)
             try:
                 current_idx = int(self.party_list.curselection()[0])
             except Exception:
                 current_idx = 0
+            pinned_idx = current_idx
 
             # Update tracking variables
             self._current_pokemon_index = current_idx
@@ -4449,6 +4443,9 @@ class TeamManagerDialog(tk.Toplevel):
                 self._set_matchup_sections_for_mon(mon)
             except Exception:
                 pass
+
+            # Capture generation to guard async updates
+            current_gen = int(getattr(self, '_selection_gen', 0))
 
             # Simple caching approach
             species_id = mon.get("species") or mon.get("dexId") or mon.get("speciesId") or -1
@@ -4468,9 +4465,12 @@ class TeamManagerDialog(tk.Toplevel):
                 self._cache_party_member_data(current_idx, mon, cached_data)
                 debug_log(f"Computed fresh data and cached for party member {current_idx}")
 
-            # Apply secondary data (moves, matchups, etc.)
+            # Apply secondary data (moves, matchups, etc.) guarded by generation
             try:
-                self._apply_secondary_data(mon, cached_data)
+                gen_at_call = current_gen
+                self.after_idle(lambda g=gen_at_call, m=mon, cd=cached_data: (
+                    self._apply_secondary_data(m, cd) if g == getattr(self, '_selection_gen', 0) else None
+                ))
             except Exception as e:
                 debug_log(f"Error applying secondary data: {e}")
 
@@ -4488,63 +4488,59 @@ class TeamManagerDialog(tk.Toplevel):
                 # Always hide loading indicator and re-enable UI
                 self._hide_loading_indicator()
                 self._set_tabs_enabled(True)
+                # Re-pin visual selection to the intended index without re-rendering
+                try:
+                    self._set_party_selection(pinned_idx, render=False, bump_gen=False)
+                except Exception:
+                    pass
                 self._handling_selection = False
             except Exception:
                 pass
 
     def _on_party_list_select_event(self):
-        """Simple, reliable selection event handler."""
+        """Selection event handler with generation guard to prevent flicker."""
         try:
-            # Get the current selection
+            # Ignore programmatic selection changes
+            if bool(getattr(self, '_suppress_list_event', False)):
+                return
             selection = self.party_list.curselection()
             if not selection:
                 return
-            
-            # Get the selected index
             selected_index = int(selection[0])
-            
-            # Skip if same selection as last time
-            if hasattr(self, '_last_selected_index') and self._last_selected_index == selected_index:
-                return
-            
-            # Update the last selected index
-            self._last_selected_index = selected_index
-            
-            # Call the selection handler directly (no debouncing to avoid glitches)
-            self._on_party_selected()
-            
+            # Use unified setter which updates indices and renders
+            try:
+                self._selection_gen = int(getattr(self, '_selection_gen', 0)) + 1
+            except Exception:
+                self._selection_gen = 1
+            self._set_party_selection(selected_index, render=True)
         except Exception as e:
             debug_log(f"Error in _on_party_list_select_event: {e}")
-            # Fallback to direct call
             try:
                 self._on_party_selected()
             except Exception:
                 pass
 
-    def _select_party_member(self, index: int):
-        """Programmatically select a party member without triggering events."""
+    def _on_party_click(self, event):
+        """Mouse click selection: compute index at click location and lock it.
+        Prevents drag/hover-induced selection drift while content loads.
+        """
         try:
-            # Temporarily disable the selection handler
-            self.party_list.unbind("<<ListboxSelect>>")
-            
-            # Set the selection
-            self.party_list.selection_clear(0, tk.END)
-            self.party_list.selection_set(index)
-            self.party_list.see(index)
-            
-            # Re-enable the selection handler
-            self.party_list.bind("<<ListboxSelect>>", lambda e: self._on_party_list_select_event())
-            
-            # Manually trigger the selection handler (this will show loading indicator)
-            self._on_party_selected()
-            
+            # Identify clicked index
+            idx = self.party_list.nearest(event.y)
+            if idx is None:
+                return "break"
+            # Apply selection deterministically and render; consume event
+            self._set_party_selection(int(idx), render=True)
+            return "break"
+        except Exception:
+            return "break"
+
+    def _select_party_member(self, index: int):
+        """Programmatic selection routed through unified setter."""
+        try:
+            self._set_party_selection(index, render=True)
         except Exception as e:
             debug_log(f"Error in _select_party_member: {e}")
-            # Re-enable handler as fallback
-            try:
-                self.party_list.bind("<<ListboxSelect>>", lambda e: self._on_party_list_select_event())
-            except Exception:
-                pass
 
     def _compute_full_pokemon_data(self, mon: dict, species_id: int) -> dict:
         """Compute complete Pokemon data for maximum caching."""
@@ -4894,8 +4890,10 @@ class TeamManagerDialog(tk.Toplevel):
             except Exception:
                 pass
 
-            # Defer heavy operations even further (guarded)
-            self.after_idle(lambda m=mon, cd=cached_data: self._apply_heavy_data_guarded(0, m, cd))
+            # Defer heavy operations even further (guarded by generation)
+            self.after_idle(lambda g=current_gen, m=mon, cd=cached_data: (
+                self._apply_heavy_data_guarded(0, m, cd) if g == getattr(self, '_selection_gen', 0) else None
+            ))
 
         except Exception as e:
             debug_log(f"Error applying secondary data: {e}")
