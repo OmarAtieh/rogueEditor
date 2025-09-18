@@ -53,7 +53,7 @@ from rogueeditor.catalog import (
 )
 from gui.common.widgets import AutoCompleteEntry
 from gui.common.catalog_select import CatalogSelectDialog
-from gui.dialogs.team_editor import TeamManagerDialog
+from gui.dialogs.team_editor import TeamManagerDialog, warm_team_analysis_cache, invalidate_team_analysis_cache
 from gui.sections.slots import build as build_slots_section
 from gui.dialogs.item_manager import ItemManagerDialog
 # Enhanced feedback systems
@@ -76,7 +76,7 @@ from rogueeditor.healthcheck import (
 )
 
 
-class App(ttk.Frame):
+class RogueManagerGUI(ttk.Frame):
     def __init__(self, master: tk.Misc):
         # Add initialization debugging
         self._debug_log("GUI Initialization Started")
@@ -88,7 +88,7 @@ class App(ttk.Frame):
         self._debug_log("Root window obtained")
         
         try:
-            root.title("rogueEditor GUI")
+            root.title("Rogue Manager GUI")
             # Slightly wider default to avoid rightmost button cutoff
             root.geometry("1050x800")
             root.minsize(720, 600)
@@ -151,15 +151,7 @@ class App(ttk.Frame):
         try:
             self.style = ttk.Style(self)
             self.compact_mode = tk.BooleanVar(value=False)
-            # Load last compact mode preference for this user
-            try:
-                from rogueeditor.persistence import persistence_manager
-                if self.username:
-                    last_compact = persistence_manager.get_user_value(self.username, "compact_mode", False)
-                    self.compact_mode.set(bool(last_compact))
-                    self._log(f"[DEBUG] Loaded last compact mode: {last_compact}")
-            except Exception as e:
-                self._log(f"[DEBUG] Failed to load last compact mode: {e}")
+            # Compact mode preference will be loaded after login
             self._debug_log("Style and compact mode initialized")
         except Exception as e:
             self._debug_log(f"Style and compact mode initialization failed: {e}")
@@ -263,12 +255,10 @@ class App(ttk.Frame):
             self.left_top_frame.pack(fill=tk.X, padx=4, pady=4)
             self.left_bottom_frame.pack(fill=tk.BOTH, expand=True, padx=4, pady=4)
             
-            # Create sub-columns within top frame (auth, status, tools)
+            # Create sub-columns within top frame (auth, tools)
             self.auth_col = ttk.Frame(self.left_top_frame)
-            self.session_col = ttk.Frame(self.left_top_frame)
             self.tools_col = ttk.Frame(self.left_top_frame)
             self.auth_col.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=2)
-            self.session_col.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=2)
             self.tools_col.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=2)
             self._debug_log("Sub-frames created")
 
@@ -284,6 +274,9 @@ class App(ttk.Frame):
             # Mount root container
             self.pack(fill=tk.BOTH, expand=True)
             self._debug_log("Root container packed")
+
+            # Window persistence will be set up after login
+
             self._debug_log("GUI Initialization Completed Successfully")
         except Exception as e:
             self._debug_log(f"Grid layout setup failed: {e}")
@@ -409,9 +402,8 @@ class App(ttk.Frame):
 
     # --- UI builders ---
     def _build_login(self):
-        # Build the three-column top section
+        # Build the top section (auth, tools)
         self._build_auth_column()
-        self._build_session_column()
         self._build_tools_column()
 
         # Update session label when user changes selection
@@ -424,6 +416,12 @@ class App(ttk.Frame):
         """Build the narrow authentication column (left)"""
         auth_frm = ttk.LabelFrame(self.auth_col, text="Authentication")
         auth_frm.pack(fill=tk.BOTH, expand=True)
+
+        # Ensure status var exists for session callbacks
+        try:
+            _ = self.status_var
+        except Exception:
+            self.status_var = tk.StringVar(value="")
 
         # User and password fields in a compact vertical layout
         auth_grid = ttk.Frame(auth_frm)
@@ -449,29 +447,23 @@ class App(ttk.Frame):
         # Action buttons
         btn_frm = ttk.Frame(auth_frm)
         btn_frm.pack(fill=tk.X, padx=4, pady=4)
-        ttk.Button(btn_frm, text="Login", command=self._safe(self._login), width=16).pack(side=tk.LEFT, padx=1)
+        self.btn_login = ttk.Button(btn_frm, text="Login", command=self._safe(self._login), width=16)
+        self.btn_login.pack(side=tk.LEFT, padx=1)
         ttk.Button(btn_frm, text="Refresh Session", command=self._safe(self._refresh_session), width=16).pack(side=tk.RIGHT, padx=1)
 
+        # Last session update label under the buttons
+        try:
+            self.session_updated_var
+        except Exception:
+            self.session_updated_var = tk.StringVar(value="Last session update: -")
+        ttk.Label(auth_frm, textvariable=self.session_updated_var,
+                 font=('TkDefaultFont', 8), foreground='gray50').pack(anchor=tk.W, padx=4, pady=(0, 4))
+
     def _build_session_column(self):
-        """Build the session information column (middle)"""
-        session_frm = ttk.LabelFrame(self.session_col, text="Session Info")
-        session_frm.pack(fill=tk.BOTH, expand=True)
-
-        # Session status
-        self.status_var = tk.StringVar(value="Status: Not logged in")
-        ttk.Label(session_frm, textvariable=self.status_var, wraplength=200).pack(anchor=tk.W, padx=4, pady=2)
-
-        # Session last updated label (persisted per user)
-        self.session_updated_var = tk.StringVar(value="Last: -")
-        ttk.Label(session_frm, textvariable=self.session_updated_var, wraplength=200,
-                 font=('TkDefaultFont', 8), foreground='gray50').pack(anchor=tk.W, padx=4, pady=1)
-
-        # Session ID display and entry (compact)
-        session_id_frm = ttk.Frame(session_frm)
-        session_id_frm.pack(fill=tk.X, padx=4, pady=4)
-        ttk.Label(session_id_frm, text="Session ID:").pack(anchor=tk.W)
-        self.csid_entry = ttk.Entry(session_id_frm, show="*", width=30)
-        self.csid_entry.pack(fill=tk.X, pady=2)
+        """Build the session information column (middle) - DEPRECATED"""
+        # This method is no longer used since session column was removed
+        # Session information is now displayed in the auth column
+        pass
 
     def _build_tools_column(self):
         """Build the quick tools column (right) with vertical stacking"""
@@ -489,7 +481,7 @@ class App(ttk.Frame):
         # Backup status label
         self.backup_status_var = tk.StringVar(value="Last backup: none")
         ttk.Label(tools_frm, textvariable=self.backup_status_var, foreground='gray50',
-                 font=('TkDefaultFont', 8), wraplength=100).pack(fill=tk.X, padx=4, pady=2)
+                 font=('TkDefaultFont', 8)).pack(fill=tk.X, padx=4, pady=2)
 
         # Log level selector (in one row)
         log_frm = ttk.Frame(tools_frm)
@@ -536,32 +528,35 @@ class App(ttk.Frame):
         self.slot_tree = handle["slot_tree"]
 
         # Data IO
-        box1 = ttk.LabelFrame(inner, text="Data IO")
+        box1 = ttk.LabelFrame(inner, text="Data I/O")
         box1.pack(fill=tk.X, padx=6, pady=6)
 
-        # Section: Dumps
-        dump_f = ttk.LabelFrame(box1, text="Dump from server to local (for editing)")
-        dump_f.grid(row=0, column=0, columnspan=3, sticky=tk.W+tk.E, padx=4, pady=4)
-        ttk.Button(dump_f, text="Dump Trainer", command=self._safe(self._dump_trainer)).grid(row=1, column=0, padx=4, pady=4, sticky=tk.W)
-        # Shared slot selection comes from the Slots overview above
-        ttk.Button(dump_f, text="Dump Selected Slot", command=self._safe(self._dump_slot_selected)).grid(row=1, column=1, padx=4, pady=4, sticky=tk.W)
-        ttk.Button(dump_f, text="Dump All", command=self._safe(self._dump_all)).grid(row=1, column=2, padx=4, pady=4, sticky=tk.W)
+        # Create main content frame with side-by-side layout
+        content_frame = ttk.Frame(box1)
+        content_frame.pack(fill=tk.X, padx=4, pady=4)
 
-        # Section: Upload
-        up_f = ttk.LabelFrame(box1, text="Upload local changes to server")
-        up_f.grid(row=1, column=0, columnspan=3, sticky=tk.W+tk.E, padx=4, pady=4)
-        ttk.Button(up_f, text="Upload Trainer", command=self._safe(self._update_trainer)).grid(row=0, column=0, padx=4, pady=4, sticky=tk.W)
-        ttk.Button(up_f, text="Upload Selected Slot", command=self._safe(self._update_slot_selected)).grid(row=0, column=1, padx=4, pady=4, sticky=tk.W)
-        ttk.Button(up_f, text="Upload All", command=self._safe(self._upload_all)).grid(row=0, column=2, padx=4, pady=4, sticky=tk.W)
+        # Left side: Dump from server to local
+        dump_f = ttk.LabelFrame(content_frame, text="↓ From Server to Local")
+        dump_f.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=(0, 2))
+        ttk.Button(dump_f, text="↓ Trainer", command=self._safe(self._dump_trainer)).grid(row=0, column=0, padx=2, pady=2, sticky=tk.W)
+        ttk.Button(dump_f, text="↓ Selected Slot", command=self._safe(self._dump_slot_selected)).grid(row=0, column=1, padx=2, pady=2, sticky=tk.W)
+        ttk.Button(dump_f, text="↓ All", command=self._safe(self._dump_all)).grid(row=0, column=2, padx=2, pady=2, sticky=tk.W)
 
-        # Section: Local Files
-        local_f = ttk.LabelFrame(box1, text="Open local dumps (view/edit at your own risk)")
-        local_f.grid(row=2, column=0, columnspan=3, sticky=tk.W+tk.E, padx=4, pady=4)
-        ttk.Button(local_f, text="Open Local Dump...", command=self._safe(self._open_local_dump_dialog)).grid(row=0, column=0, padx=4, pady=4, sticky=tk.W)
-        ttk.Label(local_f, text=(
-            "⚠️ Manual edits may corrupt saves. Proceed at your own risk."),
-            foreground="red",
-        ).grid(row=0, column=1, sticky=tk.W, padx=4, pady=4)
+        # Right side: Upload local changes to server
+        up_f = ttk.LabelFrame(content_frame, text="↑ From Local to Server")
+        up_f.pack(side=tk.RIGHT, fill=tk.BOTH, expand=True, padx=(2, 0))
+        ttk.Button(up_f, text="↑ Trainer", command=self._safe(self._update_trainer)).grid(row=0, column=0, padx=2, pady=2, sticky=tk.W)
+        ttk.Button(up_f, text="↑ Selected Slot", command=self._safe(self._update_slot_selected)).grid(row=0, column=1, padx=2, pady=2, sticky=tk.W)
+        ttk.Button(up_f, text="↑ All", command=self._safe(self._upload_all)).grid(row=0, column=2, padx=2, pady=2, sticky=tk.W)
+
+        # Bottom section: Local Files (full width)
+        local_f = ttk.LabelFrame(box1, text="Open Local Files")
+        local_f.pack(fill=tk.X, padx=4, pady=(4, 4))
+        local_btn_frame = ttk.Frame(local_f)
+        local_btn_frame.pack(fill=tk.X, padx=4, pady=4)
+        ttk.Button(local_btn_frame, text="Open Local Dump...", command=self._safe(self._open_local_dump_dialog)).pack(side=tk.LEFT, padx=(0, 10))
+        ttk.Label(local_btn_frame, text="⚠️ Manual edits may corrupt saves. Proceed at your own risk.",
+                 foreground="red", font=('TkDefaultFont', 8)).pack(side=tk.LEFT)
 
         # (Slots summary moved above)
 
@@ -576,95 +571,32 @@ class App(ttk.Frame):
         ).pack(fill=tk.X, padx=6, pady=(2, 0))
         # Team management and modifiers section
         ttk.Button(box2, text="Manage Team", command=self._safe(self._edit_team_dialog)).pack(side=tk.LEFT, padx=4, pady=4)
-        ttk.Button(box2, text="Open Modifiers & Items Manager", command=self._safe(self._open_item_mgr)).pack(side=tk.LEFT, padx=4, pady=4)
-        ttk.Button(box2, text="⚠️ Edit Run Weather", command=self._safe(self._edit_run_weather)).pack(side=tk.LEFT, padx=4, pady=4)
+        ttk.Button(box2, text="Manage Modifiers & Items", command=self._safe(self._open_item_mgr)).pack(side=tk.LEFT, padx=4, pady=4)
+        ttk.Button(box2, text="⚠️ Manage Weather", command=self._safe(self._edit_run_weather)).pack(side=tk.LEFT, padx=4, pady=4)
 
         # Note: Modifiers / Items section removed - functionality moved to team section above
 
-        # Starters
-        box4 = ttk.LabelFrame(inner, text="Starters")
+        # Account-Wide Settings
+        box4 = ttk.LabelFrame(inner, text="Account-Wide Settings")
         box4.pack(fill=tk.X, padx=6, pady=6)
         ttk.Label(
             box4,
-            text="Edits trainer (account-wide) data & persists across runs (trainer.json).",
-            foreground='gray50',
-            font=(self.hint_font if getattr(self, 'hint_font', None) else None),
-        ).grid(row=0, column=0, columnspan=5, sticky=tk.W, padx=6, pady=(2, 2))
-        # Pokemon selector
-        from rogueeditor.utils import load_pokemon_index
-        dex = (load_pokemon_index().get("dex") or {})
-        # Map name->id (int), keys lower
-        name_to_id = {k.lower(): int(v) for k, v in dex.items()}
-        self._starter_name_to_id = name_to_id
-        ttk.Label(box4, text="Pokemon:").grid(row=1, column=0, sticky=tk.W, padx=4, pady=2)
-        self.starter_ac = AutoCompleteEntry(box4, name_to_id, width=30)
-        self.starter_ac.grid(row=1, column=1, sticky=tk.W, padx=4, pady=2)
-        ttk.Button(box4, text="Pick...", command=self._pick_starter_from_catalog).grid(row=1, column=2, sticky=tk.W, padx=4, pady=2)
-        ttk.Button(box4, text="Pokedex IDs", command=self._safe(self._pokedex_list)).grid(row=1, column=3, sticky=tk.W, padx=4, pady=2)
-        # Label to show chosen Pokemon name and id
-        self.starter_label = ttk.Label(box4, text="")
-        self.starter_label.grid(row=1, column=4, sticky=tk.W, padx=6, pady=2)
-        # Update label as the entry changes
-        try:
-            self.starter_ac.bind('<KeyRelease>', lambda e: self._update_starter_label())
-            self.starter_ac.bind('<FocusOut>', lambda e: self._update_starter_label())
-        except Exception:
-            pass
-        # Attributes
-        ttk.Label(box4, text="abilityAttr:").grid(row=2, column=0, sticky=tk.W, padx=4, pady=2)
-        # abilityAttr presets via checkboxes
-        mask = load_ability_attr_mask() or {"ability_1": 1, "ability_2": 2, "ability_hidden": 4}
-        self.aa1 = tk.IntVar(value=1)
-        self.aa2 = tk.IntVar(value=1)
-        self.aah = tk.IntVar(value=1)
-        ttk.Checkbutton(box4, text="Ability 1", variable=self.aa1).grid(row=2, column=1, sticky=tk.W, padx=4)
-        ttk.Checkbutton(box4, text="Ability 2", variable=self.aa2).grid(row=2, column=2, sticky=tk.W, padx=4)
-        ttk.Checkbutton(box4, text="Hidden", variable=self.aah).grid(row=2, column=3, sticky=tk.W, padx=4)
-
-        ttk.Label(box4, text="passiveAttr:").grid(row=3, column=0, sticky=tk.W, padx=4, pady=2)
-        # Passive presets (UNLOCKED=1, ENABLED=2)
-        self.p_unlocked = tk.IntVar(value=1)
-        self.p_enabled = tk.IntVar(value=0)
-        ttk.Checkbutton(box4, text="Unlocked", variable=self.p_unlocked).grid(row=3, column=1, sticky=tk.W, padx=4)
-        ttk.Checkbutton(box4, text="Enabled", variable=self.p_enabled).grid(row=3, column=2, sticky=tk.W, padx=4)
-
-        ttk.Label(box4, text="Cost Reduction (valueReduction):").grid(row=4, column=0, sticky=tk.W, padx=4, pady=2)
-        self.starter_value_reduction = ttk.Entry(box4, width=8)
-        self.starter_value_reduction.insert(0, "0")
-        self.starter_value_reduction.grid(row=4, column=1, sticky=tk.W, padx=4, pady=2)
-
-        btn_row = ttk.Frame(box4)
-        btn_row.grid(row=5, column=1, columnspan=3, sticky=tk.W)
-        ttk.Button(btn_row, text="Apply Attributes", command=self._safe(self._apply_starter_attrs)).grid(row=0, column=0, padx=4, pady=4, sticky=tk.W)
-        ttk.Button(btn_row, text="Unlock Starter...", command=self._safe(self._unlock_starter_dialog)).grid(row=0, column=1, padx=4, pady=4, sticky=tk.W)
-        ttk.Button(btn_row, text="Unlock All Starters", command=self._safe(self._unlock_all_starters)).grid(row=0, column=2, padx=4, pady=4, sticky=tk.W)
-        # Pokedex IDs moved next to the Pick button
-
-        # Candies increment
-        ttk.Label(box4, text="Candies (selected):").grid(row=6, column=0, sticky=tk.W, padx=4, pady=2)
-        self.starter_candy_delta = ttk.Entry(box4, width=8)
-        self.starter_candy_delta.insert(0, "0")
-        self.starter_candy_delta.grid(row=6, column=1, sticky=tk.W, padx=4, pady=2)
-        # Secondary actions aligned under the primary actions row
-        btn_row2 = ttk.Frame(box4)
-        btn_row2.grid(row=7, column=1, columnspan=3, sticky=tk.W)
-        ttk.Button(btn_row2, text="Increment Candies", command=self._safe(self._inc_starter_candies)).grid(row=0, column=1, padx=4, pady=2, sticky=tk.W)
-        ttk.Button(btn_row2, text="Unlock All Passives (mask=7)", command=self._safe(self._unlock_all_passives)).grid(row=0, column=2, padx=4, pady=2, sticky=tk.W)
-        # moved: Increment Candies button now appears below under secondary actions
-
-        # Passives unlock near candies
-        # moved: Unlock All Passives button now appears below under secondary actions
-
-        # Subsection: Eggs & Tickets
-        s2 = ttk.LabelFrame(box4, text="Eggs & Tickets")
-        s2.grid(row=8, column=0, columnspan=5, sticky=tk.W+tk.E, padx=4, pady=6)
-        ttk.Label(s2, text="Gacha ? C/R/E/L:").grid(row=0, column=0, sticky=tk.W, padx=4, pady=2)
-        self.gacha_d0 = ttk.Entry(s2, width=5); self.gacha_d0.insert(0, "0"); self.gacha_d0.grid(row=0, column=1, sticky=tk.W, padx=2)
-        self.gacha_d1 = ttk.Entry(s2, width=5); self.gacha_d1.insert(0, "0"); self.gacha_d1.grid(row=0, column=2, sticky=tk.W, padx=2)
-        self.gacha_d2 = ttk.Entry(s2, width=5); self.gacha_d2.insert(0, "0"); self.gacha_d2.grid(row=0, column=3, sticky=tk.W, padx=2)
-        self.gacha_d3 = ttk.Entry(s2, width=5); self.gacha_d3.insert(0, "0"); self.gacha_d3.grid(row=0, column=4, sticky=tk.W, padx=2)
-        ttk.Button(s2, text="Apply Gacha ?", command=self._safe(self._apply_gacha_delta)).grid(row=0, column=5, sticky=tk.W, padx=4, pady=2)
-        ttk.Button(s2, text="Hatch All Eggs After Next Fight", command=self._safe(self._hatch_eggs)).grid(row=1, column=1, columnspan=3, sticky=tk.W, padx=4, pady=4)
+            text="⚠️ Account-wide changes that persist across runs. Use with caution!",
+            foreground="red",
+            font=('TkDefaultFont', 8)
+        ).pack(padx=4, pady=2)
+        
+        # Account-wide actions
+        actions_frame = ttk.Frame(box4)
+        actions_frame.pack(fill=tk.X, padx=4, pady=4)
+        
+        ttk.Button(actions_frame, text="Manage Starters", 
+                  command=self._open_starters_manager).pack(side=tk.LEFT, padx=5)
+        ttk.Button(actions_frame, text="Hatch All Eggs", 
+                  command=self._safe(self._hatch_all_eggs_quick)).pack(side=tk.LEFT, padx=5)
+        ttk.Button(actions_frame, text="Pokedex List", 
+                  command=self._safe(self._pokedex_list)).pack(side=tk.LEFT, padx=5)
+        
 
     def _build_console(self):
         self.console_frame = ttk.LabelFrame(self.console_col, text="Console")
@@ -839,10 +771,45 @@ class App(ttk.Frame):
         except Exception:
             pass
 
+    def _center_window(self, window: tk.Toplevel, width: int = None, height: int = None):
+        """Center a window relative to the parent window."""
+        try:
+            # Update window to ensure geometry is correct
+            window.update_idletasks()
+
+            # Get parent window geometry
+            parent_x = self.winfo_rootx()
+            parent_y = self.winfo_rooty()
+            parent_width = self.winfo_width()
+            parent_height = self.winfo_height()
+
+            # Get child window size
+            if width is None or height is None:
+                window.update_idletasks()
+                child_width = window.winfo_reqwidth()
+                child_height = window.winfo_reqheight()
+            else:
+                child_width = width
+                child_height = height
+
+            # Calculate center position
+            x = parent_x + (parent_width - child_width) // 2
+            y = parent_y + (parent_height - child_height) // 2
+
+            # Ensure window stays on screen
+            x = max(0, x)
+            y = max(0, y)
+
+            # Set window position
+            window.geometry(f"{child_width}x{child_height}+{x}+{y}")
+        except Exception as e:
+            # Fallback to default positioning if centering fails
+            self._log(f"[DEBUG] Window centering failed: {e}")
+
     def _show_text_dialog(self, title: str, content: str):
         top = tk.Toplevel(self)
         top.title(title)
-        top.geometry('700x450')
+        self._center_window(top, 700, 450)
         frm = ttk.Frame(top)
         frm.pack(fill=tk.BOTH, expand=True)
         txt = tk.Text(frm, wrap='word')
@@ -866,6 +833,7 @@ class App(ttk.Frame):
                 messagebox.showerror('Save failed', str(e))
         ttk.Button(btns, text='Save...', command=do_save).pack(side=tk.LEFT, padx=6)
         ttk.Button(btns, text='Close', command=top.destroy).pack(side=tk.RIGHT, padx=6)
+        self._center_window(top)
         self._modalize(top)
 
     def _run_and_show_output(self, title: str, func):
@@ -948,7 +916,7 @@ class App(ttk.Frame):
     # --- Actions ---
     def _new_user_dialog(self):
         top = tk.Toplevel(self)
-        top.title("New User")
+        top.title("Rogue Manager GUI - New User")
         ttk.Label(top, text="Username:").pack(padx=6, pady=6)
         ent = ttk.Entry(top)
         ent.pack(padx=6, pady=6)
@@ -960,6 +928,7 @@ class App(ttk.Frame):
             self.user_combo.set(user)
             top.destroy()
         ttk.Button(top, text="OK", command=ok).pack(pady=6)
+        self._center_window(top)
         self._modalize(top, ent)
 
     def _test_feedback_system(self):
@@ -1248,7 +1217,7 @@ class App(ttk.Frame):
                     self._log(f"[ERROR] Failed to hide busy indicator: {hide_err}")
 
             self._log(f"[ERROR] Scheduling login error handler: {e}")
-            self.after(0, lambda: handle_login_error(e))
+            self.after(0, lambda error=e: handle_login_error(error))
         
     def _safe_login_done_wrapper(self):
         """Wrapper to ensure login completion doesn't freeze UI"""
@@ -1259,6 +1228,54 @@ class App(ttk.Frame):
         except Exception as e:
             self._log(f"[ERROR] Login completion failed: {e}")
             self.feedback.show_error_toast(f"Login completion error: {e}")
+
+    def _logout(self):
+        """Log out the current user, warning if there are unsent local changes."""
+        try:
+            user = self.username
+        except Exception:
+            user = None
+        # Check dirty state
+        try:
+            from rogueeditor.persistence import persistence_manager
+            is_dirty = persistence_manager.get_user_value(user or "", "local_dirty", False)
+        except Exception:
+            is_dirty = False
+        if is_dirty:
+            if not self.feedback.confirm_action("Unsynced Changes",
+                "There are local changes not uploaded. Log out anyway?",
+                "logging out"):
+                return
+        # Cleanup session manager and API
+        try:
+            self._cleanup_session_manager()
+        except Exception:
+            pass
+        self.api = None
+        # Reset UI pieces
+        try:
+            self.status_var.set("Status: Not logged in")
+        except Exception:
+            pass
+        try:
+            self.btn_backup.configure(state=tk.DISABLED)
+            self.btn_restore.configure(state=tk.DISABLED)
+        except Exception:
+            pass
+        try:
+            self.btn_login.configure(text="Login", command=self._safe(self._login))
+        except Exception:
+            pass
+        # Clear user selection if requested
+        try:
+            self.user_combo.set("")
+        except Exception:
+            pass
+        # Clear session timestamp display
+        try:
+            self.session_updated_var.set("Last session update: -")
+        except Exception:
+            pass
         finally:
             # Ensure busy indicator is always hidden
             try:
@@ -1291,14 +1308,14 @@ class App(ttk.Frame):
         # Load last selected slot for this user
         self._load_last_selected_slot()
 
-        # Reflect the active clientSessionId in the UI field
+        # Start background cache warming for team analysis
+        self._start_background_cache_warming()
+
+        # Toggle Login -> Logout
         try:
-            self._log("[DEBUG] Updating session ID field...")
-            self.csid_entry.delete(0, tk.END)
-            self.csid_entry.insert(0, str(self.api.client_session_id or ""))
-            self._log("[DEBUG] Session ID field updated")
-        except Exception as e:
-            self._log(f"Warning: Could not update session ID field: {e}")
+            self.btn_login.configure(text="Logout", command=self._safe(self._logout))
+        except Exception:
+            pass
 
         # Persist and show last session update time
         try:
@@ -1321,6 +1338,11 @@ class App(ttk.Frame):
             self.btn_backup.configure(state=tk.NORMAL)
             self.btn_restore.configure(state=tk.NORMAL)
             self._log("[DEBUG] Backup buttons enabled")
+            # Refresh backup status after enabling
+            try:
+                self._refresh_backup_status()
+            except Exception as e:
+                self._log(f"Warning: Could not refresh backup status: {e}")
         except Exception as e:
             self._log(f"Warning: Could not enable backup buttons: {e}")
 
@@ -1330,6 +1352,25 @@ class App(ttk.Frame):
             self._log("[DEBUG] Backup status updated")
         except Exception as e:
             self._log(f"Warning: Could not update backup status: {e}")
+
+        # Load compact mode preference for this user
+        try:
+            self._log("[DEBUG] Loading compact mode preference after login...")
+            from rogueeditor.persistence import persistence_manager
+            last_compact = persistence_manager.get_user_value(self.username, "compact_mode", False)
+            self.compact_mode.set(bool(last_compact))
+            # Apply the setting immediately
+            self._apply_compact_mode(last_compact)
+            self._log(f"[DEBUG] Loaded and applied compact mode: {last_compact}")
+        except Exception as e:
+            self._log(f"Warning: Could not load compact mode preference: {e}")
+
+        # Set up window geometry persistence after login
+        try:
+            self._setup_window_persistence()
+            self._log("[DEBUG] Window persistence setup completed")
+        except Exception as e:
+            self._log(f"Warning: Could not setup window persistence: {e}")
 
         # Automatically refresh slots after login
         try:
@@ -1349,6 +1390,27 @@ class App(ttk.Frame):
             self._log(f"[ERROR] Failed to hide busy indicator: {e}")
 
         self._log("[DEBUG] Login completion finished.")
+
+    def _start_background_cache_warming(self):
+        """Start background cache warming for current slot only (reduced load)."""
+        try:
+            if not self.api or not self.username:
+                return
+
+            # Only warm cache for currently selected slot to reduce system load
+            try:
+                from rogueeditor.persistence import persistence_manager
+                current_slot = int(persistence_manager.get_last_selected_slot(self.username))
+
+                self._log(f"[DEBUG] Starting cache warming for current slot {current_slot} only...")
+                future = warm_team_analysis_cache(self.api, current_slot, self.username)
+                self._log(f"[DEBUG] Started cache warming for slot {current_slot}")
+
+            except Exception as e:
+                self._log(f"Warning: Could not start cache warming: {e}")
+
+        except Exception as e:
+            self._log(f"Warning: Could not start background cache warming: {e}")
 
     def _verify(self):
         self.editor.system_verify()
@@ -1395,11 +1457,7 @@ class App(ttk.Frame):
                     # Update references
                     self.api = api
                     self.status_var.set(f"Status: Session refreshed for {user}")
-                    try:
-                        self.csid_entry.delete(0, tk.END)
-                        self.csid_entry.insert(0, str(api.client_session_id or ""))
-                    except Exception:
-                        pass
+                    # Session ID no longer displayed
                     self._log("Session refreshed.")
                     # Persist and reflect last session update time
                     try:
@@ -1784,7 +1842,7 @@ class App(ttk.Frame):
             messagebox.showwarning("Missing", "Please log in/select a user first.")
             return
         top = tk.Toplevel(self)
-        top.title("Open Local Dump")
+        top.title("Rogue Manager GUI - Open Local Dump")
         ttk.Label(top, text="Open which file?").grid(row=0, column=0, columnspan=3, padx=6, pady=6, sticky=tk.W)
         choice = tk.StringVar(value='trainer')
         ttk.Radiobutton(top, text="Trainer (trainer.json)", variable=choice, value='trainer').grid(row=1, column=0, sticky=tk.W, padx=6)
@@ -1829,6 +1887,7 @@ class App(ttk.Frame):
 
         ttk.Button(top, text="Open", command=do_open).grid(row=3, column=0, padx=6, pady=10, sticky=tk.W)
         ttk.Button(top, text="Close", command=top.destroy).grid(row=3, column=1, padx=6, pady=10, sticky=tk.W)
+        self._center_window(top)
         self._modalize(top)
 
     def _on_slot_select(self, event=None):
@@ -1994,12 +2053,12 @@ class App(ttk.Frame):
                         pass
                 elif not any_local:
                     try:
-                        messagebox.showinfo('No local dumps', 'No local dumps found. Use Data IO → Dump to fetch trainer and/or slots you want to edit.')
+                        self.feedback.show_info('No local dumps found. Use Data IO → Dump to fetch trainer and/or slots you want to edit.', duration=6000)
                     except Exception:
                         pass
                 elif any_outdated:
                     try:
-                        messagebox.showwarning('Dumps may be out of date', 'Some local dumps are older than the last login. Consider dumping again to avoid overwriting newer server data.')
+                        self.feedback.show_warning('Some local dumps are older than the last login. Consider dumping again to avoid overwriting newer server data.', duration=8000)
                     except Exception:
                         pass
 
@@ -2091,7 +2150,17 @@ class App(ttk.Frame):
         path = self.editor.backup_all()
         self._log(f"Backup created: {path}")
         # Schedule UI update on main thread
-        self.after(0, lambda: [self._update_backup_status(), self._refresh_slots()])
+        def _post_backup():
+            try:
+                self._update_backup_status()
+                self._refresh_backup_status()
+            except Exception as e:
+                self._log(f"Warning: Could not refresh backup status after backup: {e}")
+            try:
+                self._refresh_slots()
+            except Exception as e:
+                self._log(f"Warning: Could not refresh slots after backup: {e}")
+        self.after(0, _post_backup)
 
     def _restore_dialog(self):
         base = os.path.join("Source", "saves", self.username, "backups")
@@ -2103,7 +2172,7 @@ class App(ttk.Frame):
             messagebox.showinfo("No backups", "No backups found.")
             return
         top = tk.Toplevel(self)
-        top.title("Select Backup")
+        top.title("Rogue Manager GUI - Select Backup")
         frm = ttk.Frame(top)
         frm.pack(fill=tk.BOTH, expand=True)
         lb = tk.Listbox(frm, height=12)
@@ -2196,6 +2265,8 @@ class App(ttk.Frame):
         try:
             from rogueeditor.utils import user_save_dir
             from rogueeditor.persistence import persistence_manager
+            import re
+            import os
             if not self.username:
                 self.backup_status_var.set("Last backup: none")
                 return
@@ -2203,7 +2274,10 @@ class App(ttk.Frame):
             if not os.path.isdir(base):
                 self.backup_status_var.set("Last backup: none")
                 return
-            dirs = sorted([d for d in os.listdir(base) if os.path.isdir(os.path.join(base, d))])
+            # Only consider timestamped backup folders: YYYYMMDD_HHMMSS
+            all_dirs = [d for d in os.listdir(base) if os.path.isdir(os.path.join(base, d))]
+            ts_re = re.compile(r"^\d{8}_\d{6}$")
+            dirs = sorted([d for d in all_dirs if ts_re.match(d)])
             
             if dirs:
                 latest_backup = dirs[-1]
@@ -2217,6 +2291,10 @@ class App(ttk.Frame):
         except Exception:
             self.backup_status_var.set("Last backup: unknown")
 
+    def _refresh_backup_status(self):
+        # Backwards-compatible alias; centralize any extra refresh logic here
+        self._update_backup_status()
+
     def _restore_dialog2(self):
         from rogueeditor.utils import user_save_dir, load_json
         base = os.path.join(user_save_dir(self.username or ""), "backups")
@@ -2228,7 +2306,7 @@ class App(ttk.Frame):
             messagebox.showinfo("No backups", "No backups found.")
             return
         top = tk.Toplevel(self)
-        top.title("Select Backup")
+        top.title("Rogue Manager GUI - Select Backup")
         frm = ttk.Frame(top)
         frm.pack(fill=tk.BOTH, expand=True)
         lb = tk.Listbox(frm, height=12)
@@ -2366,6 +2444,7 @@ class App(ttk.Frame):
             top.destroy()
         ttk.Button(top, text="Upload", command=do_upload).grid(row=3, column=0, padx=6, pady=10, sticky=tk.W)
         ttk.Button(top, text="Close", command=top.destroy).grid(row=3, column=1, padx=6, pady=10, sticky=tk.W)
+        self._center_window(top)
 
     # _analyze_team_dialog removed - marked for removal
 
@@ -2391,7 +2470,7 @@ class App(ttk.Frame):
         from rogueeditor.catalog import load_weather_catalog
         n2i, i2n = load_weather_catalog()
         top = tk.Toplevel(self)
-        top.title(f"Edit Run Weather - Slot {slot}")
+        top.title(f"Rogue Manager GUI - Edit Run Weather (Slot {slot})")
         ttk.Label(top, text="Weather:").grid(row=0, column=0, padx=6, pady=6)
         items = [f"{name} ({iid})" for name, iid in sorted(n2i.items(), key=lambda kv: kv[0])]
         var = tk.StringVar()
@@ -2430,14 +2509,37 @@ class App(ttk.Frame):
                     messagebox.showerror('Upload failed', str(e))
             top.destroy()
         ttk.Button(top, text='Apply', command=do_apply).grid(row=1, column=1, padx=6, pady=6, sticky=tk.W)
+        self._center_window(top)
 
     def _edit_team_dialog(self):
+        print("[TRACE] _edit_team_dialog ENTRY")
+        self._log("[DEBUG] _edit_team_dialog method called")
+        print("[TRACE] About to get slot variable")
         try:
             slot = int(self.slot_var.get())
-        except Exception:
+            print(f"[TRACE] Got slot from variable: {slot}")
+        except Exception as e:
+            print(f"[TRACE] Exception getting slot variable: {e}")
             slot = self._ask_slot()
+            print(f"[TRACE] Got slot from dialog: {slot}")
+        print(f"[TRACE] Checking if slot {slot} is valid")
         if slot:
+            # Ensure clientSessionId is available for team editor
+            if not getattr(self.api, 'client_session_id', None):
+                self._log("[DEBUG] clientSessionId missing, regenerating...")
+                try:
+                    from rogueeditor.utils import generate_client_session_id, save_client_session_id
+                    csid = generate_client_session_id()
+                    self.api.client_session_id = csid
+                    save_client_session_id(csid)
+                    self._log(f"[DEBUG] Generated new clientSessionId: {csid[:12]}...")
+                except Exception as e:
+                    self._log(f"[ERROR] Failed to generate clientSessionId: {e}")
+
+            print(f"[TRACE] About to create TeamManagerDialog for slot {slot}")
+            self._log(f"[DEBUG] About to create TeamManagerDialog for slot {slot}")
             TeamManagerDialog(self, self.api, self.editor, slot)
+            print(f"[TRACE] TeamManagerDialog created successfully")
             self._log(f"Opened team editor for slot {slot}")
 
     # _enhanced_item_manager_dialog removed - marked for removal, functionality integrated into main item manager
@@ -2461,6 +2563,27 @@ class App(ttk.Frame):
         if slot:
             ItemManagerDialog(self, self.api, self.editor, slot)
             self._log(f"Opened item manager for slot {slot}")
+
+    def _open_starters_manager(self):
+        """Open the comprehensive starters management dialog."""
+        if not self.editor:
+            self.feedback.show_warning("Please login first")
+            return
+        from gui.dialogs.starters_manager import StartersManagerDialog
+        StartersManagerDialog(self, self.api, self.editor)
+        self._log("Opened starters manager")
+
+    def _hatch_all_eggs_quick(self):
+        """Quick action to hatch all eggs."""
+        if not self.editor:
+            self.feedback.show_warning("Please login first")
+            return
+        try:
+            self.editor.hatch_all_eggs()
+            self._log("All eggs will hatch after the next battle!")
+            self.feedback.show_success("All eggs will hatch after the next battle!")
+        except Exception as e:
+            self.feedback.handle_error(e, "Hatch Eggs", "hatching all eggs")
 
     def _unlock_all_starters(self):
         # Strong warning + typed confirmation
@@ -2904,6 +3027,44 @@ class App(ttk.Frame):
             self.api.update_trainer(data)
             messagebox.showinfo("Uploaded", "Gacha tickets updated on server")
 
+    def _setup_window_persistence(self):
+        """Set up window geometry persistence for the main window."""
+        try:
+            root = self.winfo_toplevel()
+            # Load saved geometry if available
+            saved_geometry = self._load_main_window_geometry()
+            if saved_geometry:
+                root.geometry(saved_geometry)
+            # Set up save on resize/move
+            root.bind('<Configure>', self._on_main_window_configure)
+        except Exception as e:
+            self._debug_log(f"Window persistence setup error: {e}")
+            pass  # Fail silently if persistence setup fails
+
+    def _load_main_window_geometry(self) -> str:
+        """Load saved main window geometry from persistence."""
+        try:
+            from rogueeditor.persistence import persistence_manager
+            if self.username:
+                return persistence_manager.get_user_value(self.username, 'main_window_geometry')
+        except Exception:
+            pass
+        return None
+
+    def _on_main_window_configure(self, event=None):
+        """Save main window geometry when window is resized or moved."""
+        # Only save if the event is for the main window (not child widgets)
+        if event and event.widget != self.winfo_toplevel():
+            return
+        try:
+            from rogueeditor.persistence import persistence_manager
+            if self.username:
+                root = self.winfo_toplevel()
+                geometry = root.geometry()
+                persistence_manager.set_user_value(self.username, 'main_window_geometry', geometry)
+        except Exception:
+            pass
+
 
 def _debug_simple_log(message):
     """Simple debug logging to file."""
@@ -2969,7 +3130,7 @@ def run():
         return 3
     try:
         logger.debug("About to create App instance")
-        app = App(root)
+        app = RogueManagerGUI(root)
         logger.debug("App instance created successfully")
         logger.debug("Starting mainloop")
         root.mainloop()
