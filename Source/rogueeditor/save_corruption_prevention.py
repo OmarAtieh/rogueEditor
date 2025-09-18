@@ -463,3 +463,85 @@ class SaveCorruptionPreventionSystem:
 def create_save_corruption_prevention_system(username: str) -> SaveCorruptionPreventionSystem:
     """Create a configured save corruption prevention system for a user."""
     return SaveCorruptionPreventionSystem(username)
+
+
+class SafeSaveManager:
+    """
+    Simplified interface for safe save operations.
+
+    This provides a user-friendly wrapper around the save corruption prevention system
+    for GUI integration.
+    """
+
+    def __init__(self, username: Optional[str] = None):
+        """Initialize SafeSaveManager."""
+        self.username = username
+        self._system: Optional[SaveCorruptionPreventionSystem] = None
+
+    def _get_system(self, username: Optional[str] = None) -> SaveCorruptionPreventionSystem:
+        """Get or create the save corruption prevention system."""
+        effective_username = username or self.username or "default"
+        if (self._system is None or
+            self._system.username != effective_username):
+            self._system = SaveCorruptionPreventionSystem(effective_username)
+        return self._system
+
+    def safe_dump_json(self, file_path: str, data: Dict[str, Any],
+                      operation_description: str = "Save operation",
+                      username: Optional[str] = None) -> str:
+        """
+        Safely save JSON data with backup and validation.
+
+        Args:
+            file_path: Path to save the file
+            data: JSON data to save
+            operation_description: Description of the operation for backup records
+            username: Username for the operation (uses default if not provided)
+
+        Returns:
+            Backup file path if successful
+
+        Raises:
+            Exception: If save operation fails
+        """
+        system = self._get_system(username)
+
+        # Determine data type and use appropriate method
+        if 'trainer.json' in file_path:
+            result = system.safe_save_trainer(data, operation_description)
+        elif any(f'slot {i}.json' in file_path for i in range(1, 6)):
+            # Extract slot number from filename
+            slot_num = 1  # default
+            for i in range(1, 6):
+                if f'slot {i}.json' in file_path:
+                    slot_num = i
+                    break
+            result = system.safe_save_slot(slot_num, data, operation_description)
+        else:
+            # Fallback to atomic save for unknown file types
+            from .atomic_saves import AtomicSaveManager
+            from .utils import dump_json
+            import tempfile
+            import shutil
+
+            # Create backup first
+            backup_path = f"{file_path}.backup.{int(time.time())}"
+            if os.path.exists(file_path):
+                shutil.copy2(file_path, backup_path)
+
+            # Use atomic save
+            atomic_manager = AtomicSaveManager()
+            operation = atomic_manager.begin_operation(operation_description)
+
+            try:
+                dump_json(file_path, data)
+                atomic_manager.complete_operation(operation.operation_id)
+                return backup_path
+            except Exception as e:
+                atomic_manager.rollback_operation(operation.operation_id)
+                raise e
+
+        if not result.success:
+            raise RuntimeError(f"Save failed: {result.error_message}")
+
+        return result.backup_id or "No backup created"

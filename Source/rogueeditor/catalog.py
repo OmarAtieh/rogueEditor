@@ -3,13 +3,15 @@ from __future__ import annotations
 import json
 import os
 import re
-from typing import Dict, Tuple
+from typing import Dict, Tuple, Optional
+import glob
 import csv
 
 from .utils import repo_path
 
 
 DATA_MOVES_JSON = repo_path("data", "moves.json")
+DATA_MOVES_DATA_JSON = repo_path("data", "moves_data.json")
 DATA_ABILITIES_JSON = repo_path("data", "abilities.json")
 DATA_ABILITY_ATTR_JSON = repo_path("data", "ability_attr.json")
 DATA_NATURES_JSON = repo_path("data", "natures.json")
@@ -22,11 +24,13 @@ DATA_ITEMS_JSON = repo_path("data", "items.json")
 DATA_POKEBALLS_JSON = repo_path("data", "pokeballs.json")
 DATA_TYPES_JSON = repo_path("data", "types.json")
 DATA_TYPE_MATRIX_JSON = repo_path("data", "type_matrix.json")
+DATA_TYPE_MATRIX_V2_JSON = repo_path("data", "type_matrix_v2.json")
 DATA_EXP_TABLES_JSON = repo_path("data", "exp_tables.json")
 DATA_POKEMON_TYPES_JSON = repo_path("data", "pokemon_types.json")
 DATA_GROWTH_MAP_JSON = repo_path("data", "growth_map.json")
 DATA_POKEMON_CATALOG_JSON = repo_path("data", "pokemon_catalog.json")
 DATA_TYPE_COLORS_JSON = repo_path("data", "type_colors.json")
+_HIGH_LEVEL_DATA_PATH = os.path.normpath(os.path.join(os.path.dirname(__file__), "..", "..", "high_level_pokemon_data.json"))
 
 
 def _parse_ts_enum(path: str) -> Dict[str, int]:
@@ -95,33 +99,49 @@ def _parse_ts_enum(path: str) -> Dict[str, int]:
 
 
 def load_move_catalog() -> Tuple[Dict[str, int], Dict[int, str]]:
+    """Load move catalog with caching to prevent repeated file I/O operations."""
+    global _MOVE_CATALOG_CACHE
+    if isinstance(_MOVE_CATALOG_CACHE, tuple):
+        return _MOVE_CATALOG_CACHE
+
     # Prefer clean JSON in data dir
     if os.path.exists(DATA_MOVES_JSON):
         with open(DATA_MOVES_JSON, "r", encoding="utf-8") as f:
             data = json.load(f)
         nti = {k.lower(): int(v) for k, v in data.get("name_to_id", {}).items()}
         itn = {int(k): v for k, v in data.get("id_to_name", {}).items()}
-        return nti, itn
+        _MOVE_CATALOG_CACHE = (nti, itn)
+        return _MOVE_CATALOG_CACHE
+
     # Fallback to tmpServerFiles parse (for local development)
     ts_path = repo_path("..", "tmpServerFiles", "GameData", "move-id.ts")
     enum = _parse_ts_enum(ts_path)
     name_to_id = {k.lower(): v for k, v in enum.items()}
     id_to_name = {v: k for k, v in enum.items()}
-    return name_to_id, id_to_name
+    _MOVE_CATALOG_CACHE = (name_to_id, id_to_name)
+    return _MOVE_CATALOG_CACHE
 
 
 def load_ability_catalog() -> Tuple[Dict[str, int], Dict[int, str]]:
+    """Load ability catalog with caching to prevent repeated file I/O operations."""
+    global _ABILITY_CATALOG_CACHE
+    if isinstance(_ABILITY_CATALOG_CACHE, tuple):
+        return _ABILITY_CATALOG_CACHE
+
     if os.path.exists(DATA_ABILITIES_JSON):
         with open(DATA_ABILITIES_JSON, "r", encoding="utf-8") as f:
             data = json.load(f)
         nti = {k.lower(): int(v) for k, v in data.get("name_to_id", {}).items()}
         itn = {int(k): v for k, v in data.get("id_to_name", {}).items()}
-        return nti, itn
+        _ABILITY_CATALOG_CACHE = (nti, itn)
+        return _ABILITY_CATALOG_CACHE
+
     ts_path = repo_path("..", "tmpServerFiles", "GameData", "ability-id.ts")
     enum = _parse_ts_enum(ts_path)
     name_to_id = {k.lower(): v for k, v in enum.items()}
     id_to_name = {v: k for k, v in enum.items()}
-    return name_to_id, id_to_name
+    _ABILITY_CATALOG_CACHE = (name_to_id, id_to_name)
+    return _ABILITY_CATALOG_CACHE
 
 
 def load_ability_attr_mask() -> Dict[str, int]:
@@ -253,7 +273,13 @@ def load_generic_catalog(json_path: str, tmp_rel: str) -> Tuple[Dict[str, int], 
 
 
 def load_nature_catalog() -> Tuple[Dict[str, int], Dict[int, str]]:
-    return load_generic_catalog(DATA_NATURES_JSON, "nature.ts")
+    """Load nature catalog with caching to prevent repeated file I/O operations."""
+    global _NATURE_CATALOG_CACHE
+    if isinstance(_NATURE_CATALOG_CACHE, tuple):
+        return _NATURE_CATALOG_CACHE
+
+    _NATURE_CATALOG_CACHE = load_generic_catalog(DATA_NATURES_JSON, "nature.ts")
+    return _NATURE_CATALOG_CACHE
 
 
 def load_weather_catalog() -> Tuple[Dict[str, int], Dict[int, str]]:
@@ -458,7 +484,41 @@ def _parse_type_matrix_from_csv(csv_path: str) -> Dict[str, Dict[str, float]]:
 
 
 def load_type_matchup_matrix() -> Dict[str, Dict[str, float]]:
-    # Prefer definitive CSV source when present
+    """Load normalized type matchup matrix.
+
+    Preference order:
+      1) data/type_matrix_v2.json (attack_vs map preferred, fallback to defense_from)
+      2) legacy cached JSON data/type_matrix.json
+      3) parse from CSV/TS as before
+    Returns a dict in defensive orientation: matrix[def_type][att_type] = multiplier
+    """
+    # 1) v2 JSON
+    if os.path.exists(DATA_TYPE_MATRIX_V2_JSON):
+        try:
+            with open(DATA_TYPE_MATRIX_V2_JSON, "r", encoding="utf-8") as f:
+                v2 = json.load(f)
+            # Prefer defense_from if available; else invert attack_vs
+            if isinstance(v2, dict):
+                if isinstance(v2.get("defense_from"), dict):
+                    return v2.get("defense_from")
+                if isinstance(v2.get("attack_vs"), dict):
+                    att = v2.get("attack_vs")
+                    out: Dict[str, Dict[str, float]] = {}
+                    for atk, row in (att or {}).items():
+                        for defn, val in (row or {}).items():
+                            out.setdefault(defn, {})[atk] = float(val)
+                    if out:
+                        return out
+        except Exception:
+            pass
+    # 2) legacy cached JSON
+    if os.path.exists(DATA_TYPE_MATRIX_JSON):
+        try:
+            with open(DATA_TYPE_MATRIX_JSON, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception:
+            pass
+    # 3) Legacy generation from CSV/TS
     csv_path = _ts_path2("PokemonTypeMatchupChart.csv")
     if os.path.exists(csv_path):
         mat = _parse_type_matrix_from_csv(csv_path)
@@ -469,14 +529,6 @@ def load_type_matchup_matrix() -> Dict[str, Dict[str, float]]:
             except Exception:
                 pass
             return mat
-    # Fallback to cached JSON
-    if os.path.exists(DATA_TYPE_MATRIX_JSON):
-        try:
-            with open(DATA_TYPE_MATRIX_JSON, "r", encoding="utf-8") as f:
-                return json.load(f)
-        except Exception:
-            pass
-    # Last resort: parse TS
     mat = _parse_type_matrix_from_ts(_ts_path2("type.ts"))
     if mat:
         try:
@@ -530,6 +582,195 @@ def load_exp_tables() -> Dict[str, object]:
     return data
 
 
+def _extrapolate_exp_quadratic(tbl: list[int], target_level: int) -> int:
+    """Extrapolate cumulative EXP beyond the last table entry using a quadratic (constant second difference) model.
+
+    Uses the last three known breakpoints to estimate a constant second difference and
+    then steps forward level by level to the requested target_level.
+    Falls back to linear last-delta if the table is too short or invalid.
+    """
+    try:
+        n = len(tbl)
+        if n == 0:
+            return 0
+        if target_level <= n:
+            return int(tbl[target_level - 1])
+        if n < 3:
+            # fallback to linear extension
+            delta = int(tbl[-1]) - int(tbl[-2]) if n >= 2 else int(tbl[-1])
+            extra_levels = target_level - n
+            return int(tbl[-1]) + max(0, extra_levels) * max(0, delta)
+        # finite differences
+        y_nm2 = int(tbl[-3])
+        y_nm1 = int(tbl[-2])
+        y_n = int(tbl[-1])
+        d1_last = y_n - y_nm1
+        d1_prev = y_nm1 - y_nm2
+        d2_const = d1_last - d1_prev
+        # Step forward incrementally to avoid overflow/miscalculation
+        level = n
+        cur = y_n
+        d1 = d1_last
+        while level < target_level:
+            # Next first difference adds the constant second difference
+            d1 = d1 + d2_const
+            # Guard: ensure non-negative growth
+            if d1 < 0:
+                d1 = 0
+            cur = cur + d1
+            level += 1
+        return int(cur)
+    except Exception:
+        # Worst-case fallback to the last known value
+        try:
+            return int(tbl[-1])
+        except Exception:
+            return 0
+
+
+def _load_high_level_validation() -> Dict[str, Dict[str, int]]:
+    """Load validation anchors from high_level_pokemon_data.json.
+
+    Returns mapping like { 'fast_growth': {'level_114': 1518148, 'level_188': 6910338, ...}, ... }
+    Keys are lowercased as-is from the file. If file missing, returns {}.
+    """
+    try:
+        if os.path.exists(_HIGH_LEVEL_DATA_PATH):
+            with open(_HIGH_LEVEL_DATA_PATH, "r", encoding="utf-8") as f:
+                data = json.load(f) or {}
+            vf = data.get("validation_formulas") or {}
+            out: Dict[str, Dict[str, int]] = {}
+            for k, v in vf.items():
+                if isinstance(v, dict):
+                    # coerce to int values
+                    out[k] = {kk: int(vv) for kk, vv in v.items() if isinstance(kk, str) and isinstance(vv, (int, float))}
+            return out
+    except Exception:
+        pass
+    return {}
+
+
+def _growth_name_key_for_index(growth_index: int) -> Optional[str]:
+    """Map growth index to validation key like 'fast_growth', 'medium_fast_growth'."""
+    try:
+        exp_tables = load_exp_tables()
+        names = [str(n).strip().upper() for n in (exp_tables.get("growth_names") or [])]
+        if 0 <= growth_index < len(names):
+            nm = names[growth_index]
+            # Convert enum token to validation key
+            key = nm.lower()
+            key = key.replace("medium slow", "medium_slow").replace("medium fast", "medium_fast")
+            key = key.replace(" ", "_")
+            return f"{key}_growth"
+    except Exception:
+        pass
+    return None
+
+
+def _load_runtime_save_anchors() -> Dict[str, Dict[str, int]]:
+    """Scan local saves for high-level monsters and use them as additional anchors.
+
+    Looks under Source/saves/*/slot *.json and aggregates (level -> exp) observations per growth group
+    using the species id to growth map. Returns a structure like _load_high_level_validation().
+    """
+    anchors: Dict[str, Dict[str, int]] = {}
+    try:
+        # Resolve growth group map
+        gmap = load_growth_group_map()  # dex -> growth_index
+        # Find slot files
+        root = os.path.normpath(os.path.join(os.path.dirname(__file__), ".."))
+        saves_root = os.path.join(root, "saves")
+        patterns = [os.path.join(saves_root, "*", "slot *.json")]
+        files: list[str] = []
+        for pat in patterns:
+            files.extend(glob.glob(pat))
+        for fp in files:
+            try:
+                with open(fp, "r", encoding="utf-8") as f:
+                    data = json.load(f)
+            except Exception:
+                continue
+            party = data.get("party") if isinstance(data, dict) else None
+            if not isinstance(party, list):
+                continue
+            for mon in party:
+                if not isinstance(mon, dict):
+                    continue
+                try:
+                    lvl = int(mon.get("level", 0))
+                    exp_val = int(mon.get("exp", 0))
+                    species_id = int(mon.get("species", -1))
+                except Exception:
+                    continue
+                if lvl <= 100 or species_id < 0 or exp_val <= 0:
+                    continue
+                gi = gmap.get(species_id)
+                if gi is None:
+                    continue
+                gkey = _growth_name_key_for_index(gi)
+                if not gkey:
+                    continue
+                key = f"level_{lvl}"
+                anchors.setdefault(gkey, {})
+                # Prefer the max exp observed for the same level
+                prev = anchors[gkey].get(key)
+                if prev is None or exp_val > prev:
+                    anchors[gkey][key] = exp_val
+    except Exception:
+        return {}
+    return anchors
+
+
+def _calibrated_extrapolation(tbl: list[int], growth_index: int, target_level: int) -> int:
+    """Extrapolate using quadratic, then scale to hit the nearest known anchor level for this growth group.
+
+    - Preserve table values (<= len(tbl)).
+    - Use `_extrapolate_exp_quadratic` as base.
+    - If validation anchors exist (e.g., level_188/190) beyond table, compute scale factor so that
+      exp at anchor matches the anchor when measured relative to the last known table breakpoint.
+    """
+    n = len(tbl)
+    if target_level <= n:
+        return int(tbl[target_level - 1])
+    base = int(tbl[-1]) if n else 0
+    base_pred = _extrapolate_exp_quadratic(tbl, target_level)
+    # Load anchors
+    anchors = _load_high_level_validation()
+    # Merge runtime anchors from saves (these win for matching levels)
+    runtime = _load_runtime_save_anchors()
+    for k, v in runtime.items():
+        anchors.setdefault(k, {}).update({kk: int(vv) for kk, vv in v.items()})
+    gkey = _growth_name_key_for_index(growth_index)
+    if not gkey or gkey not in anchors:
+        return base_pred
+    # Find the closest anchor level above n (prefer 188/190 if present)
+    gmap = anchors[gkey]
+    best_level = None
+    best_exp = None
+    for lk, lv in gmap.items():
+        if not lk.startswith("level_"):
+            continue
+        try:
+            L = int(lk.split("_")[1])
+        except Exception:
+            continue
+        if L > n:
+            # choose the smallest anchor >= target if possible; else nearest above n
+            if best_level is None or abs(L - target_level) < abs(best_level - target_level):
+                best_level = L
+                best_exp = int(lv)
+    if best_level is None or best_exp is None:
+        return base_pred
+    # Compute predicted at anchor using quadratic
+    pred_at_anchor = _extrapolate_exp_quadratic(tbl, best_level)
+    denom = max(1, pred_at_anchor - base)
+    scale = (best_exp - base) / denom
+    if scale <= 0:
+        return base_pred
+    # Apply scaled growth relative to base: base + scale*(pred - base)
+    return int(base + scale * (base_pred - base))
+
+
 def exp_for_level(growth_index: int, level: int) -> int:
     """Return cumulative EXP required for a given level.
 
@@ -551,13 +792,8 @@ def exp_for_level(growth_index: int, level: int) -> int:
                 return 0
             if level <= n:
                 return int(tbl[level - 1])
-            # beyond table: extend linearly by last delta
-            if n >= 2:
-                delta = int(tbl[-1]) - int(tbl[-2])
-            else:
-                delta = int(tbl[-1])
-            extra_levels = level - n
-            return int(tbl[-1]) + max(0, extra_levels) * max(0, delta)
+            # beyond table: use quadratic (finite second-difference) extrapolation with calibration
+            return _calibrated_extrapolation(tbl, growth_index, level)
     except Exception:
         pass
     return 0
@@ -588,16 +824,30 @@ def level_from_exp(growth_index: int, exp: int) -> int:
                     break
             if exp <= tbl[-1]:
                 return int(lvl)
-            # beyond table: linear extension by last delta
-            if n >= 2:
-                delta = int(tbl[-1]) - int(tbl[-2])
-            else:
-                delta = int(tbl[-1])
-            if delta <= 0:
+            # beyond table: invert calibrated extrapolation by stepping forward
+            # starting from last known level using the same finite-difference model
+            try:
+                if n < 3:
+                    # linear fallback
+                    delta = int(tbl[-1]) - int(tbl[-2]) if n >= 2 else int(tbl[-1])
+                    if delta <= 0:
+                        return int(n)
+                    extra = exp - int(tbl[-1])
+                    add_levels = max(0, extra // delta)
+                    return int(n + add_levels)
+                # Use calibrated extrapolation step-by-step until exceeding exp
+                level = n
+                cur = int(tbl[-1])
+                cap_levels = 10000
+                steps = 0
+                while cur <= exp and steps < cap_levels:
+                    level += 1
+                    cur = _calibrated_extrapolation(tbl, growth_index, level)
+                    steps += 1
+                # If we stepped past, the level before crossing is the floored level
+                return max(n, level - 1)
+            except Exception:
                 return int(n)
-            extra = exp - int(tbl[-1])
-            add_levels = extra // delta
-            return int(n + add_levels)
     except Exception:
         pass
     return 1
@@ -760,19 +1010,35 @@ def nature_multipliers_by_id() -> Dict[int, list[float]]:
 
 # --- Pokemon catalog + type colors ---
 def load_pokemon_catalog() -> Dict[str, object]:
+    """Load Pokemon catalog with caching to prevent repeated file I/O operations."""
+    global _POKEMON_CATALOG_CACHE
+    if isinstance(_POKEMON_CATALOG_CACHE, dict):
+        return _POKEMON_CATALOG_CACHE
+
     if not os.path.exists(DATA_POKEMON_CATALOG_JSON):
-        return {}
+        _POKEMON_CATALOG_CACHE = {}
+        return _POKEMON_CATALOG_CACHE
+
     with open(DATA_POKEMON_CATALOG_JSON, "r", encoding="utf-8") as f:
-        return json.load(f)
+        _POKEMON_CATALOG_CACHE = json.load(f)
+    return _POKEMON_CATALOG_CACHE
 
 
 def load_type_colors() -> Dict[str, str]:
+    """Load type colors with caching to prevent repeated file I/O operations."""
+    global _TYPE_COLORS_CACHE
+    if isinstance(_TYPE_COLORS_CACHE, dict):
+        return _TYPE_COLORS_CACHE
+
     if os.path.exists(DATA_TYPE_COLORS_JSON):
         try:
             with open(DATA_TYPE_COLORS_JSON, "r", encoding="utf-8") as f:
-                return json.load(f)
+                _TYPE_COLORS_CACHE = json.load(f)
+                return _TYPE_COLORS_CACHE
         except Exception:
             pass
+
+    # Default colors
     default = {
         "normal": "#A8A77A",
         "fire": "#EE8130",
@@ -795,10 +1061,189 @@ def load_type_colors() -> Dict[str, str]:
         "stellar": "#8899FF",
         "unknown": "#AAAAAA",
     }
+
+    # Cache the default colors
+    _TYPE_COLORS_CACHE = default
+
+    # Try to save defaults for next time
     try:
         os.makedirs(os.path.dirname(DATA_TYPE_COLORS_JSON), exist_ok=True)
         with open(DATA_TYPE_COLORS_JSON, "w", encoding="utf-8") as f:
             json.dump(default, f, ensure_ascii=False, indent=2)
     except Exception:
         pass
-    return default
+
+    return _TYPE_COLORS_CACHE
+
+
+def preload_all_catalogs(progress_callback=None):
+    """Preload all catalog caches during application startup.
+
+    Args:
+        progress_callback: Optional function to call with (step, total, description)
+                         to report loading progress
+    """
+    catalogs = [
+        ("Pokemon catalog", load_pokemon_catalog),
+        ("Type colors", load_type_colors),
+        ("Move catalog", load_move_catalog),
+        ("Ability catalog", load_ability_catalog),
+        ("Nature catalog", load_nature_catalog),
+        ("Move data", load_moves_data),
+    ]
+
+    total = len(catalogs)
+    for i, (name, loader_func) in enumerate(catalogs, 1):
+        if progress_callback:
+            progress_callback(i, total, f"Loading {name}...")
+        try:
+            loader_func()
+        except Exception as e:
+            # Log error but continue loading other catalogs
+            print(f"Warning: Failed to load {name}: {e}")
+
+    if progress_callback:
+        progress_callback(total, total, "Cache loading complete!")
+
+
+# --- Unified moves data (moves_data.json) ---
+
+_MOVES_DATA_CACHE: Optional[Dict[str, object]] = None
+_TYPE_COLORS_CACHE: Optional[Dict[str, str]] = None
+_POKEMON_CATALOG_CACHE: Optional[Dict[str, object]] = None
+_MOVE_CATALOG_CACHE: Optional[Tuple[Dict[str, int], Dict[int, str]]] = None
+_ABILITY_CATALOG_CACHE: Optional[Tuple[Dict[str, int], Dict[int, str]]] = None
+_NATURE_CATALOG_CACHE: Optional[Tuple[Dict[str, int], Dict[int, str]]] = None
+
+
+def load_moves_data() -> Dict[str, object]:
+    """Load consolidated moves database from moves_data.json.
+
+    Expected schema (subset):
+      {
+        "by_id": {
+          "71": {
+            "id": 71,
+            "move_key": "absorb",
+            "ui_label": "Absorb",
+            "type_name": "grass",
+            "type_id": 11,
+            "is_offensive": true,
+            "pp": 25,
+            ...
+          },
+          ...
+        }
+      }
+    """
+    global _MOVES_DATA_CACHE
+    if isinstance(_MOVES_DATA_CACHE, dict):
+        return _MOVES_DATA_CACHE
+    if not os.path.exists(DATA_MOVES_DATA_JSON):
+        return {}
+    try:
+        with open(DATA_MOVES_DATA_JSON, "r", encoding="utf-8") as f:
+            _MOVES_DATA_CACHE = json.load(f) or {}
+    except Exception:
+        _MOVES_DATA_CACHE = {}
+    return _MOVES_DATA_CACHE
+
+
+def get_move_entry(move_id: int) -> Optional[Dict[str, object]]:
+    data = load_moves_data() or {}
+    by_id = data.get("by_id") if isinstance(data, dict) else None
+    if isinstance(by_id, dict):
+        e = by_id.get(str(int(move_id)))
+        if isinstance(e, dict):
+            return e
+    return None
+
+
+def get_move_label(move_id: int) -> Optional[str]:
+    e = get_move_entry(move_id)
+    if not isinstance(e, dict):
+        return None
+    label = e.get("ui_label") or e.get("move_key")
+    return str(label) if label is not None else None
+
+
+def get_move_type_name(move_id: int) -> Optional[str]:
+    e = get_move_entry(move_id)
+    if not isinstance(e, dict):
+        return None
+    t = e.get("type_name")
+    return str(t) if t else None
+
+
+def get_move_type_id(move_id: int) -> Optional[int]:
+    e = get_move_entry(move_id)
+    if not isinstance(e, dict):
+        return None
+    tid = e.get("type_id")
+    try:
+        return int(tid) if tid is not None else None
+    except Exception:
+        return None
+
+
+def get_move_base_pp(move_id: int) -> Optional[int]:
+    e = get_move_entry(move_id)
+    if not isinstance(e, dict):
+        return None
+    pp = e.get("pp")
+    try:
+        return int(pp) if pp is not None else None
+    except Exception:
+        return None
+
+
+def is_move_offensive(move_id: int) -> Optional[bool]:
+    e = get_move_entry(move_id)
+    if not isinstance(e, dict):
+        return None
+    v = e.get("is_offensive")
+    return bool(v) if v is not None else None
+
+
+def build_move_label_catalog() -> Tuple[Dict[str, int], Dict[int, str]]:
+    """Return mapping of user-facing labels to ids and back using moves_data.json.
+
+    name_to_id keys are lowercase labels; id_to_name values are display labels.
+    """
+    data = load_moves_data() or {}
+    by_id = data.get("by_id") if isinstance(data, dict) else None
+    n2i: Dict[str, int] = {}
+    i2n: Dict[int, str] = {}
+    if isinstance(by_id, dict):
+        for k, v in by_id.items():
+            try:
+                mid = int(k)
+            except Exception:
+                continue
+            if isinstance(v, dict):
+                lbl = v.get("ui_label") or v.get("move_key") or str(mid)
+                s = str(lbl)
+                n2i[s.strip().lower()] = mid
+                i2n[mid] = s
+    return n2i, i2n
+
+
+def compute_ppup_bounds(base_pp: Optional[int]) -> Tuple[int, int]:
+    """Compute (max_extra_pp, max_total_pp) according to rule: up to 3 per 5 base PP.
+
+    - For base_pp < 5: max_extra = 0
+    - Else: max_extra = floor(base_pp * 3 / 5)
+    - Max total = base_pp + max_extra
+    Returns (0, 0) if base_pp is None or invalid.
+    """
+    try:
+        if base_pp is None:
+            return 0, 0
+        b = int(base_pp)
+        if b < 5:
+            return 0, b
+        from math import floor
+        max_extra = int(floor(b * 3 / 5))
+        return max_extra, b + max_extra
+    except Exception:
+        return 0, 0
