@@ -19,6 +19,7 @@ Thumbs.db
 # Editor/IDE settings
 .vscode/
 .idea/
+.claude/
 
 # Local environment and secrets
 .env
@@ -50,6 +51,8 @@ debug/logs/
 # Tmp
 Tmp*.txt
 Tmp*.py
+*.backup
+Source/data/thumbnails/Pokemon/
 
 # Dev time docs
 Source/TrackingAndDocs/
