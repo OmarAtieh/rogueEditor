@@ -15,6 +15,33 @@ The format follows a simplified Keep a Changelog style.
   - Made type combinations that wall the team scrollable for better navigation
   - Enhanced two-type combo analysis with complete coverage display (removed display limits)
   - Added Mega Venusaur (form ID 48) to rare form change item presets based on save data analysis
+- Application Rebranding: "Rogue Manager GUI"
+  - Renamed application from "rogueEditor GUI" to "Rogue Manager GUI" for clearer identity
+  - Updated main window title to "Rogue Manager GUI"
+  - Standardized sub-window titles with "Rogue Manager GUI - [Window Name]" format
+  - Updated main class name from "App" to "RogueManagerGUI" for consistency
+  - Hide banner checkbox selection now persists across sessions (already implemented)
+- User Experience: Window Centering
+  - All child windows now center around the parent window for a more polished feel
+  - Team Manager and Item Manager dialogs center relative to main window
+  - All popup dialogs (New User, Open Dumps, Upload, Weather Edit, etc.) center properly
+  - Improved visual hierarchy and professional appearance
+- Team Manager: Enhanced Layout & UX
+  - Moved Save/Upload buttons to top-right of window for better accessibility
+  - Added clear "Target Slot: X" label prominently displayed at top-left
+  - Increased window size from 1000x800 to 1050x800 to match main window
+  - Reorganized header layout with slot info and action buttons at same level as tabs
+  - Improved space utilization and visual hierarchy
+  - Added scrollable content frames to all tabs for better navigation of extensive content
+  - Implemented mousewheel scrolling support for smooth content browsing
+- Team Manager: Selection, Loading, and Matchups polish
+  - Party list selection simplified and stabilized; removed fragile debounce/token races
+  - When loading, tabs are frozen and party list is temporarily read‑only (events unbound) while keeping the selected row highlighted
+  - Added consistent loading overlay when switching Pokémon; always hides and re‑enables UI on completion
+  - Offensive Matchups reliability: ensured refresh runs on selection; removed stale token guards; progressive stages (moves → types → bosses → walls) now render consistently
+  - Wall analysis UX: added mousewheel scrolling to each subsection (Immune, Highly Resisted, Resisted) when content overflows; scrolling is context‑aware (only the hovered section scrolls)
+  - Wall analysis rendering: fixed canvas sizing/scrollregion updates so content is visible; ensured sections stay within bounds with explicit widths
+  - Coverage correctness: continued fixes to use the defensive‑oriented matrix (mat[def_type][att_type]) across calculations
 - Team Editor: Offensive Matchups Analysis
   - Added new "Offensive Matchups" tab showing comprehensive type effectiveness analysis based on damaging moves
   - Real-time coverage calculation that refreshes automatically when moves change or Pokemon selection changes
