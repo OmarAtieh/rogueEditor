@@ -16,7 +16,7 @@ def build(parent: tk.Widget, app) -> dict:
     # Toolbar on top
     tb = ttk.Frame(boxS)
     tb.pack(fill=tk.X, padx=4, pady=(4, 0))
-    ttk.Button(tb, text="Refresh", command=app._safe(app._refresh_slots)).pack(side=tk.LEFT)
+    ttk.Button(tb, text="Refresh", command=app._refresh_slots).pack(side=tk.LEFT)
     ttk.Label(
         tb,
         text="Shows only available save slots. Select a slot to set the target for actions below.\n(Scroll down for more actions)",
