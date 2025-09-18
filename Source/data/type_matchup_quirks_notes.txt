@@ -1,0 +1,95 @@
+What’s in the file
+
+dynamic_move_type — moves whose own type changes (items, forms, weather/terrain, Tera, etc.): Hidden Power, Natural Gift, Judgment (incl. Legend Plate behavior), Techno Blast, Multi-Attack, Weather Ball, Terrain Pulse, Revelation Dance, Tera Blast, Tera Starstorm, Ivy Cudgel, Aura Wheel, Raging Bull. 
+Bulbapedia
++13
+Bulbapedia
++13
+Bulbapedia
++13
+
+user_type_change — moves that change the user’s type (affecting STAB & defenses): Camouflage, Conversion, Conversion 2, Reflect Type, Roost, Burn Up, Double Shock. 
+Bulbapedia
++6
+Bulbapedia
++6
+Bulbapedia
++6
+
+target_type_change — moves that change the target’s type(s): Soak, Magic Powder, Trick-or-Treat, Forest’s Curse. 
+Bulbapedia
++3
+Bulbapedia
++3
+Bulbapedia
++3
+
+field_move_type_conversion — effects that convert move types on the fly: Electrify, Ion Deluge, Plasma Fists. 
+Bulbapedia
++2
+Bulbapedia
++2
+
+effectiveness_overrides — custom matchup rules: Freeze-Dry (Ice but always SE vs Water), Flying Press (dual-type damage calc Fighting+Flying), Tar Shot (doubles Fire effectiveness on target). 
+Bulbapedia
++2
+Bulbapedia
++2
+
+grounding_and_immunity_removal — moves that remove immunities or ground foes: Thousand Arrows, Smack Down, Gravity, Foresight, Odor Sleuth, Miracle Eye. 
+Bulbapedia
++5
+Bulbapedia
++5
+Bulbapedia
++5
+
+Notes on a few high-impact quirks (so you can plan engine hooks)
+
+Freeze-Dry: Ice move that’s always 2× vs Water, even if its own type would say otherwise. Great as an override_multiplier rule. 
+Bulbapedia
+
+Flying Press: calculate effectiveness as Fighting × Flying simultaneously—treat as a special combined chart. 
+Bulbapedia
++1
+
+Electrify / Ion Deluge / Plasma Fists: convert move types to Electric (target’s next move, or all Normal moves this turn). Handle before chart lookup. 
+Bulbapedia
++2
+Bulbapedia
++2
+
+Tar Shot: apply a ×2 Fire multiplier tag on the target until cleared. 
+Bulbapedia
+
+Grounding: Thousand Arrows / Smack Down / Gravity strip Ground immunities; Thousand Arrows also hits ungrounded targets and is neutral on Flying on first contact. 
+Bulbapedia
++2
+Bulbapedia
++2
+
+Ghost/Dark immunities: Foresight/Odor Sleuth let Normal/Fighting hit Ghost; Miracle Eye lets Psychic hit Dark. 
+Bulbapedia
++2
+Bulbapedia
++2
+
+Revelation Dance: mirrors the user’s current primary type (watch Roost/Burn Up/Double Shock edge cases). 
+Bulbapedia
+
+Tera Blast: becomes the user’s Tera Type when Terastallized (also flips to the higher offensive stat). 
+Bulbapedia
+
+Tera Starstorm: becomes Stellar when used by Terapagos (Stellar Form) and is super-effective vs Terastallized targets. 
+Bulbapedia
++1
+
+Ivy Cudgel: Ogerpon’s mask determines the move’s type; non-Ogerpon users get Grass. 
+Bulbapedia
+
+Aura Wheel: Morpeko’s form toggles Electric/Dark. 
+Bulbapedia
+
+Raging Bull: type depends on Paldean Tauros form (Fighting/Fire/Water); otherwise Normal. 
+Pokémon Database
++1

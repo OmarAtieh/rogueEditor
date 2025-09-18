@@ -1,0 +1,227 @@
+{
+  "generated_at": "now",
+  "groups": [
+    {
+      "group_id": "dynamic_move_type",
+      "label": "Moves whose own type changes",
+      "description": "Moves that can become a different type based on items, forms, terrain, weather, or other conditions.",
+      "moves": [
+        {
+          "name": "Hidden Power",
+          "effect_summary": "Type determined by user's IVs (Gen II–VII).",
+          "move_id": 237
+        },
+        {
+          "name": "Natural Gift",
+          "effect_summary": "Type & power depend on held Berry; Berry is consumed.",
+          "move_id": 363
+        },
+        {
+          "name": "Judgment",
+          "effect_summary": "Type depends on held Plate. With Legend Plate (LA), changes to a type effective vs target.",
+          "move_id": 449
+        },
+        {
+          "name": "Techno Blast",
+          "effect_summary": "Type depends on Genesect's held Drive (Fire/Water/Ice/Electric).",
+          "move_id": 546
+        },
+        {
+          "name": "Multi-Attack",
+          "effect_summary": "Type depends on Silvally's held Memory (any type).",
+          "move_id": 718
+        },
+        {
+          "name": "Weather Ball",
+          "effect_summary": "Becomes Fire/Water/Ice/Rock in weather; Normal otherwise.",
+          "move_id": 311
+        },
+        {
+          "name": "Terrain Pulse",
+          "effect_summary": "Becomes Electric/Psychic/Grass/Fairy on terrain; Normal otherwise.",
+          "move_id": 805
+        },
+        {
+          "name": "Revelation Dance",
+          "effect_summary": "Matches the user's current primary type (edge-cases with Roost/Burn Up/Double Shock).",
+          "move_id": 686
+        },
+        {
+          "name": "Tera Blast",
+          "effect_summary": "When user is Terastallized, becomes the user's Tera Type; also switches to higher attacking stat.",
+          "move_id": 851
+        },
+        {
+          "name": "Tera Starstorm",
+          "effect_summary": "When used by Terapagos (Stellar Form), becomes Stellar-type; also deals super-effective damage to Terastallized targets.",
+          "move_id": 906
+        },
+        {
+          "name": "Ivy Cudgel",
+          "effect_summary": "Ogerpon-only: type depends on held Mask (Grass/Water/Fire/Rock). Others: always Grass.",
+          "move_id": 904
+        },
+        {
+          "name": "Aura Wheel",
+          "effect_summary": "Morpeko-only: Electric in Full Belly; Dark in Hangry.",
+          "move_id": 783
+        },
+        {
+          "name": "Raging Bull",
+          "effect_summary": "Tauros-only nuance: type depends on Paldean form (Fighting/Fire/Water). Others: Normal.",
+          "move_id": 873
+        }
+      ]
+    },
+    {
+      "group_id": "user_type_change",
+      "label": "Moves that change the user’s typing",
+      "description": "Moves that alter the user's types, which in turn affects STAB and how opponents hit it.",
+      "moves": [
+        {
+          "name": "Camouflage",
+          "effect_summary": "User's type becomes terrain/environment-dependent.",
+          "move_id": 293
+        },
+        {
+          "name": "Conversion",
+          "effect_summary": "User becomes the type of the move in its first slot (Gen II+); Gen I: target's type(s).",
+          "move_id": 160
+        },
+        {
+          "name": "Conversion 2",
+          "effect_summary": "User changes to a type that resists or is immune to the last move that hit it.",
+          "move_id": 176
+        },
+        {
+          "name": "Reflect Type",
+          "effect_summary": "User copies target's current type(s), including added types from Forest's Curse/Trick-or-Treat.",
+          "move_id": 513
+        },
+        {
+          "name": "Roost",
+          "effect_summary": "User temporarily loses Flying type for the rest of the turn (pure Flying becomes Normal/typeless by gen).",
+          "move_id": 355
+        },
+        {
+          "name": "Burn Up",
+          "effect_summary": "User loses Fire type after use (fails if not Fire).",
+          "move_id": 682
+        },
+        {
+          "name": "Double Shock",
+          "effect_summary": "User loses Electric type after use (fails if not Electric).",
+          "move_id": 892
+        }
+      ]
+    },
+    {
+      "group_id": "target_type_change",
+      "label": "Moves that change the target’s typing",
+      "description": "Moves that replace or add types on the target, changing how it takes damage.",
+      "moves": [
+        {
+          "name": "Soak",
+          "effect_summary": "Target becomes pure Water.",
+          "move_id": 487
+        },
+        {
+          "name": "Magic Powder",
+          "effect_summary": "Target becomes pure Psychic.",
+          "move_id": 750
+        },
+        {
+          "name": "Trick-or-Treat",
+          "effect_summary": "Adds Ghost to target (can create triple typing).",
+          "move_id": 567
+        },
+        {
+          "name": "Forest's Curse",
+          "effect_summary": "Adds Grass to target (can create triple typing).",
+          "move_id": 571
+        }
+      ]
+    },
+    {
+      "group_id": "field_move_type_conversion",
+      "label": "Effects that change move types on the fly",
+      "description": "Effects that convert the type of moves for a turn or for a specific target.",
+      "moves": [
+        {
+          "name": "Electrify",
+          "effect_summary": "Target's next move becomes Electric for the turn.",
+          "move_id": 582
+        },
+        {
+          "name": "Ion Deluge",
+          "effect_summary": "For the rest of the turn, all Normal-type moves become Electric.",
+          "move_id": 569
+        },
+        {
+          "name": "Plasma Fists",
+          "effect_summary": "After it hits, all Normal-type moves become Electric for the rest of that turn.",
+          "move_id": 721
+        }
+      ]
+    },
+    {
+      "group_id": "effectiveness_overrides",
+      "label": "Moves with custom effectiveness rules",
+      "description": "These override or augment the standard type chart multipliers.",
+      "moves": [
+        {
+          "name": "Freeze-Dry",
+          "effect_summary": "Always super effective against Water (2×), despite being Ice.",
+          "move_id": 573
+        },
+        {
+          "name": "Flying Press",
+          "effect_summary": "Calculates effectiveness as if Fighting and Flying simultaneously.",
+          "move_id": 560
+        },
+        {
+          "name": "Tar Shot",
+          "effect_summary": "Doubles Fire-type effectiveness against the target (and lowers Speed).",
+          "move_id": 749
+        }
+      ]
+    },
+    {
+      "group_id": "grounding_and_immunity_removal",
+      "label": "Grounding & immunity-removal effects",
+      "description": "Moves that remove specific immunities or ground targets, changing what hits them.",
+      "moves": [
+        {
+          "name": "Thousand Arrows",
+          "effect_summary": "Hits ungrounded foes (Flying/Levitate/etc.), deals neutral to Flying then grounds them.",
+          "move_id": 614
+        },
+        {
+          "name": "Smack Down",
+          "effect_summary": "Grounds the target until it switches; removes Magnet Rise/Telekinesis.",
+          "move_id": 479
+        },
+        {
+          "name": "Gravity",
+          "effect_summary": "All Pokémon become grounded for 5 turns; Ground immunities (Flying/Levitate/etc.) removed.",
+          "move_id": 356
+        },
+        {
+          "name": "Foresight",
+          "effect_summary": "Removes Ghost immunity to Normal/Fighting; also ignores evasion boosts.",
+          "move_id": 193
+        },
+        {
+          "name": "Odor Sleuth",
+          "effect_summary": "Removes Ghost immunity to Normal/Fighting; also ignores evasion boosts.",
+          "move_id": 316
+        },
+        {
+          "name": "Miracle Eye",
+          "effect_summary": "Removes Dark immunity to Psychic; also ignores evasion boosts.",
+          "move_id": 357
+        }
+      ]
+    }
+  ]
+}
