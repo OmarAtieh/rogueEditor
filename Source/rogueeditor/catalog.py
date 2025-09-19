@@ -302,6 +302,16 @@ def load_item_catalog() -> Tuple[Dict[str, int], Dict[int, str]]:
     return load_generic_catalog(DATA_ITEMS_JSON, "item-id.ts")
 
 
+def load_type_matrix_v2() -> Dict:
+    """Load the type effectiveness matrix from type_matrix_v2.json."""
+    try:
+        with open(DATA_TYPE_MATRIX_V2_JSON, 'r', encoding='utf-8') as f:
+            return json.load(f)
+    except Exception as e:
+        print(f"Error loading type matrix v2: {e}")
+        return {}
+
+
 # --- New catalogs from TmpServerFiles/GameData/2 ---
 
 def _ts_path2(*parts: str) -> str:

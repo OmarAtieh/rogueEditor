@@ -487,7 +487,8 @@ class OffensiveCoverageCalculator:
     """Main class for calculating offensive matchups analysis."""
 
     def __init__(self):
-        self.type_matrix = load_type_matrix()
+        from .catalog import load_type_matrix_v2
+        self.type_matrix = load_type_matrix_v2()
         self.enhanced_moves = load_moves_enhanced()
         self.basic_moves = load_moves_basic()
         self._cache = {}

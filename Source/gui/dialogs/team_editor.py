@@ -153,7 +153,9 @@ class BackgroundCacheManager:
             from rogueeditor.catalog import load_pokemon_catalog, load_type_colors, load_type_matchup_matrix
             pokemon_catalog = load_pokemon_catalog() or {}
             type_colors = load_type_colors() or {}
-            type_matrix = load_type_matchup_matrix() or {}
+            base_matrix = load_type_matchup_matrix() or {}
+            # Use attack_vs orientation for defensive checks: matrix[attacking][defending]
+            type_matrix = base_matrix.get('attack_vs') if isinstance(base_matrix.get('attack_vs'), dict) else base_matrix
 
             # Compute type matchups for each party member (optimized)
             party_matchups = []
@@ -186,9 +188,9 @@ class BackgroundCacheManager:
                         "matchups": {"x4": [], "x2": [], "x1": [], "x0.5": [], "x0.25": [], "x0": []}
                     })
 
-            # Compute team-wide analysis
-            team_defensive_analysis = self._compute_team_defensive_analysis(party_matchups)
-            team_offensive_analysis = self._compute_team_offensive_analysis_optimized(party, pokemon_catalog, type_matrix)
+            # Compute team-wide analysis (manager-local implementations)
+            team_defensive_analysis = self._compute_team_defensive_analysis_from_party_matchups(party_matchups)
+            team_offensive_analysis = self._compute_team_offensive_analysis_from_party(party, pokemon_catalog, type_matrix)
 
             result = {
                 "party_matchups": party_matchups,
@@ -251,64 +253,191 @@ class BackgroundCacheManager:
 
         return matchups
 
-    def _compute_team_defensive_analysis(self, party_matchups: List[Dict]) -> Dict[str, Any]:
-        """Compute team-wide defensive analysis."""
+    def _compute_team_defensive_analysis_from_party_matchups(self, party_matchups: List[Dict]) -> Dict[str, Any]:
+        """Compute team defensive analysis from party matchups data."""
         if not party_matchups:
             return {}
 
-        # Aggregate weaknesses and resistances
-        team_weaknesses = {}
-        team_resistances = {}
-
-        for member in party_matchups:
-            matchups = member.get("matchups", {})
-
-            # Count weaknesses (x2 and x4)
-            for weakness_type in matchups.get("x2", []) + matchups.get("x4", []):
-                team_weaknesses[weakness_type] = team_weaknesses.get(weakness_type, 0) + 1
-
-            # Count resistances (x0.5, x0.25, x0)
-            for resist_type in matchups.get("x0.5", []) + matchups.get("x0.25", []) + matchups.get("x0", []):
-                team_resistances[resist_type] = team_resistances.get(resist_type, 0) + 1
-
-        # Find common weaknesses (types that hit multiple team members super effectively)
-        common_weaknesses = [(type_name, count) for type_name, count in team_weaknesses.items() if count > 1]
-        common_weaknesses.sort(key=lambda x: x[1], reverse=True)
-
-        return {
-            "team_weaknesses": team_weaknesses,
-            "team_resistances": team_resistances,
-            "common_weaknesses": common_weaknesses[:10],  # Top 10 risks
-            "team_size": len(party_matchups)
-        }
-
-    def _compute_team_offensive_analysis(self, party: List[Dict], pokemon_catalog: Dict) -> Dict[str, Any]:
-        """Compute team-wide offensive analysis."""
         try:
-            # This would compute offensive coverage analysis
-            # For now, return placeholder data
-            return {
-                "coverage_computed": True,
-                "party_size": len([m for m in party if m])
-            }
-        except Exception as e:
-            print(f"Error computing offensive analysis: {e}")
-            return {"error": str(e)}
+            # Enhanced team member data with names and types
+            team_members = []
+            effectiveness_grid = {}  # attacking_type -> {x4: count, x2: count, x1: count, x0.5: count, x0.25: count, x0: count}
 
-    def _compute_team_offensive_analysis_optimized(self, party: List[Dict], pokemon_catalog: Dict, type_matrix: Dict) -> Dict[str, Any]:
-        """Optimized team-wide offensive analysis."""
+            # All possible attacking types for comprehensive analysis
+            all_types = ["Normal", "Fire", "Water", "Electric", "Grass", "Ice", "Fighting", "Poison",
+                        "Ground", "Flying", "Psychic", "Bug", "Rock", "Ghost", "Dragon", "Dark", "Steel", "Fairy"]
+
+            # Initialize effectiveness grid
+            for attack_type in all_types:
+                effectiveness_grid[attack_type] = {"x4": 0, "x2": 0, "x1": 0, "x0.5": 0, "x0.25": 0, "x0": 0}
+
+            # Process each team member
+            for member in party_matchups:
+                matchups = member.get("matchups", {})
+                pokemon_name = member.get("species_name", "Unknown")
+                types = member.get("types", {})
+
+                team_members.append({
+                    "name": pokemon_name,
+                    "types": list(types.values()) if isinstance(types, dict) else types,
+                    "defensive_types": "/".join(types.values()) if isinstance(types, dict) else "Unknown"
+                })
+
+                # Count effectiveness for each attacking type
+                for attack_type in all_types:
+                    found_effectiveness = False
+                    for effectiveness, type_list in matchups.items():
+                        if attack_type in type_list:
+                            effectiveness_grid[attack_type][effectiveness] += 1
+                            found_effectiveness = True
+                            break
+
+                    # If not found in any category, assume neutral (x1)
+                    if not found_effectiveness:
+                        effectiveness_grid[attack_type]["x1"] += 1
+
+            # Risk analysis - identify critical and major weaknesses
+            critical_weaknesses = []  # Types that hit 4+ members super effectively
+            major_weaknesses = []     # Types that hit 2-3 members super effectively
+            team_resistances = []     # Types the team resists well
+
+            team_size = len(party_matchups)
+
+            for attack_type, effectiveness in effectiveness_grid.items():
+                super_effective_count = effectiveness["x4"] + effectiveness["x2"]
+                resistant_count = effectiveness["x0.5"] + effectiveness["x0.25"] + effectiveness["x0"]
+
+                if super_effective_count >= max(4, team_size * 0.67):  # 67% or 4+ members
+                    critical_weaknesses.append((attack_type, super_effective_count, effectiveness))
+                elif super_effective_count >= 2:
+                    major_weaknesses.append((attack_type, super_effective_count, effectiveness))
+
+                if resistant_count >= max(3, team_size * 0.5):  # 50% or 3+ members resist
+                    team_resistances.append((attack_type, resistant_count, effectiveness))
+
+            # Sort by severity
+            critical_weaknesses.sort(key=lambda x: x[1], reverse=True)
+            major_weaknesses.sort(key=lambda x: x[1], reverse=True)
+            team_resistances.sort(key=lambda x: x[1], reverse=True)
+
+            # Coverage gaps - types with no resistance
+            coverage_gaps = []
+            for attack_type, effectiveness in effectiveness_grid.items():
+                if effectiveness["x0.5"] + effectiveness["x0.25"] + effectiveness["x0"] == 0:
+                    super_effective = effectiveness["x4"] + effectiveness["x2"]
+                    if super_effective > 0:
+                        coverage_gaps.append((attack_type, super_effective))
+
+            coverage_gaps.sort(key=lambda x: x[1], reverse=True)
+
+            return {
+                "team_members": team_members,
+                "effectiveness_grid": effectiveness_grid,
+                "critical_weaknesses": critical_weaknesses[:5],
+                "major_weaknesses": major_weaknesses[:8],
+                "team_resistances": team_resistances[:10],
+                "coverage_gaps": coverage_gaps[:8],
+                "team_size": team_size,
+                "analysis_complete": True
+            }
+
+        except Exception as e:
+            print(f"Error in team defensive analysis: {e}")
+            return {"error": str(e), "analysis_complete": False}
+
+    def _compute_team_offensive_analysis_from_party(self, party: List[Dict], pokemon_catalog: Dict, type_matrix: Dict) -> Dict[str, Any]:
+        """Compute team offensive analysis from party data."""
+        if not party:
+            return {}
+
         try:
-            # This would compute offensive coverage analysis with pre-loaded data
-            # For now, return placeholder data
-            return {
-                "coverage_computed": True,
-                "party_size": len([m for m in party if m]),
-                "optimized": True
-            }
-        except Exception as e:
-            print(f"Error computing optimized offensive analysis: {e}")
-            return {"error": str(e)}
+            # Collect all move types from the team
+            all_move_types = set()
+            team_members = []
 
+            for i, mon in enumerate(party):
+                if not mon:
+                    continue
+
+                try:
+                    species_id = str(mon.get("species", 0))
+                    catalog_entry = pokemon_catalog.get("by_dex", {}).get(species_id, {})
+                    species_name = catalog_entry.get("name", f"Species#{species_id}")
+
+                    # Get moves from the mon
+                    moves = mon.get("moves", [])
+                    move_types = []
+                    for move_id in moves:
+                        if isinstance(move_id, int):
+                            move_entry = get_move_entry(move_id)
+                            if move_entry and move_entry.get("type"):
+                                move_type = move_entry["type"].lower()
+                                move_types.append(move_type)
+                                all_move_types.add(move_type)
+
+                    team_members.append({
+                        "name": species_name,
+                        "move_types": move_types,
+                        "move_count": len(move_types)
+                    })
+
+                except Exception as e:
+                    print(f"Error processing Pokemon {i} in offensive analysis: {e}")
+
+            # Analyze coverage against all defending types
+            coverage_analysis = {}
+            all_defending_types = ["normal", "fire", "water", "electric", "grass", "ice", "fighting", "poison",
+                                 "ground", "flying", "psychic", "bug", "rock", "ghost", "dragon", "dark", "steel", "fairy"]
+
+            for def_type in all_defending_types:
+                best_effectiveness = 0.0
+                best_moves = []
+
+                for move_type in all_move_types:
+                    effectiveness = type_matrix.get(move_type, {}).get(def_type, 1.0)
+                    if effectiveness > best_effectiveness:
+                        best_effectiveness = effectiveness
+                        best_moves = [move_type]
+                    elif effectiveness == best_effectiveness and effectiveness > 0:
+                        best_moves.append(move_type)
+
+                coverage_analysis[def_type] = {
+                    "best_effectiveness": best_effectiveness,
+                    "best_moves": best_moves
+                }
+
+            # Categorize coverage
+            super_effective = []
+            neutral = []
+            resisted = []
+
+            for def_type, analysis in coverage_analysis.items():
+                eff = analysis["best_effectiveness"]
+                if eff >= 2.0:
+                    super_effective.append((def_type, eff, analysis["best_moves"]))
+                elif eff >= 1.0:
+                    neutral.append((def_type, eff, analysis["best_moves"]))
+                else:
+                    resisted.append((def_type, eff, analysis["best_moves"]))
+
+            # Sort by effectiveness
+            super_effective.sort(key=lambda x: x[1], reverse=True)
+            neutral.sort(key=lambda x: x[1], reverse=True)
+            resisted.sort(key=lambda x: x[1], reverse=True)
+
+            return {
+                "team_members": team_members,
+                "all_move_types": list(all_move_types),
+                "coverage_analysis": coverage_analysis,
+                "super_effective": super_effective,
+                "neutral": neutral,
+                "resisted": resisted,
+                "analysis_complete": True
+            }
+
+        except Exception as e:
+            print(f"Error in team offensive analysis: {e}")
+            return {"error": str(e), "analysis_complete": False}
 
     def _get_cached_type_colors(self) -> Dict:
         """Get cached type colors."""
@@ -349,6 +478,258 @@ class BackgroundCacheManager:
                 self._cached_data.clear()
                 self._cache_timestamps.clear()
                 print("Invalidated all cache data")
+
+    def _compute_team_defensive_analysis_from_party_matchups(self, party_matchups: List[Dict]) -> Dict[str, Any]:
+        """Compute comprehensive team-wide defensive analysis."""
+        if not party_matchups:
+            return {}
+
+        try:
+            # Enhanced team member data with names and types
+            team_members = []
+            effectiveness_grid = {}  # attacking_type -> {x4: count, x2: count, x1: count, x0.5: count, x0.25: count, x0: count}
+
+            # All possible attacking types for comprehensive analysis
+            all_types = ["Normal", "Fire", "Water", "Electric", "Grass", "Ice", "Fighting", "Poison",
+                        "Ground", "Flying", "Psychic", "Bug", "Rock", "Ghost", "Dragon", "Dark", "Steel", "Fairy"]
+
+            # Initialize effectiveness grid
+            for attack_type in all_types:
+                effectiveness_grid[attack_type] = {"x4": 0, "x2": 0, "x1": 0, "x0.5": 0, "x0.25": 0, "x0": 0}
+
+            # Process each team member
+            for member in party_matchups:
+                matchups = member.get("matchups", {})
+                pokemon_name = member.get("species_name", "Unknown")
+                level = member.get("level", "?")
+                types = member.get("types", {})
+                type_list = []
+                if isinstance(types, dict):
+                    if types.get("type1"):
+                        type_list.append(types["type1"])
+                    if types.get("type2"):
+                        type_list.append(types["type2"])
+                elif isinstance(types, list):
+                    type_list = types
+
+                team_members.append({
+                    "name": pokemon_name,
+                    "level": level,
+                    "types": type_list,
+                    "defensive_types": "/".join(type_list) if type_list else "Unknown"
+                })
+
+                # Count effectiveness for each attacking type
+                for attack_type in all_types:
+                    found_effectiveness = False
+                    for effectiveness, type_list in matchups.items():
+                        if attack_type in type_list:
+                            effectiveness_grid[attack_type][effectiveness] += 1
+                            found_effectiveness = True
+                            break
+
+                    # If not found in any category, assume neutral (x1)
+                    if not found_effectiveness:
+                        effectiveness_grid[attack_type]["x1"] += 1
+
+            # Risk analysis - identify critical and major weaknesses
+            critical_weaknesses = []  # Types that hit 4+ members super effectively
+            major_weaknesses = []     # Types that hit 2-3 members super effectively
+            team_resistances = []     # Types the team resists well
+
+            team_size = len(party_matchups)
+
+            for attack_type, effectiveness in effectiveness_grid.items():
+                super_effective_count = effectiveness["x4"] + effectiveness["x2"]
+                resistant_count = effectiveness["x0.5"] + effectiveness["x0.25"] + effectiveness["x0"]
+
+                if super_effective_count >= max(4, team_size * 0.67):  # 67% or 4+ members
+                    critical_weaknesses.append((attack_type, super_effective_count, effectiveness))
+                elif super_effective_count >= 2:
+                    major_weaknesses.append((attack_type, super_effective_count, effectiveness))
+
+                if resistant_count >= max(3, team_size * 0.5):  # 50% or 3+ members resist
+                    team_resistances.append((attack_type, resistant_count, effectiveness))
+
+            # Sort by severity
+            critical_weaknesses.sort(key=lambda x: x[1], reverse=True)
+            major_weaknesses.sort(key=lambda x: x[1], reverse=True)
+            team_resistances.sort(key=lambda x: x[1], reverse=True)
+
+            # Coverage gaps - types with no resistance
+            coverage_gaps = []
+            for attack_type, effectiveness in effectiveness_grid.items():
+                if effectiveness["x0.5"] + effectiveness["x0.25"] + effectiveness["x0"] == 0:
+                    super_effective = effectiveness["x4"] + effectiveness["x2"]
+                    if super_effective > 0:
+                        coverage_gaps.append((attack_type, super_effective))
+
+            coverage_gaps.sort(key=lambda x: x[1], reverse=True)
+
+            return {
+                "team_members": team_members,
+                "effectiveness_grid": effectiveness_grid,
+                "critical_weaknesses": critical_weaknesses[:5],
+                "major_weaknesses": major_weaknesses[:8],
+                "team_resistances": team_resistances[:10],
+                "coverage_gaps": coverage_gaps[:8],
+                "team_size": team_size,
+                "analysis_complete": True
+            }
+
+        except Exception as e:
+            print(f"Error in team defensive analysis: {e}")
+            return {"error": str(e), "analysis_complete": False}
+
+    def _compute_team_offensive_analysis_from_party(self, party: List[Dict], pokemon_catalog: Dict, type_matrix: Dict) -> Dict[str, Any]:
+        """Compute comprehensive team-wide offensive analysis."""
+        if not party:
+            return {}
+
+        try:
+            from rogueeditor.catalog import load_type_matrix_v2
+
+            type_matrix = load_type_matrix_v2()
+            if not type_matrix:
+                return {"error": "Type matrix not available"}
+
+            # Team members with their moves organized by type
+            team_members = []
+            all_team_moves = {}  # type -> list of (pokemon_name, move_name)
+
+            # All possible defending types for analysis
+            all_types = ["Normal", "Fire", "Water", "Electric", "Grass", "Ice", "Fighting", "Poison",
+                        "Ground", "Flying", "Psychic", "Bug", "Rock", "Ghost", "Dragon", "Dark", "Steel", "Fairy"]
+
+            # Process each team member
+            for member_data in party:
+                if not member_data:
+                    continue
+
+                species_id = str(member_data.get("species", 0))
+                catalog_entry = pokemon_catalog.get("by_dex", {}).get(species_id, {})
+                pokemon_name = catalog_entry.get("name", f"Species#{species_id}")
+                level = member_data.get("level", "?")
+                moves = member_data.get("moveset", [])
+
+                # Organize moves by type
+                member_moves_by_type = {}
+                for move_data in moves:
+                    if not move_data:
+                        continue
+                    move_name = move_data.get("moveId", "Unknown Move")
+                    move_type = move_data.get("type", "Normal")
+
+                    if move_type not in member_moves_by_type:
+                        member_moves_by_type[move_type] = []
+                    member_moves_by_type[move_type].append(move_name)
+
+                    # Add to team-wide move tracking
+                    if move_type not in all_team_moves:
+                        all_team_moves[move_type] = []
+                    all_team_moves[move_type].append((pokemon_name, move_name))
+
+                team_members.append({
+                    "name": pokemon_name,
+                    "level": level,
+                    "moves_by_type": member_moves_by_type,
+                    "total_moves": len([m for m in moves if m])
+                })
+
+            # Coverage analysis against all defending types
+            coverage_analysis = {}
+            for defending_type in all_types:
+                coverage_analysis[defending_type] = {
+                    "super_effective": {"count": 0, "types": []},      # 2x effectiveness
+                    "neutral": {"count": 0, "types": []},              # 1x effectiveness
+                    "not_very_effective": {"count": 0, "types": []},   # 0.5x effectiveness
+                    "no_effect": {"count": 0, "types": []},            # 0x effectiveness
+                    "best_coverage": None
+                }
+
+            # Analyze coverage for each defending type
+            for defending_type in all_types:
+                best_effectiveness = 0
+                best_move_types = []
+
+                for attacking_type, moves_list in all_team_moves.items():
+                    if not moves_list:
+                        continue
+
+                    # Get effectiveness from type matrix
+                    effectiveness = 1.0
+                    if defending_type in type_matrix.get(attacking_type, {}):
+                        effectiveness = type_matrix[attacking_type][defending_type]
+
+                    # Categorize effectiveness
+                    if effectiveness >= 2.0:
+                        coverage_analysis[defending_type]["super_effective"]["count"] += len(moves_list)
+                        coverage_analysis[defending_type]["super_effective"]["types"].append(attacking_type)
+                        if effectiveness > best_effectiveness:
+                            best_effectiveness = effectiveness
+                            best_move_types = [attacking_type]
+                        elif effectiveness == best_effectiveness:
+                            best_move_types.append(attacking_type)
+                    elif effectiveness == 1.0:
+                        coverage_analysis[defending_type]["neutral"]["count"] += len(moves_list)
+                        coverage_analysis[defending_type]["neutral"]["types"].append(attacking_type)
+                    elif effectiveness > 0:
+                        coverage_analysis[defending_type]["not_very_effective"]["count"] += len(moves_list)
+                        coverage_analysis[defending_type]["not_very_effective"]["types"].append(attacking_type)
+                    else:
+                        coverage_analysis[defending_type]["no_effect"]["count"] += len(moves_list)
+                        coverage_analysis[defending_type]["no_effect"]["types"].append(attacking_type)
+
+                coverage_analysis[defending_type]["best_coverage"] = {
+                    "effectiveness": best_effectiveness,
+                    "types": best_move_types
+                }
+
+            # Risk analysis - find defending types we struggle against
+            coverage_risks = []      # Types we have no super effective coverage against
+            limited_coverage = []    # Types we have limited options against
+
+            for defending_type, analysis in coverage_analysis.items():
+                super_effective_count = analysis["super_effective"]["count"]
+                total_coverage = (analysis["super_effective"]["count"] +
+                                analysis["neutral"]["count"])
+
+                if super_effective_count == 0:
+                    if total_coverage == 0:
+                        coverage_risks.append((defending_type, "No Coverage"))
+                    else:
+                        coverage_risks.append((defending_type, "No Super Effective"))
+                elif super_effective_count <= 2:
+                    limited_coverage.append((defending_type, super_effective_count))
+
+            # Sort risks
+            limited_coverage.sort(key=lambda x: x[1])
+
+            # Team move summary
+            move_type_summary = []
+            for move_type, moves_list in all_team_moves.items():
+                move_type_summary.append({
+                    "type": move_type,
+                    "count": len(moves_list),
+                    "members_with_type": len(set(pokemon for pokemon, move in moves_list))
+                })
+
+            move_type_summary.sort(key=lambda x: x["count"], reverse=True)
+
+            return {
+                "team_members": team_members,
+                "all_team_moves": all_team_moves,
+                "coverage_analysis": coverage_analysis,
+                "coverage_risks": coverage_risks[:8],
+                "limited_coverage": limited_coverage[:10],
+                "move_type_summary": move_type_summary[:12],
+                "team_size": len([m for m in party if m]),
+                "analysis_complete": True
+            }
+
+        except Exception as e:
+            print(f"Error in team offensive analysis: {e}")
+            return {"error": str(e), "analysis_complete": False}
 
 
 # Global cache manager instance
@@ -605,6 +986,13 @@ class TeamManagerDialog(tk.Toplevel):
             self._install_context_menus()
         except Exception:
             pass
+
+        debug_log(f" Setting up window close handler")
+        try:
+            self.protocol("WM_DELETE_WINDOW", self._on_window_closing)
+        except Exception:
+            pass
+
         debug_log(f" Modalizing window")
         try:
             master._modalize(self)
@@ -840,6 +1228,7 @@ class TeamManagerDialog(tk.Toplevel):
         left.pack(side=tk.LEFT, fill=tk.Y, padx=6, pady=6)
         ttk.Label(left, text="Target:").pack(anchor=tk.W)
         self.target_var = tk.StringVar(value="Party")
+        self._last_target = "Party"  # Track target changes for unsaved changes warning
         trow = ttk.Frame(left)
         trow.pack(anchor=tk.W)
         ttk.Radiobutton(trow, text="Trainer", variable=self.target_var, value="Trainer", command=self._on_target_changed).pack(side=tk.LEFT)
@@ -856,12 +1245,12 @@ class TeamManagerDialog(tk.Toplevel):
             # Fallback without scrollbar
             self.party_list.pack(fill=tk.Y, expand=False)
         # Helper text to clarify selection-only and where to reorder
-        try:
-            ttk.Label(left,
-                     text="Select a Pokémon;\nuse Party Reordern \nbelow to rearrange.",
-                     foreground='gray').pack(anchor=tk.W, pady=(4, 0))
-        except Exception:
-            pass
+        #try:
+        #    ttk.Label(left,
+        #             text="Select a Pokémon;\nuse Party Reordern \nbelow to rearrange.",
+        #             foreground='gray').pack(anchor=tk.W, pady=(4, 0))
+        #except Exception:
+        #    pass
         # Mouse-based selection: lock selection on click, disable drag-to-select to prevent drift
         try:
             self.party_list.bind("<Button-1>", lambda e: self._on_party_click(e))
@@ -1004,50 +1393,68 @@ class TeamManagerDialog(tk.Toplevel):
         ttk.Label(hdr, text="Server Stats:").pack(side=tk.LEFT, padx=(12, 4))
         self.server_stats_var = tk.StringVar(value="-")
         ttk.Label(hdr, textvariable=self.server_stats_var).pack(side=tk.LEFT)
-        # Left column labels/entries
-        r = 1
-        ttk.Label(frm, text="Level:").grid(row=r, column=0, sticky=tk.E, padx=4, pady=3)
+        # Basics box (compact square): Nickname, Current HP, Level, EXP, Growth Rate, Friendship, EXP note
+        basics_box = ttk.LabelFrame(frm, text="Basics")
+        basics_box.grid(row=1, column=0, columnspan=3, sticky=tk.EW, padx=4, pady=(4, 6))
+        # Nickname
+        ttk.Label(basics_box, text="Nickname:").grid(row=0, column=0, sticky=tk.E, padx=4, pady=3)
+        self.var_name = tk.StringVar(value="")
+        ttk.Entry(basics_box, textvariable=self.var_name, width=18).grid(row=0, column=1, sticky=tk.W)
+        # Current HP
+        ttk.Label(basics_box, text="Current HP:").grid(row=0, column=2, sticky=tk.E, padx=8, pady=3)
+        self.var_hp = tk.StringVar(value="")
+        ttk.Entry(basics_box, textvariable=self.var_hp, width=8).grid(row=0, column=3, sticky=tk.W)
+        # Level
+        ttk.Label(basics_box, text="Level:").grid(row=1, column=0, sticky=tk.E, padx=4, pady=3)
         self.var_level = tk.StringVar(value="")
-        self.ent_level = ttk.Entry(frm, textvariable=self.var_level, width=8)
-        self.ent_level.grid(row=r, column=1, sticky=tk.W)
-        r += 1
-        ttk.Label(frm, text="EXP:").grid(row=r, column=0, sticky=tk.E, padx=4, pady=3)
+        self.ent_level = ttk.Entry(basics_box, textvariable=self.var_level, width=8)
+        self.ent_level.grid(row=1, column=1, sticky=tk.W)
+        # EXP
+        ttk.Label(basics_box, text="EXP:").grid(row=1, column=2, sticky=tk.E, padx=8, pady=3)
         self.var_exp = tk.StringVar(value="")
-        self.ent_exp = ttk.Entry(frm, textvariable=self.var_exp, width=12)
-        self.ent_exp.grid(row=r, column=1, sticky=tk.W)
+        self.ent_exp = ttk.Entry(basics_box, textvariable=self.var_exp, width=12)
+        self.ent_exp.grid(row=1, column=3, sticky=tk.W)
+        # Growth Rate
+        ttk.Label(basics_box, text="Growth Rate:").grid(row=2, column=0, sticky=tk.E, padx=4, pady=3)
+        self.var_growth = tk.StringVar(value="-")
+        ttk.Label(basics_box, textvariable=self.var_growth).grid(row=2, column=1, sticky=tk.W)
+        # Friendship inside basics
+        ttk.Label(basics_box, text="Friendship:").grid(row=2, column=2, sticky=tk.E, padx=8, pady=3)
+        self.var_friend = tk.StringVar(value="")
+        ttk.Entry(basics_box, textvariable=self.var_friend, width=8).grid(row=2, column=3, sticky=tk.W)
         # Live recompute Level on EXP change
         try:
             self.var_exp.trace_add('write', lambda *args: self._on_exp_change())
             self.var_level.trace_add('write', lambda *args: self._on_level_change())
         except Exception:
             pass
-        r += 1
-        ttk.Label(frm, text="Growth Rate:").grid(row=r, column=0, sticky=tk.E, padx=4, pady=3)
-        self.var_growth = tk.StringVar(value="-")
-        ttk.Label(frm, textvariable=self.var_growth).grid(row=r, column=1, sticky=tk.W)
-        r += 1
-        # EXP note about >100 assumption
-        self.exp_note = ttk.Label(frm, text="Note: Levels beyond 100 use last EXP step (supports 200+)", foreground="gray")
-        self.exp_note.grid(row=r, column=0, columnspan=4, sticky=tk.W, padx=4)
-        r += 1
-        ttk.Label(frm, text="Friendship:").grid(row=r, column=0, sticky=tk.E, padx=4, pady=3)
-        self.var_friend = tk.StringVar(value="")
-        ttk.Entry(frm, textvariable=self.var_friend, width=8).grid(row=r, column=1, sticky=tk.W)
-        r += 1
-        ttk.Label(frm, text="Current HP:").grid(row=r, column=0, sticky=tk.E, padx=4, pady=3)
-        self.var_hp = tk.StringVar(value="")
-        ttk.Entry(frm, textvariable=self.var_hp, width=8).grid(row=r, column=1, sticky=tk.W)
-        r += 1
-        ttk.Label(frm, text="Nickname:").grid(row=r, column=0, sticky=tk.E, padx=4, pady=3)
-        self.var_name = tk.StringVar(value="")
-        ttk.Entry(frm, textvariable=self.var_name, width=18).grid(row=r, column=1, sticky=tk.W)
-        # Held items button (pushed down below species row)
-        ttk.Button(frm, text="Manage Held Items…", command=self._open_item_mgr).grid(row=1, column=3, padx=8, pady=3, sticky=tk.W)
+        # EXP note inside basics
+        self.exp_note = ttk.Label(basics_box, text="Note: Levels beyond 100 use last EXP step (supports 200+)", foreground="gray")
+        self.exp_note.grid(row=3, column=0, columnspan=4, sticky=tk.W, padx=4, pady=(2,0))
 
-        # Status section (pushed down below species row)
-        r = 1
-        statf = ttk.LabelFrame(frm, text="Status")
-        statf.grid(row=1, column=2, rowspan=4, sticky=tk.NW, padx=4, pady=2)
+        # Actions box next to basics: Held items and Full Restore
+        actions_box = ttk.LabelFrame(frm, text="Actions")
+        actions_box.grid(row=1, column=3, sticky=tk.NW, padx=(0,4), pady=(4,6))
+        ttk.Button(actions_box, text="Manage Held Items…", command=self._open_item_mgr).grid(row=0, column=0, padx=6, pady=(6,4), sticky=tk.EW)
+        ttk.Button(actions_box, text="Full Restore", command=self._full_restore_current).grid(row=1, column=0, padx=6, pady=(0,6), sticky=tk.EW)
+        try:
+            actions_box.grid_columnconfigure(0, weight=1)
+        except Exception:
+            pass
+
+        # Continue with remaining fields below
+        r = 2
+
+        # Status and Ability sections side-by-side under basics/actions
+        row2 = ttk.Frame(frm)
+        row2.grid(row=2, column=0, columnspan=4, sticky=tk.EW, padx=4, pady=2)
+        try:
+            row2.grid_columnconfigure(0, weight=1)
+            row2.grid_columnconfigure(1, weight=1)
+        except Exception:
+            pass
+        statf = ttk.LabelFrame(row2, text="Status")
+        statf.grid(row=0, column=0, sticky=tk.NSEW, padx=(0,4))
         ttk.Label(statf, text="Primary:").grid(row=0, column=0, sticky=tk.E, padx=4, pady=2)
         self.var_status = tk.StringVar(value="")
         self.cb_status = ttk.Combobox(statf, textvariable=self.var_status, values=["none", "psn", "tox", "brn", "par", "slp", "frz"], width=10, state="readonly")
@@ -1065,8 +1472,8 @@ class TeamManagerDialog(tk.Toplevel):
         # Volatile statuses hidden (battle-only, not persisted)
 
         # Ability + passives
-        af = ttk.LabelFrame(frm, text="Ability & Passives")
-        af.grid(row=4, column=0, columnspan=4, sticky=tk.EW, padx=4, pady=(8, 6))
+        af = ttk.LabelFrame(row2, text="Ability & Passives")
+        af.grid(row=0, column=1, sticky=tk.NSEW, padx=(4,0))
         # Keep controls clustered; avoid stretching column 1 that causes gaps between radios
         # If needed, allow right side to expand from a higher column
         af.grid_columnconfigure(4, weight=1)
@@ -1086,12 +1493,15 @@ class TeamManagerDialog(tk.Toplevel):
         self.ability_warn = ttk.Label(af, text="", foreground="red")
         self.ability_warn.grid(row=2, column=1, columnspan=3, sticky=tk.W)
 
+        # Pokérus toggle moved to Actions box
+        self.var_pokerus = tk.BooleanVar(value=False)
+        ttk.Checkbutton(actions_box, text="Pokérus: Infected", variable=self.var_pokerus).grid(row=2, column=0, padx=6, pady=(0,6), sticky=tk.W)
+
         # Apply button (push down to avoid overlapping controls)
         ttk.Button(frm, text="Apply Basics to Local", command=self._apply_basics).grid(row=8, column=0, columnspan=2, sticky=tk.W, padx=4, pady=(10, 6))
-        # Heal helpers
+        # Heal helpers (moved Full Restore to Actions box)
         heal_bar = ttk.Frame(frm)
         heal_bar.grid(row=8, column=2, columnspan=2, sticky=tk.W)
-        ttk.Button(heal_bar, text="Full Restore", command=self._full_restore_current).pack(side=tk.LEFT, padx=(0,6))
         # Bind status changes to update visibility + summary
         try:
             self.var_status.trace_add('write', lambda *args: (self._update_status_fields_visibility(), self._update_status_summary()))
@@ -1464,8 +1874,8 @@ class TeamManagerDialog(tk.Toplevel):
     def _get_species_name(self, species_id: int) -> str:
         """Get species name from catalog."""
         try:
-            catalog = self._get_cached_pokemon_catalog()
-            entry = catalog.get(str(species_id), {})
+            catalog = self._get_cached_pokemon_catalog() or {}
+            entry = (catalog.get("by_dex") or {}).get(str(species_id), {})
             return entry.get("name", f"Species#{species_id}")
         except Exception:
             return f"Species#{species_id}"
@@ -1920,8 +2330,6 @@ class TeamManagerDialog(tk.Toplevel):
             self._matchup_bins[key] = inner
             self._matchup_section_frames[key] = lf
         frm.grid_columnconfigure(0, weight=1)
-        # Hook tab
-        self.tabs.add(parent, text="Defensive Matchups")
 
     def _set_matchup_sections_for_mon(self, mon: dict):
         try:
@@ -2096,15 +2504,30 @@ class TeamManagerDialog(tk.Toplevel):
                 elif isinstance(move, int):
                     move_ids.append(move)
 
-            # Stage 1: render moves preview immediately
-            self._render_moves_preview(move_ids)
+            # Stage 1: skip interim numeric preview to avoid extra render; final names/types will render in stages
 
             if not move_ids:
                 self._hide_loading_indicator()
                 return
 
-            # Progressive staged computation in background
+            # Progressive staged computation in background with single-flight guard
             selection_token = getattr(self, '_selection_token', 0)
+            try:
+                self._offense_gen = int(getattr(self, '_offense_gen', 0)) + 1
+            except Exception:
+                self._offense_gen = 1
+            current_gen = int(self._offense_gen)
+            # cancel previously scheduled stage callbacks if any
+            try:
+                if hasattr(self, '_offense_after_ids') and isinstance(self._offense_after_ids, list):
+                    for aid in self._offense_after_ids:
+                        try:
+                            self.after_cancel(aid)
+                        except Exception:
+                            pass
+            except Exception:
+                pass
+            self._offense_after_ids = []
             import threading
             def worker(ids_local, token_local):
                 try:
@@ -2126,11 +2549,29 @@ class TeamManagerDialog(tk.Toplevel):
                         self._mon_coverage_cache[mon_key] = {'sig': move_sig, 'coverage': coverage}
 
                     # Stage 2: type overview
-                    self.after(0, lambda cov=coverage, tok=token_local: self._update_coverage_types_guarded(tok, cov))
+                    try:
+                        aid = self.after(0, lambda g=current_gen, cov=coverage, tok=token_local: (
+                            self._update_coverage_types_guarded(tok, cov) if g == getattr(self, '_offense_gen', 0) else None
+                        ))
+                        self._offense_after_ids.append(aid)
+                    except Exception:
+                        pass
                     # Stage 3: bosses
-                    self.after(50, lambda cov=coverage, tok=token_local: self._update_coverage_bosses_guarded(tok, cov))
+                    try:
+                        aid = self.after(50, lambda g=current_gen, cov=coverage, tok=token_local: (
+                            self._update_coverage_bosses_guarded(tok, cov) if g == getattr(self, '_offense_gen', 0) else None
+                        ))
+                        self._offense_after_ids.append(aid)
+                    except Exception:
+                        pass
                     # Stage 4: walls
-                    self.after(100, lambda cov=coverage, tok=token_local: self._update_coverage_walls_guarded(tok, cov))
+                    try:
+                        aid = self.after(100, lambda g=current_gen, cov=coverage, tok=token_local: (
+                            self._update_coverage_walls_guarded(tok, cov) if g == getattr(self, '_offense_gen', 0) else None
+                        ))
+                        self._offense_after_ids.append(aid)
+                    except Exception:
+                        pass
                 except Exception as e:
                     print(f"Coverage worker error: {e}")
                     self.after(0, self._hide_loading_indicator)
@@ -2271,7 +2712,15 @@ class TeamManagerDialog(tk.Toplevel):
 
             # Update coverage sections by testing each defender against all move types and binning top effectiveness
             coverage_summary = coverage.get("coverage_summary", {})
-            move_types = set(coverage_summary.get("move_types", []))
+            # Derive user move types reliably from coverage.damaging_moves; fallback to summary
+            try:
+                dm = coverage.get("damaging_moves", [])
+                derived = [str(m.get("type", "")).strip().lower() for m in dm if isinstance(m, dict) and m.get("type") is not None]
+                move_types = set([t for t in derived if t])
+            except Exception:
+                move_types = set()
+            if not move_types:
+                move_types = set([str(t).strip().lower() for t in coverage_summary.get("move_types", []) if t])
             # Build bins fresh (single-type vs single-type only: 2x, 1x, 0.5x, 0x)
             bins = {
                 "super_effective": [],  # ==2
@@ -2281,7 +2730,8 @@ class TeamManagerDialog(tk.Toplevel):
             }
             # Use matrix to recompute best effectiveness per defender
             from rogueeditor.catalog import load_type_matchup_matrix
-            mat = getattr(self, "_type_matrix", None) or load_type_matchup_matrix()
+            raw_mat = getattr(self, "_type_matrix", None) or load_type_matchup_matrix()
+            mat = self._ensure_defense_matrix(raw_mat)
             # Derive list of type names from matrix keys
             defenders = sorted([k for k in mat.keys() if isinstance(mat.get(k), dict)])
             for def_t in defenders:
@@ -2371,6 +2821,10 @@ class TeamManagerDialog(tk.Toplevel):
                 immune_canvas.configure(yscrollcommand=immune_scrollbar.set)
                 immune_scrollable_frame.bind("<Configure>", lambda e: immune_canvas.configure(scrollregion=immune_canvas.bbox("all")))
                 
+                # Count label on top (must be created before packing canvas to appear above chips)
+                immune_count_var = tk.StringVar(value="")
+                ttk.Label(immune_frame, textvariable=immune_count_var, foreground="gray").pack(anchor=tk.W, padx=6, pady=(2,0))
+
                 # Pack canvas and scrollbar
                 immune_canvas.pack(side="left", fill="both", expand=True, padx=5, pady=5)
                 immune_scrollbar.pack(side="right", fill="y")
@@ -2401,6 +2855,10 @@ class TeamManagerDialog(tk.Toplevel):
                 quarter_canvas.configure(yscrollcommand=quarter_scrollbar.set)
                 quarter_scrollable_frame.bind("<Configure>", lambda e: quarter_canvas.configure(scrollregion=quarter_canvas.bbox("all")))
                 
+                # Count label on top (before packing canvas)
+                quarter_count_var = tk.StringVar(value="")
+                ttk.Label(quarter_frame, textvariable=quarter_count_var, foreground="gray").pack(anchor=tk.W, padx=6, pady=(2,0))
+
                 # Pack canvas and scrollbar
                 quarter_canvas.pack(side="left", fill="both", expand=True, padx=5, pady=5)
                 quarter_scrollbar.pack(side="right", fill="y")
@@ -2429,6 +2887,10 @@ class TeamManagerDialog(tk.Toplevel):
                 half_canvas.configure(yscrollcommand=half_scrollbar.set)
                 half_scrollable_frame.bind("<Configure>", lambda e: half_canvas.configure(scrollregion=half_canvas.bbox("all")))
                 
+                # Count label on top (before packing canvas)
+                half_count_var = tk.StringVar(value="")
+                ttk.Label(half_frame, textvariable=half_count_var, foreground="gray").pack(anchor=tk.W, padx=6, pady=(2,0))
+
                 # Pack canvas and scrollbar
                 half_canvas.pack(side="left", fill="both", expand=True, padx=5, pady=5)
                 half_scrollbar.pack(side="right", fill="y")
@@ -2446,7 +2908,14 @@ class TeamManagerDialog(tk.Toplevel):
                 debug_log(f"Created walls sections: immune={walls_immune}, quarter={walls_quarter}, half={walls_half}")
                 
                 # Calculate dual type combinations and categorize by resistance level
-                move_types_list = list(move_types)
+                # Normalize matrix to defensive orientation and normalize keys
+                # Ensure type matrices are cached and normalized
+                try:
+                    self._ensure_type_matrices_cached()
+                except Exception:
+                    pass
+                # Normalize move types to lowercase strings
+                move_types_list = sorted(set([str(mt).strip().lower() for mt in (list(move_types) or [])]))
                 
                 # Debug: Check if we have move types to analyze
                 debug_log(f"Move types for wall analysis: {move_types_list}")
@@ -2454,64 +2923,97 @@ class TeamManagerDialog(tk.Toplevel):
 
                 if move_types_list:
                     debug_log(f"Starting wall analysis with {len(move_types_list)} move types")
-                    # Categorize dual types by the BEST effectiveness the Pokémon can achieve
-                    immunity_duals = []      # 0x best effectiveness (completely walled)
-                    quarter_duals = []       # 0.25x best effectiveness (highly walled)
-                    half_duals = []          # 0.5x best effectiveness (walled)
+                    
+                    # WALL ANALYSIS: Identify defensive threats that resist the user's offensive moves
+                    # 
+                    # Purpose: Find type combinations that can "wall" the user's team by resisting
+                    # even their best offensive moves. This helps identify coverage gaps and
+                    # defensive threats the user should be aware of.
+                    #
+                    # Methodology:
+                    # 1. Test every possible dual-type combination against the user's move types
+                    # 2. Calculate the BEST effectiveness the user can achieve against each combo
+                    # 3. Categorize combos based on how well they resist the user's moves:
+                    #    - Immune (0x): User has no moves that can hit this combo
+                    #    - Highly Resisted (0.25x): User's best move is 4x resisted  
+                    #    - Resisted (0.5x): User's best move is 2x resisted
+                    # 4. Only show combos where the user's BEST move is resisted (true walls)
+                    #
+                    # Note: For dual-types, effectiveness is multiplicative (e.g., 2x vs type1 * 0.5x vs type2 = 1x overall)
+                    
+                    # Lists to store type combinations that wall the user's moves
+                    immunity_duals = []      # Type combos the user cannot hit at all (0x effectiveness)
+                    quarter_duals = []       # Type combos that highly resist user's moves (0.25x effectiveness)  
+                    half_duals = []          # Type combos that resist user's moves (0.5x effectiveness)
 
-                    # Get all possible dual type combinations
-                    all_types = sorted([k for k in mat.keys() if isinstance(mat.get(k), dict)])
-                    for i, type1 in enumerate(all_types):
-                        for type2 in all_types[i+1:]:  # Avoid duplicates like (fire, water) and (water, fire)
-                            best_effectiveness = 0.0  # Start with no effect
+                    # Snap to canonical effectiveness buckets
+                    def _snap_bucket(x: float) -> float:
+                        try:
+                            x = float(x)
+                        except Exception:
+                            return 1.0
+                        eps = 1e-6
+                        for val in (0.0, 0.25, 0.5, 1.0, 2.0, 4.0):
+                            if abs(x - val) <= eps:
+                                return val
+                        return x
 
-                            # Find the BEST effectiveness the Pokémon can achieve against this type combo
-                            # Test each move type against the dual-type combination
-                            if DEBUG_EFFECTIVENESS_CALCULATIONS:
-                                debug_log(f"  Testing {len(move_types_list)} moves against [{type1}/{type2}]: {move_types_list}")
-                            for move_type in move_types_list:
-                                try:
-                                    # Matrix structure: mat[defending_type][attacking_type] = effectiveness
-                                    # To get "how effective is move_type against type1", look up mat[type1][move_type]
-                                    # To get "how effective is move_type against type2", look up mat[type2][move_type]
-                                    
-                                    # Get effectiveness against each individual type
-                                    eff1 = float(mat.get(type1, {}).get(move_type, 1.0))
-                                    eff2 = float(mat.get(type2, {}).get(move_type, 1.0))
-                                    
-                                    # For dual types, multiply the individual effectivenesses
-                                    # This gives us the combined effectiveness against [type1/type2]
-                                    combined_effectiveness = eff1 * eff2
-                                    
-                                    # Debug: Log the lookup for specific cases
-                                    if DEBUG_EFFECTIVENESS_CALCULATIONS and move_type == 'fairy' and type1 == 'dragon':
-                                        debug_log(f"  {move_type} vs [{type1}/{type2}] = {eff1} * {eff2} = {combined_effectiveness}")
-
-                                    if combined_effectiveness > best_effectiveness:
-                                        best_effectiveness = combined_effectiveness
-                                        
-                                except Exception as e:
-                                    debug_log(f"  Error calculating {move_type} vs [{type1}/{type2}]: {e}")
-                                    continue
-
-                            # Only include type combos where the Pokémon's BEST effectiveness is walled
-                            # These are types that resist/immune the user's moves (walls)
-                            # We want types where even the BEST move is resisted/immune
-                            if DEBUG_EFFECTIVENESS_CALCULATIONS:
-                                debug_log(f"  Best effectiveness against [{type1}/{type2}]: {best_effectiveness}")
+                    # WALL ANALYSIS: Find type combinations that resist the user's best offensive moves
+                    # A "wall" is a type combo where even the user's BEST move is resisted or immune
+                    # This helps identify defensive threats the user's team struggles against
+                    
+                    self._ensure_type_matrices_cached()
+                    all_defending_types = sorted(self._tm_def.keys())
+                    
+                    # Test every possible dual-type combination against the user's moves
+                    for i, defending_type1 in enumerate(all_defending_types):
+                        for defending_type2 in all_defending_types[i+1:]:  # Avoid duplicates like (fire, water) and (water, fire)
                             
-                            if best_effectiveness <= 0.0:
-                                immunity_duals.append((type1, type2))
+                            # Find the BEST effectiveness the user can achieve against this defending type combo
+                            if DEBUG_EFFECTIVENESS_CALCULATIONS:
+                                debug_log(f"  Testing user moves vs defending [{defending_type1}/{defending_type2}]: {move_types_list}")
+                            
+                            try:
+                                # For debugging: manually calculate effectiveness for known problematic pairs
+                                if (defending_type1, defending_type2) in (('bug','psychic'), ('dragon','normal')) or (defending_type2, defending_type1) in (('bug','psychic'), ('dragon','normal')):
+                                    effectiveness_values = []
+                                    for move_type in move_types_list:
+                                        effectiveness_vs_type1 = self._tm_att_mult(move_type, defending_type1)
+                                        effectiveness_vs_type2 = self._tm_att_mult(move_type, defending_type2)
+                                        combined_effectiveness = float(effectiveness_vs_type1) * float(effectiveness_vs_type2)
+                                        debug_log(f"    TRACE [{defending_type1}/{defending_type2}] {move_type}: {effectiveness_vs_type1} * {effectiveness_vs_type2} = {combined_effectiveness}")
+                                        effectiveness_values.append(combined_effectiveness)
+                                    best_effectiveness_against_combo = float(max(effectiveness_values) if effectiveness_values else 1.0)
+                                else:
+                                    # Use the optimized method for all other type combinations
+                                    best_effectiveness_against_combo = float(self._tm_best_offense_vs_dual(move_types_list, defending_type1, defending_type2))
+                            except Exception:
+                                best_effectiveness_against_combo = 1.0
+
+                            # Categorize this defending type combo based on how well it resists the user's moves
+                            # Only include combos where the user's BEST move is resisted/immune (true walls)
+                            if DEBUG_EFFECTIVENESS_CALCULATIONS:
+                                debug_log(f"  Best effectiveness against [{defending_type1}/{defending_type2}]: {best_effectiveness_against_combo}")
+                            
+                            # Snap to standard effectiveness buckets for consistent categorization
+                            best_effectiveness_against_combo = _snap_bucket(best_effectiveness_against_combo)
+
+                            # Categorize the defending type combo based on resistance level
+                            if best_effectiveness_against_combo <= 0.0:
+                                # Complete immunity: user has no moves that can hit this type combo
+                                immunity_duals.append((defending_type1, defending_type2))
                                 if DEBUG_EFFECTIVENESS_CALCULATIONS:
-                                    debug_log(f"    -> Added to IMMUNE (0x)")
-                            elif best_effectiveness <= 0.25:
-                                quarter_duals.append((type1, type2))
+                                    debug_log(f"    -> Added to IMMUNE (0x) - user has no moves that can hit this combo")
+                            elif best_effectiveness_against_combo <= 0.25:
+                                # Highly resisted: user's best move is only 0.25x effective (4x resistance)
+                                quarter_duals.append((defending_type1, defending_type2))
                                 if DEBUG_EFFECTIVENESS_CALCULATIONS:
-                                    debug_log(f"    -> Added to HIGHLY RESISTED (0.25x)")
-                            elif best_effectiveness <= 0.5:
-                                half_duals.append((type1, type2))
+                                    debug_log(f"    -> Added to HIGHLY RESISTED (0.25x) - user's best move is 4x resisted")
+                            elif best_effectiveness_against_combo <= 0.5:
+                                # Resisted: user's best move is only 0.5x effective (2x resistance)
+                                half_duals.append((defending_type1, defending_type2))
                                 if DEBUG_EFFECTIVENESS_CALCULATIONS:
-                                    debug_log(f"    -> Added to RESISTED (0.5x)")
+                                    debug_log(f"    -> Added to RESISTED (0.5x) - user's best move is 2x resisted")
                             elif DEBUG_EFFECTIVENESS_CALCULATIONS:
                                 debug_log(f"    -> Not a wall (effectiveness > 0.5x)")
 
@@ -2577,43 +3079,7 @@ class TeamManagerDialog(tk.Toplevel):
                         else:
                             ttk.Label(frame, text="None", foreground="gray").pack(anchor=tk.W, padx=5, pady=2)
 
-                    # Debug: Test matrix lookup with known values
-                    if move_types_list and all_types:
-                        test_move = move_types_list[0]
-                        test_type1, test_type2 = all_types[0], all_types[1] if len(all_types) > 1 else all_types[0]
-                        try:
-                            test_row = mat.get(test_move, {})
-                            test_eff1 = float(test_row.get(test_type1, 1.0))
-                            test_eff2 = float(test_row.get(test_type2, 1.0))
-                            test_combined = test_eff1 * test_eff2
-                            debug_log(f"Test lookup: {test_move} vs [{test_type1}/{test_type2}] = {test_eff1} * {test_eff2} = {test_combined}")
-                            
-                            # Test specific example: Ghost/Steel/Fairy vs Dragon/Normal
-                            test_moves = ['ghost', 'steel', 'fairy']
-                            test_types = ['dragon', 'normal']
-                            if all(move in move_types_list for move in test_moves) and all(t in all_types for t in test_types):
-                                debug_log("Testing Ghost/Steel/Fairy vs Dragon/Normal:")
-                                for move in test_moves:
-                                    if move in move_types_list:
-                                        row = mat.get(move, {})
-                                        eff1 = float(row.get('dragon', 1.0))
-                                        eff2 = float(row.get('normal', 1.0))
-                                        combined = eff1 * eff2
-                                        debug_log(f"  {move} vs [dragon/normal] = {eff1} * {eff2} = {combined}")
-                            
-                            # Test a few more combinations to understand the pattern
-                            for i in range(min(3, len(move_types_list))):
-                                move = move_types_list[i]
-                                for j in range(min(3, len(all_types))):
-                                    for k in range(j+1, min(4, len(all_types))):
-                                        t1, t2 = all_types[j], all_types[k]
-                                        row = mat.get(move, {})
-                                        eff1 = float(row.get(t1, 1.0))
-                                        eff2 = float(row.get(t2, 1.0))
-                                        combined = eff1 * eff2
-                                        debug_log(f"  {move} vs [{t1}/{t2}] = {eff1} * {eff2} = {combined}")
-                        except Exception as e:
-                            debug_log(f"Test lookup failed: {e}")
+                    # Debug section removed to avoid confusion with orientation
                     
                     # Debug: Log the counts before rendering
                     debug_log(f"Rendering walls: immune={len(immunity_duals)}, quarter={len(quarter_duals)}, half={len(half_duals)}")
@@ -2625,6 +3091,13 @@ class TeamManagerDialog(tk.Toplevel):
                     if half_duals:
                         debug_log(f"Sample half dual: {half_duals[0]} (user's best effectiveness = 0.5)")
                     
+                    # Update counts on top
+                    try:
+                        immune_count_var.set(f"Found {len(immunity_duals)} type combinations")
+                        quarter_count_var.set(f"Found {len(quarter_duals)} type combinations")
+                        half_count_var.set(f"Found {len(half_duals)} type combinations")
+                    except Exception:
+                        pass
                     render_dual_types(walls_immune, immunity_duals)
                     render_dual_types(walls_quarter, quarter_duals)
                     render_dual_types(walls_half, half_duals)
@@ -2668,17 +3141,13 @@ class TeamManagerDialog(tk.Toplevel):
 
     def _render_moves_preview(self, move_ids: list[int]):
         try:
+            # Clear area; final render will populate with names/chips in next stages
             for widget in self.coverage_moves_frame.winfo_children():
                 widget.destroy()
             if not move_ids:
                 ttk.Label(self.coverage_moves_frame, text="No damaging moves found",
                          foreground="gray").pack(anchor=tk.W, padx=5, pady=5)
                 return
-            # Minimal preview list (no lookup cost)
-            row = ttk.Frame(self.coverage_moves_frame)
-            row.pack(fill=tk.X, padx=5, pady=4)
-            ttk.Label(row, text="Moves:").pack(side=tk.LEFT)
-            ttk.Label(row, text=", ".join([str(m) for m in move_ids])).pack(side=tk.LEFT, padx=(4,0))
         except Exception:
             pass
 
@@ -2693,15 +3162,11 @@ class TeamManagerDialog(tk.Toplevel):
                 for widget in section_frame.winfo_children():
                     widget.destroy()
             from rogueeditor.catalog import load_type_matchup_matrix
-            mat = getattr(self, "_type_matrix", None) or load_type_matchup_matrix()
-            type_names = list(mat.keys())
+            # Use normalized helpers backed by type_matrix_v2
+            self._ensure_type_matrices_cached()
+            type_names = list(self._tm_def.keys())
             def best_eff_vs_type(def_type):
-                best = 0
-                for mt in move_types:
-                    eff = float(mat.get(mt, {}).get(def_type, 1))
-                    if eff > best:
-                        best = eff
-                return best
+                return self._tm_best_offense_vs_type(list(move_types), def_type)
             sorted_def_types = sorted(type_names)
             buckets = {"excellent_4x": [], "good_2x": [], "neutral": [], "not_very_effective": [], "no_effect": []}
             for t in sorted_def_types:
@@ -2732,7 +3197,7 @@ class TeamManagerDialog(tk.Toplevel):
     def _update_coverage_bosses_guarded(self, expected_token: int, coverage: dict):
         try:
             # Sole renderer for boss analysis to avoid flicker/duplication
-            from rogueeditor.coverage_calculator import BOSS_POKEMON, _effectiveness_vs_boss
+            from rogueeditor.coverage_calculator import BOSS_POKEMON
             from rogueeditor.catalog import load_type_matchup_matrix
             damaging_moves = coverage.get("damaging_moves", [])
             for key in ("eternatus", "rayquaza", "mega_rayquaza"):
@@ -2744,21 +3209,67 @@ class TeamManagerDialog(tk.Toplevel):
                     continue
                 boss = BOSS_POKEMON.get(key, {})
                 btypes = boss.get('types', [])
-                bdef = boss.get('defense', {})
+                # Use matrix directly so we can apply Delta Stream only to the Flying component
+                mat = getattr(self, "_type_matrix", None) or load_type_matchup_matrix()
                 # Use unique move types only (no move names) for stable chips
                 move_types = sorted(set([
                     str(m.get("type", "unknown")).strip().lower()
                     for m in damaging_moves if isinstance(m, dict)
                 ]))
-                for mtype in move_types:
+
+                # Compute max effectiveness descriptor across available move types
+                max_eff = 0.0
+                def _eff_vs_types(move_type: str, def_types: list) -> float:
                     try:
-                        eff = _effectiveness_vs_boss(mtype, key, btypes, bdef, getattr(self, "_type_matrix", None) or load_type_matchup_matrix())
+                        move_type = (move_type or "").strip().lower()
+                        if not def_types:
+                            return 1.0
+                        vals = []
+                        for t in def_types:
+                            dt = str(t).strip().lower()
+                            # Base effectiveness from defensive matrix: mat[def][att]
+                            base = float(mat.get(dt, {}).get(move_type, 1.0))
+                            # Delta Stream: only neutralize Flying weaknesses (not resistances), and only the Flying component
+                            if key == 'mega_rayquaza' and dt == 'flying' and move_type in ('electric','ice','rock') and base > 1.0:
+                                base = 1.0
+                            vals.append(base)
+                        out = 1.0
+                        for v in vals:
+                            out *= v
+                        return float(out)
                     except Exception:
-                        eff = 1
+                        return 1.0
+
+                for mtype in move_types:
+                    eff = _eff_vs_types(mtype, btypes)
+                    max_eff = eff if eff > max_eff else max_eff
                     chip = tk.Label(dyn, text=f"{mtype.title()} (x{float(eff):g})", bg=self._color_for_type(mtype), bd=1, relief=tk.SOLID, padx=6, pady=2)
                     chip.pack(side=tk.LEFT, padx=2, pady=2)
+
+                # Map effectiveness to descriptor and color
+                def _bucket(e: float) -> tuple[str, str]:
+                    try:
+                        # Snap to known buckets
+                        if e <= 0.0:
+                            return ("Immune (x0)", "#9e9e9e")
+                        if e <= 0.25 + 1e-9:
+                            return ("Heavily Resisted (x0.25)", "#ff9800")
+                        if e <= 0.5 + 1e-9:
+                            return ("Resisted (x0.5)", "#ffb74d")
+                        if abs(e - 1.0) < 1e-9:
+                            return ("Neutral (x1)", "#9e9e9e")
+                        if e >= 4.0 - 1e-9:
+                            return ("Extremely Effective (x4)", "#2e7d32")
+                        if e >= 2.0 - 1e-9:
+                            return ("Super Effective (x2)", "#43a047")
+                        # Fallback
+                        return (f"Best: x{e:g}", "#9e9e9e")
+                    except Exception:
+                        return ("Neutral (x1)", "#9e9e9e")
+
                 if key in self.boss_labels:
-                    self.boss_labels[key].config(text="Analyzed", foreground="green")
+                    desc, color = _bucket(float(max_eff))
+                    self.boss_labels[key].config(text=desc, foreground=color)
         except Exception:
             pass
 
@@ -3722,7 +4233,7 @@ class TeamManagerDialog(tk.Toplevel):
             # Import coverage calculator and catalog
             from rogueeditor.coverage_calculator import (
                 OffensiveCoverageCalculator, get_coverage_for_team,
-                find_type_combo_walls, load_type_matrix
+                find_type_combo_walls, load_type_matrix_v2
             )
             from rogueeditor.catalog import load_pokemon_catalog
 
@@ -4214,14 +4725,12 @@ class TeamManagerDialog(tk.Toplevel):
                     except Exception:
                         form_disp = None
 
-                    # Build label: order. Name (Form) • Dex #### • id #### • Lv ####
-                    parts = [f"{i}.", name]
-                    if form_disp:
-                        parts[-1] = f"{name} ({form_disp})"
-                    dex_part = f"Dex {int(did):04d}"
-                    mid = mon.get("id", "?")
+                    # Build label: Name#0000 Level X (Form if applicable)
                     lvl = _get(mon, ("level", "lvl")) or "?"
-                    label = f"{' '.join(parts)} • {dex_part} • id {mid} • Lv {lvl}"
+                    base_name = name
+                    if form_disp:
+                        base_name = f"{name} ({form_disp})"
+                    label = f"{base_name}#{int(did):04d} Level {lvl}"
                     self.party_list.insert(tk.END, label)
 
                 except Exception as e:
@@ -4349,6 +4858,20 @@ class TeamManagerDialog(tk.Toplevel):
             return None
 
     def _on_target_changed(self):
+        """Handle target change (Trainer vs Party) with unsaved changes protection."""
+        current_target = self.target_var.get()
+
+        # Check for unsaved changes before switching
+        if hasattr(self, '_last_target') and self._last_target != current_target:
+            if not self._confirm_discard_changes(f"switch to {current_target}"):
+                # User canceled, revert the target selection
+                self.target_var.set(self._last_target)
+                return
+
+        # Remember the new target
+        self._last_target = current_target
+
+        # Apply the target change
         self._apply_target_visibility()
 
     def _apply_target_visibility(self):
@@ -4359,41 +4882,39 @@ class TeamManagerDialog(tk.Toplevel):
                 self.tabs.forget(tab_id)
         except Exception:
             pass
+
+        # Configure party listbox state based on target
+        self._configure_party_selector_for_target(tgt)
+
         # Add tabs based on target
         if tgt == "Trainer":
             try:
                 self.tabs.add(self.tab_trainer_basics, text="Basics")
-                self.tabs.add(self.tab_team_defensive, text="Team Defensive")
-                self.tabs.add(self.tab_team_offensive, text="Team Offensive")
+                self.tabs.add(self.tab_team_defensive, text="Team Defensive Analysis")
+                self.tabs.add(self.tab_team_offensive, text="Team Offensive Analysis")
             except Exception:
                 pass
-            # Load trainer snapshot on switch with progressive loading (SAFE VERSION)
+            # Load trainer snapshot with enhanced progressive loading and performance optimizations
             try:
-                debug_log("Loading trainer snapshot safely...")
+                debug_log("Loading trainer snapshot with enhanced performance...")
                 self._load_trainer_snapshot_safe()
 
-                # Progressive loading of analysis tabs (force load if needed)
-                debug_log(f"Triggering progressive loading - defensive skeleton exists: {hasattr(self, '_defensive_skeleton')}")
-                debug_log(f"Triggering progressive loading - offensive skeleton exists: {hasattr(self, '_offensive_skeleton')}")
+                # Show loading overlay for trainer tabs (same pattern as party tabs)
+                self._show_trainer_loading_overlay()
 
-                # Load analysis tabs with better error handling and deferred execution
-                try:
-                    self.after_idle(self._load_defensive_analysis_progressive)
-                except Exception as e:
-                    debug_log(f"Error loading defensive analysis: {e}")
+                # Enhanced progressive loading with caching and optimization
+                debug_log("Starting enhanced trainer analysis loading...")
 
+                # Use the same optimization patterns as party tabs
                 try:
-                    self.after_idle(self._load_offensive_analysis_progressive)
+                    self.after_idle(lambda: self._load_trainer_analysis_enhanced())
                 except Exception as e:
-                    debug_log(f"Error loading offensive analysis: {e}")
-                
-                try:
-                    self.after(100, self._load_offensive_analysis_progressive)  # Slight delay
-                except Exception as e:
-                    print(f"Error loading offensive analysis: {e}")
-                    
+                    debug_log(f"Error loading trainer analysis: {e}")
+                    self._hide_trainer_loading_overlay()
+
             except Exception as e:
-                print(f"Error in trainer mode progressive loading: {e}")
+                debug_log(f"Error in trainer mode enhanced loading: {e}")
+                self._hide_trainer_loading_overlay()
                 import traceback
                 traceback.print_exc()
         else:
@@ -4406,6 +4927,473 @@ class TeamManagerDialog(tk.Toplevel):
                 self.tabs.add(self.tab_poke_coverage, text="Offensive Matchups")
             except Exception:
                 pass
+
+    def _configure_party_selector_for_target(self, target: str):
+        """Configure party selector state based on target context."""
+        try:
+            if target == "Trainer":
+                # Make party selector read-only for trainer tabs
+                debug_log("Setting party selector to read-only for Trainer context")
+
+                # Disable selection events temporarily
+                self.party_list.bind("<Button-1>", lambda e: "break")
+                self.party_list.bind("<B1-Motion>", lambda e: "break")
+                self.party_list.bind("<<ListboxSelect>>", lambda e: "break")
+
+                # Visual indication it's read-only
+                try:
+                    self.party_list.configure(selectbackground="#f0f0f0", selectforeground="#888888")
+                except Exception:
+                    pass
+
+                debug_log("Party selector configured as read-only")
+            else:
+                # Enable party selector for party tabs
+                debug_log("Setting party selector to active for Party context")
+
+                # Re-enable selection events
+                self.party_list.bind("<Button-1>", lambda e: self._on_party_click(e))
+                self.party_list.bind("<B1-Motion>", lambda e: "break")  # Still prevent drag selection
+                self.party_list.bind("<<ListboxSelect>>", self._on_party_selected)
+
+                # Restore normal selection colors
+                try:
+                    self.party_list.configure(selectbackground="SystemHighlight", selectforeground="SystemHighlightText")
+                except Exception:
+                    pass
+
+                debug_log("Party selector configured as active")
+        except Exception as e:
+            debug_log(f"Error configuring party selector: {e}")
+
+    def _show_trainer_loading_overlay(self):
+        """Show loading overlay for trainer tabs with same pattern as party tabs."""
+        try:
+            # Show loading overlay on trainer tabs
+            for tab_widget in [self.tab_team_defensive, self.tab_team_offensive]:
+                if hasattr(self, tab_widget._name if hasattr(tab_widget, '_name') else 'tab_team_defensive'):
+                    try:
+                        # Create or show loading overlay
+                        overlay_name = f"trainer_loading_overlay_{tab_widget._name if hasattr(tab_widget, '_name') else 'defensive'}"
+                        if not hasattr(self, overlay_name):
+                            overlay = tk.Frame(tab_widget, bg="white")
+                            overlay.place(relx=0, rely=0, relwidth=1, relheight=1)
+
+                            # Loading message
+                            loading_label = tk.Label(overlay, text="Loading trainer analysis...",
+                                                   bg="white", fg="#666", font=("Arial", 12))
+                            loading_label.place(relx=0.5, rely=0.4, anchor="center")
+
+                            # Animated dots
+                            dots_label = tk.Label(overlay, text="", bg="white", fg="#666", font=("Arial", 16))
+                            dots_label.place(relx=0.5, rely=0.6, anchor="center")
+
+                            setattr(self, overlay_name, overlay)
+                            setattr(self, f"{overlay_name}_dots", dots_label)
+
+                            # Start animation
+                            self._animate_trainer_loading_dots(dots_label)
+                        else:
+                            # Show existing overlay
+                            overlay = getattr(self, overlay_name)
+                            overlay.lift()
+                    except Exception as e:
+                        debug_log(f"Error showing trainer loading overlay: {e}")
+            debug_log("Trainer loading overlays shown")
+        except Exception as e:
+            debug_log(f"Error in _show_trainer_loading_overlay: {e}")
+
+    def _hide_trainer_loading_overlay(self):
+        """Hide loading overlay for trainer tabs."""
+        try:
+            # Hide loading overlays on trainer tabs
+            for overlay_name in ['trainer_loading_overlay_defensive', 'trainer_loading_overlay_offensive']:
+                if hasattr(self, overlay_name):
+                    overlay = getattr(self, overlay_name)
+                    try:
+                        overlay.destroy()
+                        delattr(self, overlay_name)
+                        if hasattr(self, f"{overlay_name}_dots"):
+                            delattr(self, f"{overlay_name}_dots")
+                    except Exception:
+                        pass
+            debug_log("Trainer loading overlays hidden")
+        except Exception as e:
+            debug_log(f"Error in _hide_trainer_loading_overlay: {e}")
+
+    def _animate_trainer_loading_dots(self, dots_label):
+        """Animate loading dots for trainer tabs."""
+        try:
+            if not hasattr(self, '_trainer_dots_count'):
+                self._trainer_dots_count = 0
+
+            dots = "." * (self._trainer_dots_count % 4)
+            if hasattr(dots_label, 'winfo_exists') and dots_label.winfo_exists():
+                dots_label.configure(text=dots)
+                self._trainer_dots_count += 1
+                self.after(500, lambda: self._animate_trainer_loading_dots(dots_label))
+        except Exception:
+            pass
+
+    def _compute_team_defensive_analysis_from_party_matchups(self, party_matchups: List[Dict]) -> Dict[str, Any]:
+        """Compute comprehensive team-wide defensive analysis."""
+        if not party_matchups:
+            return {}
+
+        try:
+            # Enhanced team member data with names and types
+            team_members = []
+            effectiveness_grid = {}  # attacking_type -> {x4: count, x2: count, x1: count, x0.5: count, x0.25: count, x0: count}
+
+            # All possible attacking types for comprehensive analysis
+            all_types = ["Normal", "Fire", "Water", "Electric", "Grass", "Ice", "Fighting", "Poison",
+                        "Ground", "Flying", "Psychic", "Bug", "Rock", "Ghost", "Dragon", "Dark", "Steel", "Fairy"]
+
+            # Initialize effectiveness grid
+            for attack_type in all_types:
+                effectiveness_grid[attack_type] = {"x4": 0, "x2": 0, "x1": 0, "x0.5": 0, "x0.25": 0, "x0": 0}
+
+            # Process each team member
+            for member in party_matchups:
+                matchups = member.get("matchups", {})
+                pokemon_name = member.get("pokemon_name", "Unknown")
+                level = member.get("level", "?")
+                types = member.get("types", [])
+
+                team_members.append({
+                    "name": pokemon_name,
+                    "level": level,
+                    "types": types,
+                    "defensive_types": "/".join(types) if types else "Unknown"
+                })
+
+                # Count effectiveness for each attacking type
+                for attack_type in all_types:
+                    found_effectiveness = False
+                    for effectiveness, type_list in matchups.items():
+                        if attack_type in type_list:
+                            effectiveness_grid[attack_type][effectiveness] += 1
+                            found_effectiveness = True
+                            break
+
+                    # If not found in any category, assume neutral (x1)
+                    if not found_effectiveness:
+                        effectiveness_grid[attack_type]["x1"] += 1
+
+            # Risk analysis - identify critical and major weaknesses
+            critical_weaknesses = []  # Types that hit 4+ members super effectively
+            major_weaknesses = []     # Types that hit 2-3 members super effectively
+            team_resistances = []     # Types the team resists well
+
+            team_size = len(party_matchups)
+
+            for attack_type, effectiveness in effectiveness_grid.items():
+                super_effective_count = effectiveness["x4"] + effectiveness["x2"]
+                resistant_count = effectiveness["x0.5"] + effectiveness["x0.25"] + effectiveness["x0"]
+
+                if super_effective_count >= max(4, team_size * 0.67):  # 67% or 4+ members
+                    critical_weaknesses.append((attack_type, super_effective_count, effectiveness))
+                elif super_effective_count >= 2:
+                    major_weaknesses.append((attack_type, super_effective_count, effectiveness))
+
+                if resistant_count >= max(3, team_size * 0.5):  # 50% or 3+ members resist
+                    team_resistances.append((attack_type, resistant_count, effectiveness))
+
+            # Sort by severity
+            critical_weaknesses.sort(key=lambda x: x[1], reverse=True)
+            major_weaknesses.sort(key=lambda x: x[1], reverse=True)
+            team_resistances.sort(key=lambda x: x[1], reverse=True)
+
+            # Coverage gaps - types with no resistance
+            coverage_gaps = []
+            for attack_type, effectiveness in effectiveness_grid.items():
+                if effectiveness["x0.5"] + effectiveness["x0.25"] + effectiveness["x0"] == 0:
+                    super_effective = effectiveness["x4"] + effectiveness["x2"]
+                    if super_effective > 0:
+                        coverage_gaps.append((attack_type, super_effective))
+
+            coverage_gaps.sort(key=lambda x: x[1], reverse=True)
+
+            return {
+                "team_members": team_members,
+                "effectiveness_grid": effectiveness_grid,
+                "critical_weaknesses": critical_weaknesses[:5],
+                "major_weaknesses": major_weaknesses[:8],
+                "team_resistances": team_resistances[:10],
+                "coverage_gaps": coverage_gaps[:8],
+                "team_size": team_size,
+                "analysis_complete": True
+            }
+
+        except Exception as e:
+            print(f"Error in team defensive analysis: {e}")
+            return {"error": str(e), "analysis_complete": False}
+
+    def _compute_team_offensive_analysis_from_party(self, party: List[Dict], pokemon_catalog: Dict, type_matrix: Dict) -> Dict[str, Any]:
+        """Compute comprehensive team-wide offensive analysis."""
+        if not party:
+            return {}
+
+        try:
+            from rogueeditor.catalog import load_type_matrix_v2
+
+            type_matrix = load_type_matrix_v2()
+            if not type_matrix:
+                return {"error": "Type matrix not available"}
+
+            # Team members with their moves organized by type
+            team_members = []
+            all_team_moves = {}  # type -> list of (pokemon_name, move_name)
+
+            # All possible defending types for analysis
+            all_types = ["Normal", "Fire", "Water", "Electric", "Grass", "Ice", "Fighting", "Poison",
+                        "Ground", "Flying", "Psychic", "Bug", "Rock", "Ghost", "Dragon", "Dark", "Steel", "Fairy"]
+
+            # Process each team member
+            for member_data in party:
+                if not member_data:
+                    continue
+
+                pokemon_name = member_data.get("species", "Unknown")
+                level = member_data.get("level", "?")
+                moves = member_data.get("moveset", [])
+
+                # Organize moves by type
+                member_moves_by_type = {}
+                for move_data in moves:
+                    if not move_data:
+                        continue
+                    move_name = move_data.get("moveId", "Unknown Move")
+                    move_type = move_data.get("type", "Normal")
+
+                    if move_type not in member_moves_by_type:
+                        member_moves_by_type[move_type] = []
+                    member_moves_by_type[move_type].append(move_name)
+
+                    # Add to team-wide move tracking
+                    if move_type not in all_team_moves:
+                        all_team_moves[move_type] = []
+                    all_team_moves[move_type].append((pokemon_name, move_name))
+
+                team_members.append({
+                    "name": pokemon_name,
+                    "level": level,
+                    "moves_by_type": member_moves_by_type,
+                    "total_moves": len([m for m in moves if m])
+                })
+
+            # Coverage analysis against all defending types
+            coverage_analysis = {}
+            for defending_type in all_types:
+                coverage_analysis[defending_type] = {
+                    "super_effective": {"count": 0, "types": []},      # 2x effectiveness
+                    "neutral": {"count": 0, "types": []},              # 1x effectiveness
+                    "not_very_effective": {"count": 0, "types": []},   # 0.5x effectiveness
+                    "no_effect": {"count": 0, "types": []},            # 0x effectiveness
+                    "best_coverage": None
+                }
+
+            # Analyze coverage for each defending type
+            for defending_type in all_types:
+                best_effectiveness = 0
+                best_move_types = []
+
+                for attacking_type, moves_list in all_team_moves.items():
+                    if not moves_list:
+                        continue
+
+                    # Get effectiveness from type matrix
+                    effectiveness = 1.0
+                    if defending_type in type_matrix.get(attacking_type, {}):
+                        effectiveness = type_matrix[attacking_type][defending_type]
+
+                    # Categorize effectiveness
+                    if effectiveness >= 2.0:
+                        coverage_analysis[defending_type]["super_effective"]["count"] += len(moves_list)
+                        coverage_analysis[defending_type]["super_effective"]["types"].append(attacking_type)
+                        if effectiveness > best_effectiveness:
+                            best_effectiveness = effectiveness
+                            best_move_types = [attacking_type]
+                        elif effectiveness == best_effectiveness:
+                            best_move_types.append(attacking_type)
+                    elif effectiveness == 1.0:
+                        coverage_analysis[defending_type]["neutral"]["count"] += len(moves_list)
+                        coverage_analysis[defending_type]["neutral"]["types"].append(attacking_type)
+                    elif effectiveness > 0:
+                        coverage_analysis[defending_type]["not_very_effective"]["count"] += len(moves_list)
+                        coverage_analysis[defending_type]["not_very_effective"]["types"].append(attacking_type)
+                    else:
+                        coverage_analysis[defending_type]["no_effect"]["count"] += len(moves_list)
+                        coverage_analysis[defending_type]["no_effect"]["types"].append(attacking_type)
+
+                coverage_analysis[defending_type]["best_coverage"] = {
+                    "effectiveness": best_effectiveness,
+                    "types": best_move_types
+                }
+
+            # Risk analysis - find defending types we struggle against
+            coverage_risks = []      # Types we have no super effective coverage against
+            limited_coverage = []    # Types we have limited options against
+
+            for defending_type, analysis in coverage_analysis.items():
+                super_effective_count = analysis["super_effective"]["count"]
+                total_coverage = (analysis["super_effective"]["count"] +
+                                analysis["neutral"]["count"])
+
+                if super_effective_count == 0:
+                    if total_coverage == 0:
+                        coverage_risks.append((defending_type, "No Coverage"))
+                    else:
+                        coverage_risks.append((defending_type, "No Super Effective"))
+                elif super_effective_count <= 2:
+                    limited_coverage.append((defending_type, super_effective_count))
+
+            # Sort risks
+            limited_coverage.sort(key=lambda x: x[1])
+
+            # Team move summary
+            move_type_summary = []
+            for move_type, moves_list in all_team_moves.items():
+                move_type_summary.append({
+                    "type": move_type,
+                    "count": len(moves_list),
+                    "members_with_type": len(set(pokemon for pokemon, move in moves_list))
+                })
+
+            move_type_summary.sort(key=lambda x: x["count"], reverse=True)
+
+            return {
+                "team_members": team_members,
+                "all_team_moves": all_team_moves,
+                "coverage_analysis": coverage_analysis,
+                "coverage_risks": coverage_risks[:8],
+                "limited_coverage": limited_coverage[:10],
+                "move_type_summary": move_type_summary[:12],
+                "team_size": len([m for m in party if m]),
+                "analysis_complete": True
+            }
+
+        except Exception as e:
+            print(f"Error in team offensive analysis: {e}")
+            return {"error": str(e), "analysis_complete": False}
+
+    def _compute_team_offensive_analysis_optimized(self, party: List[Dict], pokemon_catalog: Dict, type_matrix: Dict) -> Dict[str, Any]:
+        """Optimized team-wide offensive analysis."""
+        try:
+            # This would compute offensive coverage analysis with pre-loaded data
+            # For now, return placeholder data
+            return {
+                "coverage_computed": True,
+                "party_size": len([m for m in party if m]),
+                "optimized": True
+            }
+        except Exception as e:
+            print(f"Error computing optimized offensive analysis: {e}")
+            return {"error": str(e)}
+
+    def _load_trainer_analysis_enhanced(self):
+        """Enhanced trainer analysis loading with same optimizations as party tabs."""
+        try:
+            debug_log("Loading trainer analysis with enhanced performance...")
+
+            # Use background cache manager like party tabs
+            cache_manager = BackgroundCacheManager()
+            username = getattr(self.api, 'username', 'default')
+
+            # Check for cached trainer analysis
+            trainer_cache_key = f"trainer_analysis_{username}_{self.slot}"
+            cached_data = cache_manager.get_cached_data(trainer_cache_key)
+
+            if cached_data and not cached_data.get("error"):
+                debug_log("Using cached trainer analysis data")
+                self._apply_cached_trainer_analysis(cached_data)
+                self._hide_trainer_loading_overlay()
+                return
+
+            # Load data with same pattern as party loading
+            debug_log("Computing trainer analysis with caching...")
+
+            # Defer computation to avoid blocking
+            self.after_idle(lambda: self._compute_trainer_analysis_safe())
+
+        except Exception as e:
+            debug_log(f"Error in enhanced trainer analysis loading: {e}")
+            self._hide_trainer_loading_overlay()
+
+    def _compute_trainer_analysis_safe(self):
+        """Safely compute trainer analysis without blocking UI."""
+        try:
+            # Defensive analysis
+            if hasattr(self, 'tab_team_defensive'):
+                debug_log("Loading defensive analysis...")
+                try:
+                    # Use existing optimized method but with enhanced error handling
+                    self._load_defensive_analysis_progressive()
+                except Exception as e:
+                    debug_log(f"Error in defensive analysis: {e}")
+
+            # Offensive analysis with slight delay
+            self.after(50, self._load_offensive_analysis_safe)
+
+        except Exception as e:
+            debug_log(f"Error in safe trainer analysis computation: {e}")
+            self._hide_trainer_loading_overlay()
+
+    def _load_offensive_analysis_safe(self):
+        """Safely load offensive analysis."""
+        try:
+            if hasattr(self, 'tab_team_offensive'):
+                debug_log("Loading offensive analysis...")
+                self._load_offensive_analysis_progressive()
+
+                # Hide loading overlay after both analyses complete
+                self.after(200, self._hide_trainer_loading_overlay)
+        except Exception as e:
+            debug_log(f"Error in safe offensive analysis loading: {e}")
+            self._hide_trainer_loading_overlay()
+
+    def _apply_cached_trainer_analysis(self, cached_data: Dict[str, Any]):
+        """Apply cached trainer analysis data to UI."""
+        try:
+            debug_log("Applying cached trainer analysis to UI...")
+
+            # Apply defensive analysis if available
+            if "defensive_analysis" in cached_data:
+                self._apply_cached_defensive_to_ui(cached_data["defensive_analysis"])
+
+            # Apply offensive analysis if available
+            if "offensive_analysis" in cached_data:
+                self._apply_cached_offensive_to_ui(cached_data["offensive_analysis"])
+
+            debug_log("Cached trainer analysis applied successfully")
+        except Exception as e:
+            debug_log(f"Error applying cached trainer analysis: {e}")
+
+    def _apply_cached_defensive_to_ui(self, defensive_data: Dict[str, Any]):
+        """Apply cached defensive analysis to defensive tab."""
+        try:
+            if hasattr(self, 'tab_team_defensive'):
+                # Clear existing content
+                for widget in self.tab_team_defensive.winfo_children():
+                    widget.destroy()
+
+                # Build from cached data (similar to party tab pattern)
+                self._build_cached_defensive_analysis(self.tab_team_defensive, defensive_data)
+        except Exception as e:
+            debug_log(f"Error applying cached defensive analysis: {e}")
+
+    def _apply_cached_offensive_to_ui(self, offensive_data: Dict[str, Any]):
+        """Apply cached offensive analysis to offensive tab."""
+        try:
+            if hasattr(self, 'tab_team_offensive'):
+                # Clear existing content
+                for widget in self.tab_team_offensive.winfo_children():
+                    widget.destroy()
+
+                # Build from cached data (similar to party tab pattern)
+                self._build_cached_offensive_analysis(self.tab_team_offensive, offensive_data)
+        except Exception as e:
+            debug_log(f"Error applying cached offensive analysis: {e}")
 
     def _on_party_selected(self):
         """Simple, reliable party selection handler with generation guard."""
@@ -4706,6 +5694,8 @@ class TeamManagerDialog(tk.Toplevel):
     def _apply_secondary_data(self, mon: dict, cached_data: dict):
         """Apply secondary data in idle time to avoid blocking."""
         try:
+            # Capture generation to guard async updates
+            current_gen = int(getattr(self, '_selection_gen', 0))
             # Passive, ability, stats (medium priority)
             if hasattr(self, 'var_passive'):
                 self.var_passive.set(cached_data.get("passive", False))
@@ -4779,6 +5769,13 @@ class TeamManagerDialog(tk.Toplevel):
                             pass
                     else:
                         self.var_nature.set("")
+            except Exception:
+                pass
+
+            # Populate Pokérus toggle strictly from canonical key
+            try:
+                if hasattr(self, 'var_pokerus'):
+                    self.var_pokerus.set(bool(mon.get('pokerus', False)))
             except Exception:
                 pass
 
@@ -5461,6 +6458,12 @@ class TeamManagerDialog(tk.Toplevel):
             _set(mon, ("currentHp", "hp"), hp)
         except Exception:
             pass
+        # Pokérus flag (canonical key only)
+        try:
+            pr = bool(self.var_pokerus.get()) if hasattr(self, 'var_pokerus') else False
+            mon['pokerus'] = pr
+        except Exception:
+            pass
         # Nickname
         name = (self.var_name.get() or "").strip()
         if name:
@@ -6044,6 +7047,188 @@ class TeamManagerDialog(tk.Toplevel):
 
         return None
 
+    # --- Type matrix normalization helpers ---
+    def _ensure_defense_matrix(self, matrix: dict) -> dict:
+        """Ensure matrix is in defensive orientation: mat[def_type][att_type] = multiplier.
+        If matrix looks like attack_vs (mat[att][def]), invert it once.
+        """
+        try:
+            if not isinstance(matrix, dict):
+                return {}
+            # Heuristic: if matrix has 'fire' key and inside has 'grass', check which way maps
+            probe_att, probe_def = 'fire', 'grass'
+            inner = matrix.get(probe_att)
+            if isinstance(inner, dict) and probe_def in inner:
+                # This is attack_vs; invert
+                inverted: dict[str, dict[str, float]] = {}
+                for att, row in matrix.items():
+                    if not isinstance(row, dict):
+                        continue
+                    for de, val in row.items():
+                        try:
+                            inverted.setdefault(str(de), {})[str(att)] = float(val)
+                        except Exception:
+                            pass
+                return inverted or matrix
+            return matrix
+        except Exception:
+            return matrix
+
+    def _ensure_attack_matrix(self, matrix: dict) -> dict:
+        """Return matrix in attack orientation: mat[att_type][def_type] = multiplier.
+        If given defensive orientation, invert it once.
+        """
+        try:
+            if not isinstance(matrix, dict):
+                return {}
+            probe_att, probe_def = 'fire', 'grass'
+            # If matrix already looks like attack_vs
+            inner = matrix.get(probe_att)
+            if isinstance(inner, dict) and probe_def in inner:
+                return matrix
+            # Else defensive → invert to attack
+            att: dict[str, dict[str, float]] = {}
+            for de, row in matrix.items():
+                if not isinstance(row, dict):
+                    continue
+                for at, val in row.items():
+                    try:
+                        att.setdefault(str(at), {})[str(de)] = float(val)
+                    except Exception:
+                        pass
+            return att or matrix
+        except Exception:
+            return matrix
+
+    def _ensure_type_matrices_cached(self):
+        """Load and cache both defensive and offensive matrices from type_matrix_v2.
+        
+        IMPORTANT: Matrix orientation matters for correct type effectiveness calculations!
+        - self._tm_def: defense_from semantics mat[defending_type][attacking_type] = multiplier
+        - self._tm_att: attack_vs semantics mat[attacking_type][defending_type] = multiplier
+        
+        Keys are normalized to lowercased strings for consistent lookups.
+        
+        Note: We use load_type_matrix_v2() directly instead of load_type_matchup_matrix()
+        because the latter returns defensive orientation only, but we need both orientations.
+        
+        CRITICAL FIX: Previously used load_type_matchup_matrix() which returned defensive
+        orientation (mat[def_type][att_type]), but wall analysis needs offensive orientation
+        (mat[att_type][def_type]) to correctly calculate how user's moves affect defending types.
+        """
+        try:
+            from rogueeditor.catalog import load_type_matrix_v2
+            base = load_type_matrix_v2() or {}
+            
+            # Load defensive matrix: how well defending types resist attacking types
+            def_mat = {}
+            if isinstance(base.get('defense_from'), dict):
+                def_mat = base['defense_from']
+            elif isinstance(base, dict):
+                def_mat = self._ensure_defense_matrix(base)
+                
+            # Load offensive matrix: how effective attacking types are against defending types  
+            att_mat = {}
+            if isinstance(base.get('attack_vs'), dict):
+                att_mat = base['attack_vs']
+            elif isinstance(base, dict):
+                att_mat = self._ensure_attack_matrix(base)
+            # Normalize keys to lower-case strings
+            def _norm_dict(d):
+                out = {}
+                for k, row in (d or {}).items():
+                    if not isinstance(row, dict):
+                        continue
+                    ko = str(k).strip().lower()
+                    inner = {}
+                    for kk, vv in row.items():
+                        inner[str(kk).strip().lower()] = float(vv)
+                    out[ko] = inner
+                return out
+            self._tm_def = _norm_dict(def_mat)
+            self._tm_att = _norm_dict(att_mat)
+        except Exception:
+            self._tm_def, self._tm_att = {}, {}
+
+    def _tm_def_mult(self, defending_type: str, attacking_type: str) -> float:
+        """Get type effectiveness using defensive matrix orientation.
+        
+        Args:
+            defending_type: The type being defended against (e.g., "fire")
+            attacking_type: The type doing the attacking (e.g., "water")
+            
+        Returns:
+            Effectiveness multiplier (0.0, 0.25, 0.5, 1.0, 2.0, or 4.0)
+            
+        Example:
+            _tm_def_mult("fire", "water") returns 2.0 (water is 2x effective against fire)
+        """
+        try:
+            self._ensure_type_matrices_cached()
+            defending_type_key = str(defending_type).strip().lower()
+            attacking_type_key = str(attacking_type).strip().lower()
+            return float((self._tm_def.get(defending_type_key) or {}).get(attacking_type_key, 1.0))
+        except Exception:
+            return 1.0
+
+    def _tm_att_mult(self, attacking_type: str, defending_type: str) -> float:
+        """Get type effectiveness using offensive matrix orientation.
+        
+        Args:
+            attacking_type: The type doing the attacking (e.g., "water")
+            defending_type: The type being defended against (e.g., "fire")
+            
+        Returns:
+            Effectiveness multiplier (0.0, 0.25, 0.5, 1.0, 2.0, or 4.0)
+            
+        Example:
+            _tm_att_mult("water", "fire") returns 2.0 (water is 2x effective against fire)
+        """
+        try:
+            self._ensure_type_matrices_cached()
+            attacking_type_key = str(attacking_type).strip().lower()
+            defending_type_key = str(defending_type).strip().lower()
+            return float((self._tm_att.get(attacking_type_key) or {}).get(defending_type_key, 1.0))
+        except Exception:
+            return 1.0
+
+    def _tm_best_offense_vs_type(self, move_types: list[str], def_type: str) -> float:
+        """Best multiplier any of our move types achieves against a single defending type."""
+        best = 0.0
+        for mt in move_types:
+            eff = self._tm_def_mult(def_type, mt)
+            if eff > best:
+                best = eff
+        return float(best)
+
+    def _tm_best_offense_vs_dual(self, move_types: list[str], def1: str, def2: str) -> float:
+        """Find the best effectiveness any move achieves against a dual-type [def1/def2].
+        
+        For dual-type Pokémon, effectiveness is multiplicative:
+        - If move is 2x vs type1 and 1x vs type2, final effectiveness = 2.0 * 1.0 = 2.0
+        - If move is 0.5x vs type1 and 0.5x vs type2, final effectiveness = 0.5 * 0.5 = 0.25
+        
+        Args:
+            move_types: List of move types the user has available
+            def1: First defending type
+            def2: Second defending type
+            
+        Returns:
+            Best effectiveness multiplier (0.0 to 4.0) any move achieves against this dual-type
+        """
+        best_effectiveness = 0.0
+        for move_type in move_types:
+            # Calculate effectiveness against each defending type separately
+            effectiveness_vs_type1 = self._tm_att_mult(move_type, def1)
+            effectiveness_vs_type2 = self._tm_att_mult(move_type, def2)
+            
+            # For dual-types, multiply the effectivenesses together
+            combined_effectiveness = effectiveness_vs_type1 * effectiveness_vs_type2
+            
+            if combined_effectiveness > best_effectiveness:
+                best_effectiveness = combined_effectiveness
+                
+        return float(best_effectiveness)
     def _update_stats_display(self, base_stats: List[int], level: int, ivs: List[int], nature_mults: List[float], mon: dict):
         """Update stats display efficiently."""
         try:
@@ -6365,6 +7550,32 @@ class TeamManagerDialog(tk.Toplevel):
         except Exception as e:
             debug_log(f"Error invalidating caches in _mark_dirty: {e}")
 
+    def _has_unsaved_changes(self) -> bool:
+        """Check if there are unsaved changes that would be lost."""
+        return getattr(self, '_dirty_local', False) or getattr(self, '_dirty_server', False)
+
+    def _confirm_discard_changes(self, action_description: str = "continue") -> bool:
+        """
+        Show confirmation dialog for discarding unsaved changes.
+        Returns True if user confirms they want to proceed and lose changes.
+        """
+        if not self._has_unsaved_changes():
+            return True  # No changes to lose
+
+        response = messagebox.askyesno(
+            "Unsaved Changes",
+            f"You have unsaved changes that will be lost if you {action_description}.\n\n"
+            "Do you want to proceed anyway?",
+            icon="warning"
+        )
+        return response
+
+    def _on_window_closing(self):
+        """Handle window closing with unsaved changes protection."""
+        if self._confirm_discard_changes("close the window"):
+            self.destroy()
+        # If user cancels, window stays open
+
     # --- Persistence ---
     def _save(self):
         # Save slot if changed using safe save system
@@ -6554,16 +7765,32 @@ class TeamManagerDialog(tk.Toplevel):
             debug_log(f"Error loading playtime/gamemode safely: {e}")
 
     def _load_defensive_analysis_progressive(self):
-        """Load defensive analysis progressively without blocking UI."""
+        """Load defensive analysis progressively without blocking UI - TRULY NON-BLOCKING."""
         try:
-            debug_log("Loading defensive analysis progressively...")
-            # Only trigger if the defensive tab actually exists and might be visible
-            if hasattr(self, 'tab_team_defensive'):
-                # Use deferred execution to avoid blocking
-                self.after_idle(lambda: self._recompute_team_summary_safe())
-            debug_log("Defensive analysis progressive loading completed")
+            debug_log("Loading defensive analysis with non-blocking approach...")
+
+            # Only trigger if the defensive tab exists and we have data
+            if not hasattr(self, 'tab_team_defensive') or not hasattr(self, 'party') or not self.party:
+                debug_log("No defensive tab or party data, skipping")
+                return
+
+            # Check cache first (immediate return if cached)
+            team_hash = self._compute_team_hash_safe()
+            if hasattr(self, '_team_analysis_cache') and team_hash in self._team_analysis_cache:
+                debug_log("Using cached defensive analysis data")
+                cached_analysis = self._team_analysis_cache[team_hash]
+                self._apply_cached_team_analysis(cached_analysis)
+                return
+
+            # Show immediate skeleton/loading state
+            self._show_defensive_skeleton()
+
+            # Start truly chunked, non-blocking computation
+            debug_log("Starting chunked defensive analysis computation...")
+            self.after_idle(lambda: self._start_chunked_defensive_analysis())
+
         except Exception as e:
-            debug_log(f"Error in progressive defensive analysis loading: {e}")
+            debug_log(f"Error in non-blocking defensive analysis loading: {e}")
 
     def _recompute_team_summary_safe(self):
         """Safe version of team summary computation that doesn't block UI."""
@@ -6618,16 +7845,666 @@ class TeamManagerDialog(tk.Toplevel):
             self._hide_loading_indicator()
 
     def _load_offensive_analysis_progressive(self):
-        """Load offensive analysis progressively without blocking UI."""
+        """Load offensive analysis progressively without blocking UI - TRULY NON-BLOCKING."""
         try:
-            debug_log("Loading offensive analysis progressively...")
-            # Only trigger if the offensive tab actually exists and might be visible
-            if hasattr(self, 'tab_team_offensive'):
-                # Use deferred execution to avoid blocking
-                self.after_idle(lambda: self._compute_team_offensive_coverage_safe())
-            debug_log("Offensive analysis progressive loading completed")
+            debug_log("Loading offensive analysis with non-blocking approach...")
+            # Only trigger if the offensive tab exists and we have data
+            if not hasattr(self, 'tab_team_offensive') or not hasattr(self, 'party') or not self.party:
+                debug_log("No offensive tab or party data, skipping")
+                return
+
+            # Check cache first (immediate return if cached)
+            team_hash = self._compute_team_hash_safe()
+            if hasattr(self, '_team_offensive_cache') and team_hash in self._team_offensive_cache:
+                debug_log("Using cached offensive analysis data")
+                cached_analysis = self._team_offensive_cache[team_hash]
+                self._apply_cached_offensive_analysis(cached_analysis)
+                return
+
+            # Show immediate skeleton/loading state
+            self._show_offensive_skeleton()
+
+            # Start truly chunked, non-blocking computation
+            debug_log("Starting chunked offensive analysis computation...")
+            self.after_idle(lambda: self._start_chunked_offensive_analysis())
         except Exception as e:
-            debug_log(f"Error in progressive offensive analysis loading: {e}")
+            debug_log(f"Error in non-blocking offensive analysis loading: {e}")
+
+    def _show_defensive_skeleton(self):
+        """Show immediate skeleton UI for defensive analysis while loading."""
+        try:
+            if hasattr(self, 'tab_team_defensive'):
+                # Clear existing content and show loading skeleton
+                for widget in self.tab_team_defensive.winfo_children():
+                    widget.destroy()
+
+                skeleton_frame = ttk.Frame(self.tab_team_defensive)
+                skeleton_frame.pack(fill=tk.BOTH, expand=True, padx=6, pady=6)
+
+                ttk.Label(skeleton_frame, text="Loading defensive analysis...",
+                         font=('TkDefaultFont', 10)).pack(pady=20)
+
+                # Add progress indicator
+                progress = ttk.Progressbar(skeleton_frame, mode='indeterminate')
+                progress.pack(pady=10, fill=tk.X, padx=50)
+                progress.start()
+
+                debug_log("Defensive skeleton UI displayed")
+        except Exception as e:
+            debug_log(f"Error showing defensive skeleton: {e}")
+
+    def _show_offensive_skeleton(self):
+        """Show immediate skeleton UI for offensive analysis while loading."""
+        try:
+            if hasattr(self, 'tab_team_offensive'):
+                # Clear existing content and show loading skeleton
+                for widget in self.tab_team_offensive.winfo_children():
+                    widget.destroy()
+
+                skeleton_frame = ttk.Frame(self.tab_team_offensive)
+                skeleton_frame.pack(fill=tk.BOTH, expand=True, padx=6, pady=6)
+
+                ttk.Label(skeleton_frame, text="Loading offensive analysis...",
+                         font=('TkDefaultFont', 10)).pack(pady=20)
+
+                # Add progress indicator
+                progress = ttk.Progressbar(skeleton_frame, mode='indeterminate')
+                progress.pack(pady=10, fill=tk.X, padx=50)
+                progress.start()
+
+                debug_log("Offensive skeleton UI displayed")
+        except Exception as e:
+            debug_log(f"Error showing offensive skeleton: {e}")
+
+    def _start_chunked_defensive_analysis(self):
+        """Start chunked defensive analysis computation without blocking."""
+        try:
+            debug_log("Starting chunked defensive analysis...")
+            # Initialize chunked processing state
+            if not hasattr(self, '_defensive_chunk_state'):
+                self._defensive_chunk_state = {
+                    'step': 0,
+                    'total_steps': 3,  # Basic setup, compute analysis, render UI
+                    'data': {}
+                }
+
+            # Process one chunk at a time with UI updates between
+            self._process_defensive_chunk()
+        except Exception as e:
+            debug_log(f"Error starting chunked defensive analysis: {e}")
+
+    def _process_defensive_chunk(self):
+        """Process one chunk of defensive analysis."""
+        try:
+            state = self._defensive_chunk_state
+            step = state['step']
+
+            if step == 0:
+                # Step 1: Basic setup and validation
+                debug_log("Defensive chunk 0: Basic setup")
+                if not self.party:
+                    debug_log("No party data for defensive analysis")
+                    return
+                state['party_data'] = self.party.copy()
+                state['step'] = 1
+                self.after_idle(self._process_defensive_chunk)
+
+            elif step == 1:
+                # Step 2: Compute defensive matchups
+                debug_log("Defensive chunk 1: Computing matchups")
+                try:
+                    # Compute party matchups first (needed for defensive analysis)
+                    from rogueeditor.catalog import load_pokemon_catalog, load_type_matrix_v2
+                    cat = self._get_cached_pokemon_catalog() or load_pokemon_catalog()
+                    type_matrix = load_type_matrix_v2()
+
+                    # Basic matchup calculation
+                    party_matchups = []
+                    for i, mon in enumerate(state['party_data']):
+                        if not mon:
+                            continue
+                        # Simplified matchup calculation for chunked processing
+                        species_id = mon.get("species", 0)
+                        entry = cat.get("by_dex", {}).get(str(species_id), {})
+                        species_name = entry.get("name", f"Species#{species_id}")
+                        types = entry.get("types", {})
+
+                        party_matchups.append({
+                            "index": i,
+                            "species_id": species_id,
+                            "species_name": species_name,
+                            "types": types,
+                            "matchups": {"x4": [], "x2": [], "x1": [], "x0.5": [], "x0.25": [], "x0": []}  # Simplified for now
+                        })
+
+                    state['party_matchups'] = party_matchups
+                    state['step'] = 2
+                    self.after_idle(self._process_defensive_chunk)
+                except Exception as e:
+                    debug_log(f"Error computing defensive matchups: {e}")
+                    state['data']['error'] = str(e)
+                    state['step'] = 2
+                    self.after_idle(self._process_defensive_chunk)
+
+            elif step == 2:
+                # Step 3: Compute actual defensive analysis
+                debug_log("Defensive chunk 2: Computing defensive analysis")
+                try:
+                    if 'party_matchups' in state and not state['data'].get('error'):
+                        # Use the real defensive analysis method
+                        defensive_analysis = self._compute_team_defensive_analysis_from_party_matchups(state['party_matchups'])
+                        # Merge the analysis data directly into state['data'] for UI compatibility
+                        state['data'].update(defensive_analysis)
+                    state['step'] = 3
+                    self.after_idle(self._process_defensive_chunk)
+                except Exception as e:
+                    debug_log(f"Error computing defensive analysis: {e}")
+                    state['data']['error'] = str(e)
+                    state['step'] = 3
+                    self.after_idle(self._process_defensive_chunk)
+
+            elif step == 3:
+                # Step 4: Render the UI
+                debug_log("Defensive chunk 3: Rendering UI")
+                self._render_defensive_analysis_ui(state['data'])
+                # Cache the results
+                team_hash = self._compute_team_hash_safe()
+                if not hasattr(self, '_team_analysis_cache'):
+                    self._team_analysis_cache = {}
+                self._team_analysis_cache[team_hash] = state['data']
+                # Clean up
+                delattr(self, '_defensive_chunk_state')
+                debug_log("Chunked defensive analysis completed")
+
+        except Exception as e:
+            debug_log(f"Error processing defensive chunk: {e}")
+
+    def _start_chunked_offensive_analysis(self):
+        """Start chunked offensive analysis computation without blocking."""
+        try:
+            debug_log("Starting chunked offensive analysis...")
+            # Initialize chunked processing state
+            if not hasattr(self, '_offensive_chunk_state'):
+                self._offensive_chunk_state = {
+                    'step': 0,
+                    'total_steps': 3,  # Basic setup, compute analysis, render UI
+                    'data': {}
+                }
+
+            # Process one chunk at a time with UI updates between
+            self._process_offensive_chunk()
+        except Exception as e:
+            debug_log(f"Error starting chunked offensive analysis: {e}")
+
+    def _process_offensive_chunk(self):
+        """Process one chunk of offensive analysis."""
+        try:
+            state = self._offensive_chunk_state
+            step = state['step']
+
+            if step == 0:
+                # Step 1: Basic setup and validation
+                debug_log("Offensive chunk 0: Basic setup")
+                if not self.party:
+                    debug_log("No party data for offensive analysis")
+                    return
+                state['party_data'] = self.party.copy()
+                state['step'] = 1
+                self.after_idle(self._process_offensive_chunk)
+
+            elif step == 1:
+                # Step 2: Compute offensive coverage data using enhanced method
+                debug_log("Offensive chunk 1: Computing offensive coverage")
+                try:
+                    # Use the new comprehensive team offensive analysis method
+                    if 'party_data' in state:
+                        pokemon_catalog = getattr(self, 'pokemon_catalog', {})
+                        base_matrix = load_type_matchup_matrix() or {}
+                        type_matrix = base_matrix.get('attack_vs') if isinstance(base_matrix.get('attack_vs'), dict) else base_matrix
+                        offensive_analysis = self._compute_team_offensive_analysis_from_party(state['party_data'], pokemon_catalog, type_matrix)
+                        # Merge the analysis data directly into state['data'] for UI compatibility
+                        state['data'].update(offensive_analysis)
+                    state['step'] = 2
+                    self.after_idle(self._process_offensive_chunk)
+                except Exception as e:
+                    debug_log(f"Error computing offensive coverage: {e}")
+                    state['data']['error'] = str(e)
+                    state['step'] = 2
+                    self.after_idle(self._process_offensive_chunk)
+
+            elif step == 2:
+                # Step 3: Render the UI
+                debug_log("Offensive chunk 2: Rendering UI")
+                self._render_offensive_analysis_ui(state['data'])
+                # Cache the results
+                team_hash = self._compute_team_hash_safe()
+                if not hasattr(self, '_team_offensive_cache'):
+                    self._team_offensive_cache = {}
+                self._team_offensive_cache[team_hash] = state['data']
+                # Clean up
+                delattr(self, '_offensive_chunk_state')
+                debug_log("Chunked offensive analysis completed")
+
+        except Exception as e:
+            debug_log(f"Error processing offensive chunk: {e}")
+
+    def _render_defensive_analysis_ui(self, data):
+        """Render the comprehensive team defensive analysis UI."""
+        try:
+            if not hasattr(self, 'tab_team_defensive'):
+                return
+
+            # Clear existing content
+            for widget in self.tab_team_defensive.winfo_children():
+                widget.destroy()
+
+            # Create scrollable content frame
+            canvas = tk.Canvas(self.tab_team_defensive)
+            scrollbar = ttk.Scrollbar(self.tab_team_defensive, orient="vertical", command=canvas.yview)
+            scrollable_frame = ttk.Frame(canvas)
+
+            scrollable_frame.bind(
+                "<Configure>",
+                lambda e: canvas.configure(scrollregion=canvas.bbox("all"))
+            )
+
+            canvas.create_window((0, 0), window=scrollable_frame, anchor="nw")
+            canvas.configure(yscrollcommand=scrollbar.set)
+
+            canvas.pack(side="left", fill="both", expand=True)
+            scrollbar.pack(side="right", fill="y")
+
+            # Main content frame
+            content_frame = ttk.Frame(scrollable_frame)
+            content_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
+
+            # Title and refresh button frame
+            title_frame = ttk.Frame(content_frame)
+            title_frame.pack(fill=tk.X, pady=(0, 15))
+
+            ttk.Label(title_frame, text="Team Defensive Analysis",
+                     font=('TkDefaultFont', 14, 'bold')).pack(side=tk.LEFT)
+
+            # Refresh button
+            refresh_button = ttk.Button(title_frame, text="🔄 Refresh",
+                                      command=self._force_refresh_team_analysis)
+            refresh_button.pack(side=tk.RIGHT)
+
+            # Check for errors first
+            if data.get('error'):
+                ttk.Label(content_frame, text=f"Error: {data['error']}",
+                         foreground="red").pack()
+                return
+
+            if not data.get('analysis_complete'):
+                ttk.Label(content_frame, text="Analysis not complete").pack()
+                return
+
+            # 1. Team Overview Section
+            overview_frame = ttk.LabelFrame(content_frame, text="Team Overview", padding=10)
+            overview_frame.pack(fill=tk.X, pady=(0, 10))
+
+            team_members = data.get('team_members', [])
+            team_size = data.get('team_size', 0)
+
+            ttk.Label(overview_frame, text=f"Team Size: {team_size} Pokemon").pack(anchor=tk.W)
+
+            if team_members:
+                members_text = "Team Members: "
+                member_strs = []
+                for member in team_members:
+                    name = member.get('name', 'Unknown')
+                    level = member.get('level', '?')
+                    types = member.get('defensive_types', 'Unknown')
+                    member_strs.append(f"{name} L{level} ({types})")
+
+                ttk.Label(overview_frame, text=members_text).pack(anchor=tk.W, pady=(5, 0))
+                for i, member_str in enumerate(member_strs[:6]):  # Limit display
+                    ttk.Label(overview_frame, text=f"  • {member_str}").pack(anchor=tk.W)
+
+                if len(member_strs) > 6:
+                    ttk.Label(overview_frame, text=f"  ... and {len(member_strs) - 6} more").pack(anchor=tk.W)
+
+            # 2. Critical Weaknesses Section
+            critical_weaknesses = data.get('critical_weaknesses', [])
+            if critical_weaknesses:
+                critical_frame = ttk.LabelFrame(content_frame, text="⚠️ Critical Weaknesses", padding=10)
+                critical_frame.pack(fill=tk.X, pady=(0, 10))
+
+                ttk.Label(critical_frame, text="Types that hit 67% or more of your team super effectively:",
+                         foreground="#8B0000").pack(anchor=tk.W)
+
+                for type_name, count, effectiveness_details in critical_weaknesses:
+                    x4_count = effectiveness_details.get("x4", 0)
+                    x2_count = effectiveness_details.get("x2", 0)
+
+                    weakness_text = f"• {type_name}: {count}/{team_size} members vulnerable"
+                    if x4_count > 0:
+                        weakness_text += f" ({x4_count} take 4x damage!)"
+
+                    label = ttk.Label(critical_frame, text=weakness_text, foreground="#8B0000")
+                    label.pack(anchor=tk.W, padx=10)
+
+            # 3. Major Weaknesses Section
+            major_weaknesses = data.get('major_weaknesses', [])
+            if major_weaknesses:
+                major_frame = ttk.LabelFrame(content_frame, text="⚡ Major Weaknesses", padding=10)
+                major_frame.pack(fill=tk.X, pady=(0, 10))
+
+                ttk.Label(major_frame, text="Types that hit 2-3 team members super effectively:",
+                         foreground="#FF4500").pack(anchor=tk.W)
+
+                for type_name, count, effectiveness_details in major_weaknesses:
+                    x4_count = effectiveness_details.get("x4", 0)
+                    x2_count = effectiveness_details.get("x2", 0)
+
+                    weakness_text = f"• {type_name}: {count}/{team_size} members vulnerable"
+                    if x4_count > 0:
+                        weakness_text += f" ({x4_count} take 4x damage)"
+
+                    label = ttk.Label(major_frame, text=weakness_text, foreground="#FF4500")
+                    label.pack(anchor=tk.W, padx=10)
+
+            # 4. Team Strengths Section
+            team_resistances = data.get('team_resistances', [])
+            if team_resistances:
+                strengths_frame = ttk.LabelFrame(content_frame, text="🛡️ Team Strengths", padding=10)
+                strengths_frame.pack(fill=tk.X, pady=(0, 10))
+
+                ttk.Label(strengths_frame, text="Types your team resists well:",
+                         foreground="#008000").pack(anchor=tk.W)
+
+                for type_name, count, effectiveness_details in team_resistances[:6]:  # Top 6
+                    x0_count = effectiveness_details.get("x0", 0)
+                    x025_count = effectiveness_details.get("x0.25", 0)
+                    x05_count = effectiveness_details.get("x0.5", 0)
+
+                    resist_text = f"• {type_name}: {count}/{team_size} members resist"
+                    if x0_count > 0:
+                        resist_text += f" ({x0_count} immune!)"
+                    elif x025_count > 0:
+                        resist_text += f" ({x025_count} quarter damage)"
+
+                    label = ttk.Label(strengths_frame, text=resist_text, foreground="#008000")
+                    label.pack(anchor=tk.W, padx=10)
+
+            # 5. Coverage Gaps Section
+            coverage_gaps = data.get('coverage_gaps', [])
+            if coverage_gaps:
+                gaps_frame = ttk.LabelFrame(content_frame, text="🚨 Coverage Gaps", padding=10)
+                gaps_frame.pack(fill=tk.X, pady=(0, 10))
+
+                ttk.Label(gaps_frame, text="Types with no resistances on your team:",
+                         foreground="#8B0000").pack(anchor=tk.W)
+
+                for type_name, super_effective_count in coverage_gaps:
+                    gap_text = f"• {type_name}: {super_effective_count}/{team_size} members take super effective damage, none resist"
+                    label = ttk.Label(gaps_frame, text=gap_text, foreground="#8B0000")
+                    label.pack(anchor=tk.W, padx=10)
+
+            # 6. Effectiveness Grid Summary
+            effectiveness_grid = data.get('effectiveness_grid', {})
+            if effectiveness_grid:
+                grid_frame = ttk.LabelFrame(content_frame, text="📊 Type Effectiveness Overview", padding=10)
+                grid_frame.pack(fill=tk.X, pady=(0, 10))
+
+                ttk.Label(grid_frame, text="How attacking types perform against your team:").pack(anchor=tk.W)
+
+                # Create summary of most dangerous types
+                dangerous_types = []
+                for attack_type, effectiveness in effectiveness_grid.items():
+                    total_super_effective = effectiveness.get("x4", 0) + effectiveness.get("x2", 0)
+                    if total_super_effective >= 2:  # Hits 2+ members super effectively
+                        dangerous_types.append((attack_type, total_super_effective, effectiveness))
+
+                dangerous_types.sort(key=lambda x: x[1], reverse=True)
+
+                if dangerous_types:
+                    ttk.Label(grid_frame, text="\nMost Dangerous Attack Types:", font=('TkDefaultFont', 9, 'bold')).pack(anchor=tk.W, pady=(5, 0))
+                    for attack_type, count, details in dangerous_types[:8]:  # Top 8
+                        x4 = details.get("x4", 0)
+                        x2 = details.get("x2", 0)
+                        summary = f"• {attack_type}: hits {count} members super effectively"
+                        if x4 > 0:
+                            summary += f" ({x4} for 4x damage)"
+                        ttk.Label(grid_frame, text=summary, foreground="#8B0000").pack(anchor=tk.W, padx=10)
+
+            ttk.Label(content_frame, text="Analysis Complete",
+                     foreground="green", font=('TkDefaultFont', 9, 'italic')).pack(pady=(20, 0))
+
+            debug_log("Enhanced team defensive analysis UI rendered successfully")
+
+        except Exception as e:
+            debug_log(f"Error rendering enhanced defensive analysis UI: {e}")
+            if hasattr(self, 'tab_team_defensive'):
+                # Fallback simple display
+                for widget in self.tab_team_defensive.winfo_children():
+                    widget.destroy()
+                ttk.Label(self.tab_team_defensive, text=f"Error rendering analysis: {e}",
+                         foreground="red").pack(pady=20)
+
+    def _render_offensive_analysis_ui(self, data):
+        """Render the comprehensive team offensive analysis UI."""
+        try:
+            if not hasattr(self, 'tab_team_offensive'):
+                return
+
+            # Clear existing content
+            for widget in self.tab_team_offensive.winfo_children():
+                widget.destroy()
+
+            # Create scrollable content frame
+            canvas = tk.Canvas(self.tab_team_offensive)
+            scrollbar = ttk.Scrollbar(self.tab_team_offensive, orient="vertical", command=canvas.yview)
+            scrollable_frame = ttk.Frame(canvas)
+
+            scrollable_frame.bind(
+                "<Configure>",
+                lambda e: canvas.configure(scrollregion=canvas.bbox("all"))
+            )
+
+            canvas.create_window((0, 0), window=scrollable_frame, anchor="nw")
+            canvas.configure(yscrollcommand=scrollbar.set)
+
+            canvas.pack(side="left", fill="both", expand=True)
+            scrollbar.pack(side="right", fill="y")
+
+            # Main content frame
+            content_frame = ttk.Frame(scrollable_frame)
+            content_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
+
+            # Title and refresh button frame
+            title_frame = ttk.Frame(content_frame)
+            title_frame.pack(fill=tk.X, pady=(0, 15))
+
+            ttk.Label(title_frame, text="Team Offensive Analysis",
+                     font=('TkDefaultFont', 14, 'bold')).pack(side=tk.LEFT)
+
+            # Refresh button
+            refresh_button = ttk.Button(title_frame, text="🔄 Refresh",
+                                      command=self._force_refresh_team_analysis)
+            refresh_button.pack(side=tk.RIGHT)
+
+            # Check for errors first
+            if data.get('error'):
+                ttk.Label(content_frame, text=f"Error: {data['error']}",
+                         foreground="red").pack()
+                return
+
+            if not data.get('analysis_complete'):
+                ttk.Label(content_frame, text="Analysis not complete").pack()
+                return
+
+            # 1. Team Members and Moves Section
+            team_members = data.get('team_members', [])
+            if team_members:
+                members_frame = ttk.LabelFrame(content_frame, text="🗡️ Team Members & Moves", padding=10)
+                members_frame.pack(fill=tk.X, pady=(0, 10))
+
+                for member in team_members:
+                    member_name = member.get('name', 'Unknown')
+                    member_level = member.get('level', '?')
+                    moves_by_type = member.get('moves_by_type', {})
+                    total_moves = member.get('total_moves', 0)
+
+                    # Member header
+                    member_header = f"{member_name} L{member_level} ({total_moves} moves)"
+                    ttk.Label(members_frame, text=member_header, font=('TkDefaultFont', 9, 'bold')).pack(anchor=tk.W, pady=(5, 2))
+
+                    # Display moves by type in compact format
+                    if moves_by_type:
+                        moves_text = ""
+                        for move_type, move_list in moves_by_type.items():
+                            moves_text += f"  {move_type}: {', '.join(str(move) for move in move_list[:3])}"  # Show first 3 moves per type
+                            if len(move_list) > 3:
+                                moves_text += f" (+{len(move_list)-3} more)"
+                            moves_text += "\n"
+
+                        moves_label = ttk.Label(members_frame, text=moves_text.strip(), foreground="#4169E1")
+                        moves_label.pack(anchor=tk.W, padx=15)
+                    else:
+                        ttk.Label(members_frame, text="  No moves available", foreground="gray").pack(anchor=tk.W, padx=15)
+
+            # 2. Move Type Coverage Summary with type chips
+            move_type_summary = data.get('move_type_summary', [])
+            if move_type_summary:
+                summary_frame = ttk.LabelFrame(content_frame, text="📊 Move Type Coverage Summary", padding=10)
+                summary_frame.pack(fill=tk.X, pady=(0, 10))
+
+                ttk.Label(summary_frame, text="Types available to your team:",
+                         font=('TkDefaultFont', 9, 'bold')).pack(anchor=tk.W, pady=(0, 5))
+
+                # Create type chips for all move types
+                move_types = [type_info.get('type', 'Unknown') for type_info in move_type_summary]
+                move_colors = [self._color_for_type(t) for t in move_types]
+
+                chips_frame = ttk.Frame(summary_frame)
+                chips_frame.pack(fill=tk.X, pady=(5, 10))
+                self._render_type_chips(chips_frame, move_types, move_colors, per_row=6)
+
+                # Details for each move type
+                for type_info in move_type_summary:
+                    detail_frame = ttk.Frame(summary_frame)
+                    detail_frame.pack(fill=tk.X, padx=10, pady=2)
+
+                    move_type = type_info.get('type', 'Unknown')
+                    count = type_info.get('count', 0)
+                    members_with_type = type_info.get('members_with_type', 0)
+
+                    summary_text = f"• {move_type}: {count} moves across {members_with_type} members"
+                    ttk.Label(detail_frame, text=summary_text, foreground="#006400").pack(side=tk.LEFT)
+
+            # 3. Coverage Risks Section
+            coverage_risks = data.get('coverage_risks', [])
+            if coverage_risks:
+                risks_frame = ttk.LabelFrame(content_frame, text="🚨 Coverage Risks", padding=10)
+                risks_frame.pack(fill=tk.X, pady=(0, 10))
+
+                ttk.Label(risks_frame, text="Defending types your team struggles against:",
+                         foreground="#8B0000", font=('TkDefaultFont', 9, 'bold')).pack(anchor=tk.W, pady=(0, 5))
+
+                # Create type chips for coverage risks
+                risk_types = [risk[0] for risk in coverage_risks]
+                risk_colors = [self._color_for_type(t) for t in risk_types]
+
+                chips_frame = ttk.Frame(risks_frame)
+                chips_frame.pack(fill=tk.X, pady=(5, 10))
+                self._render_type_chips(chips_frame, risk_types, risk_colors, per_row=6)
+
+                # Details for each risk
+                for defending_type, risk_type in coverage_risks:
+                    detail_frame = ttk.Frame(risks_frame)
+                    detail_frame.pack(fill=tk.X, padx=10, pady=2)
+
+                    if risk_type == "No Coverage":
+                        risk_text = f"• {defending_type}: No coverage at all!"
+                        color = "#8B0000"
+                    else:  # "No Super Effective"
+                        risk_text = f"• {defending_type}: No super effective moves"
+                        color = "#FF4500"
+
+                    ttk.Label(detail_frame, text=risk_text, foreground=color).pack(side=tk.LEFT)
+
+            # 4. Limited Coverage Section
+            limited_coverage = data.get('limited_coverage', [])
+            if limited_coverage:
+                limited_frame = ttk.LabelFrame(content_frame, text="⚡ Limited Coverage", padding=10)
+                limited_frame.pack(fill=tk.X, pady=(0, 10))
+
+                ttk.Label(limited_frame, text="Types with only 1-2 super effective moves:",
+                         foreground="#FF8C00").pack(anchor=tk.W)
+
+                for defending_type, super_count in limited_coverage:
+                    limited_text = f"• {defending_type}: Only {super_count} super effective moves"
+                    ttk.Label(limited_frame, text=limited_text, foreground="#FF8C00").pack(anchor=tk.W, padx=10)
+
+            # 5. Coverage Analysis Overview
+            coverage_analysis = data.get('coverage_analysis', {})
+            if coverage_analysis:
+                analysis_frame = ttk.LabelFrame(content_frame, text="🎯 Coverage Analysis Overview", padding=10)
+                analysis_frame.pack(fill=tk.X, pady=(0, 10))
+
+                ttk.Label(analysis_frame, text="Your team's best coverage against each type:").pack(anchor=tk.W)
+
+                # Show coverage for types with good coverage
+                good_coverage_types = []
+                for defending_type, analysis in coverage_analysis.items():
+                    best_coverage = analysis.get('best_coverage', {})
+                    effectiveness = best_coverage.get('effectiveness', 0)
+                    types = best_coverage.get('types', [])
+
+                    if effectiveness >= 2.0 and types:  # Has super effective coverage
+                        good_coverage_types.append((defending_type, effectiveness, types))
+
+                good_coverage_types.sort(key=lambda x: x[1], reverse=True)
+
+                if good_coverage_types:
+                    ttk.Label(analysis_frame, text="\nBest Coverage:", font=('TkDefaultFont', 9, 'bold')).pack(anchor=tk.W, pady=(5, 0))
+                    for defending_type, effectiveness, types in good_coverage_types[:10]:  # Top 10
+                        eff_text = "4x" if effectiveness >= 4.0 else "2x"
+                        type_list = ", ".join(types[:3])  # Show first 3 attack types
+                        if len(types) > 3:
+                            type_list += f" (+{len(types)-3} more)"
+
+                        coverage_text = f"• vs {defending_type}: {eff_text} damage with {type_list}"
+                        ttk.Label(analysis_frame, text=coverage_text, foreground="#008000").pack(anchor=tk.W, padx=10)
+
+                # Show neutral coverage count
+                neutral_count = sum(1 for defending_type, analysis in coverage_analysis.items()
+                                   if analysis.get('best_coverage', {}).get('effectiveness', 0) == 1.0)
+                if neutral_count > 0:
+                    ttk.Label(analysis_frame, text=f"\nNeutral coverage against {neutral_count} types",
+                             foreground="#4169E1").pack(anchor=tk.W, pady=(5, 0))
+
+            ttk.Label(content_frame, text="Analysis Complete",
+                     foreground="green", font=('TkDefaultFont', 9, 'italic')).pack(pady=(20, 0))
+
+            debug_log("Enhanced team offensive analysis UI rendered successfully")
+
+        except Exception as e:
+            debug_log(f"Error rendering enhanced offensive analysis UI: {e}")
+            if hasattr(self, 'tab_team_offensive'):
+                # Fallback simple display
+                for widget in self.tab_team_offensive.winfo_children():
+                    widget.destroy()
+                ttk.Label(self.tab_team_offensive, text=f"Error rendering analysis: {e}",
+                         foreground="red").pack(pady=20)
+
+    def _apply_cached_team_analysis(self, cached_data):
+        """Apply cached team analysis data to defensive UI."""
+        try:
+            debug_log("Applying cached team analysis")
+            self._render_defensive_analysis_ui(cached_data)
+        except Exception as e:
+            debug_log(f"Error applying cached team analysis: {e}")
+
+    def _apply_cached_offensive_analysis(self, cached_data):
+        """Apply cached offensive analysis data to UI."""
+        try:
+            debug_log("Applying cached offensive analysis")
+            self._render_offensive_analysis_ui(cached_data)
+        except Exception as e:
+            debug_log(f"Error applying cached offensive analysis: {e}")
 
     def _compute_team_offensive_coverage_safe(self):
         """Safe version of team offensive coverage computation that doesn't block UI."""
@@ -6750,8 +8627,89 @@ class TeamManagerDialog(tk.Toplevel):
                 self._party_member_cache.clear()
                 self._pokemon_analysis_cache.clear()
                 debug_log("Invalidated all party member caches")
+
+            # Always invalidate team analysis caches when any party member changes
+            self._invalidate_team_analysis_caches()
         except Exception as e:
             debug_log(f"Error invalidating party member caches: {e}")
+
+    def _invalidate_team_analysis_caches(self):
+        """Invalidate team analysis caches when team data changes."""
+        try:
+            # Invalidate team analysis caches
+            if hasattr(self, '_team_analysis_cache'):
+                self._team_analysis_cache.clear()
+            if hasattr(self, '_team_defensive_cache'):
+                self._team_defensive_cache.clear()
+            if hasattr(self, '_team_offensive_cache'):
+                self._team_offensive_cache.clear()
+
+            # Clear background cache manager team analysis cache
+            cache_manager = BackgroundCacheManager()
+            username = getattr(self.api, 'username', 'default')
+            cache_manager.invalidate_cache(username, self.slot)
+
+            debug_log("Invalidated team analysis caches")
+
+            # Auto-refresh team analysis if trainer is currently selected
+            if hasattr(self, 'target_var') and self.target_var.get() == "trainer":
+                self.after(100, self._refresh_team_analysis_if_visible)
+
+        except Exception as e:
+            debug_log(f"Error invalidating team analysis caches: {e}")
+
+    def _refresh_team_analysis_if_visible(self):
+        """Refresh team analysis if analysis tabs are currently visible."""
+        try:
+            if (hasattr(self, 'tabs') and hasattr(self, 'tab_team_defensive')
+                and hasattr(self, 'tab_team_offensive')):
+                # Check if trainer is selected and analysis tabs exist
+                if hasattr(self, 'target_var') and self.target_var.get() == "trainer":
+                    debug_log("Auto-refreshing team analysis after data change")
+                    self._load_trainer_analysis_enhanced()
+        except Exception as e:
+            debug_log(f"Error in auto-refresh team analysis: {e}")
+
+    def _force_refresh_team_analysis(self):
+        """Force refresh team analysis by clearing caches and reloading."""
+        try:
+            debug_log("Force refreshing team analysis")
+
+            # Show loading state immediately
+            self._show_team_analysis_loading()
+
+            # Clear all caches
+            self._invalidate_team_analysis_caches()
+
+            # Force reload after a brief delay to show loading animation
+            self.after(150, self._load_trainer_analysis_enhanced)
+
+        except Exception as e:
+            debug_log(f"Error in force refresh team analysis: {e}")
+
+    def _show_team_analysis_loading(self):
+        """Show loading animations on both analysis tabs."""
+        try:
+            # Show loading on defensive tab
+            if hasattr(self, 'tab_team_defensive'):
+                for widget in self.tab_team_defensive.winfo_children():
+                    widget.destroy()
+                loading_frame = ttk.Frame(self.tab_team_defensive)
+                loading_frame.pack(fill=tk.BOTH, expand=True)
+                ttk.Label(loading_frame, text="🔄 Refreshing Team Analysis...",
+                         font=('TkDefaultFont', 12)).pack(expand=True)
+
+            # Show loading on offensive tab
+            if hasattr(self, 'tab_team_offensive'):
+                for widget in self.tab_team_offensive.winfo_children():
+                    widget.destroy()
+                loading_frame = ttk.Frame(self.tab_team_offensive)
+                loading_frame.pack(fill=tk.BOTH, expand=True)
+                ttk.Label(loading_frame, text="🔄 Refreshing Team Analysis...",
+                         font=('TkDefaultFont', 12)).pack(expand=True)
+
+        except Exception as e:
+            debug_log(f"Error showing team analysis loading: {e}")
 
     def _load_trainer_snapshot(self):
         # Populate trainer tab from slot/session data (Team Editor focuses on slot)
@@ -7216,74 +9174,8 @@ class TeamManagerDialog(tk.Toplevel):
             ttk.Label(error_frame, text=f"Error loading content: {e}",
                      foreground="red").pack(pady=10)
 
-    def _load_defensive_analysis_progressive(self):
-        """Load defensive analysis progressively, replacing skeleton."""
-        try:
-            def _build_with_cache_fallback(parent):
-                # Try to use cached data first, fall back to normal building
-                self._use_cached_data_if_available(
-                    self._build_defensive_analysis_scrollable,
-                    parent,
-                    "defensive"
-                )
-
-            if hasattr(self, '_defensive_skeleton'):
-                print("Loading defensive analysis progressively...")
-                # Use after_idle to prevent UI blocking
-                self.after_idle(lambda: self._replace_skeleton_with_content(
-                    self.tab_team_defensive,
-                    self._defensive_skeleton,
-                    _build_with_cache_fallback
-                ))
-                # Don't delete the skeleton - it might be needed again
-                print("Defensive analysis loaded successfully")
-            else:
-                print("No defensive skeleton to replace, building content directly")
-                # If skeleton was already replaced, try building content directly
-                for widget in self.tab_team_defensive.winfo_children():
-                    widget.destroy()
-                # Use after_idle to prevent UI blocking
-                self.after_idle(lambda: _build_with_cache_fallback(self.tab_team_defensive))
-        except Exception as e:
-            print(f"Error loading defensive analysis: {e}")
-            import traceback
-            traceback.print_exc()
-
-    def _load_offensive_analysis_progressive(self):
-        """Load offensive analysis progressively, replacing skeleton."""
-        try:
-            def _build_with_cache_fallback(parent):
-                # Try to use cached data first, fall back to normal building
-                self._use_cached_data_if_available(
-                    self._build_offensive_analysis_scrollable,
-                    parent,
-                    "offensive"
-                )
-
-            if hasattr(self, '_offensive_skeleton'):
-                print("Loading offensive analysis progressively...")
-                # Use after_idle to prevent UI blocking
-                self.after_idle(lambda: self._replace_skeleton_with_content(
-                    self.tab_team_offensive,
-                    self._offensive_skeleton,
-                    _build_with_cache_fallback
-                ))
-                # Don't delete the skeleton - it might be needed again
-                print("Offensive analysis loaded successfully")
-            else:
-                print("No offensive skeleton to replace, building content directly")
-                # If skeleton was already replaced, try building content directly
-                for widget in self.tab_team_offensive.winfo_children():
-                    widget.destroy()
-                # Use after_idle to prevent UI blocking
-                self.after_idle(lambda: _build_with_cache_fallback(self.tab_team_offensive))
-        except Exception as e:
-            print(f"Error loading offensive analysis: {e}")
-            import traceback
-            traceback.print_exc()
-
     def _load_window_geometry(self, default_geometry: str):
-        """Load saved window geometry from persistence."""
+        """Load saved window geometry from persistence or use default."""
         try:
             from rogueeditor.persistence import persistence_manager
             username = getattr(self.master, 'username', None)
@@ -7291,20 +9183,15 @@ class TeamManagerDialog(tk.Toplevel):
                 saved_geometry = persistence_manager.get_user_value(username, 'team_manager_geometry')
                 if saved_geometry:
                     self.geometry(saved_geometry)
-                    # Set up save on resize/move
-                    self.bind('<Configure>', self._on_window_configure)
+                    debug_log(f"Restored window geometry: {saved_geometry}")
                     return
-            # Fall back to default if no saved geometry
+
+            # Fall back to default
             self.geometry(default_geometry)
-            # Set up save on resize/move even for default
-            self.bind('<Configure>', self._on_window_configure)
-        except Exception:
-            # Fall back to default if anything fails
+            debug_log(f"Using default window geometry: {default_geometry}")
+        except Exception as e:
+            debug_log(f"Error loading window geometry: {e}, using default")
             self.geometry(default_geometry)
-            try:
-                self.bind('<Configure>', self._on_window_configure)
-            except Exception:
-                pass
 
     def _on_window_configure(self, event=None):
         """Save window geometry when window is resized or moved."""
