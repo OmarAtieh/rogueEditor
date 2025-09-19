@@ -6354,9 +6354,15 @@ class TeamManagerDialog(tk.Toplevel):
             self.var_ability.set(f"{self.abil_i2n.get(int(res), res)} ({res})")
 
     def _pick_nature(self):
-        # Use decorated names that include boost/reduce info
-        decorated = self._nature_select_map()
-        res = CatalogSelectDialog.select(self, decorated, title="Select Nature")
+        # Create a human-friendly mapping for the dialog
+        # Display names like "Adamant" but map to correct nature IDs
+        friendly_map = {}
+        for nid, name in self.nat_i2n.items():
+            # Convert "ADAMANT" to "Adamant" for display
+            friendly_name = self._format_nature_name(name)
+            friendly_map[friendly_name] = int(nid)
+        
+        res = CatalogSelectDialog.select(self, friendly_map, title="Select Nature")
         if res is not None:
             self.var_nature.set(f"{self._nature_label_for_id(int(res))} ({res})")
 

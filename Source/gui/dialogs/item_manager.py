@@ -8,7 +8,143 @@ from tkinter import ttk, messagebox
 
 from rogueeditor import PokerogueAPI
 from rogueeditor.editor import Editor
-from rogueeditor.catalog import DATA_TYPES_JSON, load_nature_catalog
+from rogueeditor.catalog import DATA_TYPES_JSON, load_nature_catalog, load_berry_catalog, load_types_catalog
+
+
+def _format_item_name(item_id: str) -> str:
+    """Convert item ID to human-friendly name."""
+    # Handle special cases
+    special_cases = {
+        "FOCUS_BAND": "Focus Band",
+        "MYSTICAL_ROCK": "Mystical Rock", 
+        "SOOTHE_BELL": "Soothe Bell",
+        "SCOPE_LENS": "Scope Lens",
+        "LEEK": "Leek",
+        "EVIOLITE": "Eviolite",
+        "SOUL_DEW": "Soul Dew",
+        "GOLDEN_PUNCH": "Golden Punch",
+        "GRIP_CLAW": "Grip Claw",
+        "QUICK_CLAW": "Quick Claw",
+        "KINGS_ROCK": "King's Rock",
+        "LEFTOVERS": "Leftovers",
+        "SHELL_BELL": "Shell Bell",
+        "TOXIC_ORB": "Toxic Orb",
+        "FLAME_ORB": "Flame Orb",
+        "BATON": "Baton",
+        "WIDE_LENS": "Wide Lens",
+        "MULTI_LENS": "Multi Lens",
+        "EXP_CHARM": "Exp Charm",
+        "SUPER_EXP_CHARM": "Super Exp Charm",
+        "EXP_SHARE": "Exp Share",
+        "MAP": "Map",
+        "IV_SCANNER": "IV Scanner",
+        "GOLDEN_POKEBALL": "Golden Pokéball",
+        "LURE": "Lure",
+        "SUPER_LURE": "Super Lure",
+        "MAX_LURE": "Max Lure",
+        "AMULET_COIN": "Amulet Coin",
+        "MEGA_BRACELET": "Mega Bracelet",
+        "TERA_ORB": "Tera Orb",
+        "DYNAMAX_BAND": "Dynamax Band",
+        "SHINY_CHARM": "Shiny Charm",
+        "ABILITY_CHARM": "Ability Charm",
+        "CATCHING_CHARM": "Catching Charm",
+        "NUGGET": "Nugget",
+        "BIG_NUGGET": "Big Nugget",
+        "RELIC_GOLD": "Relic Gold",
+        "COIN_CASE": "Coin Case",
+        "LOCK_CAPSULE": "Lock Capsule",
+        "BERRY_POUCH": "Berry Pouch",
+        "HEALING_CHARM": "Healing Charm",
+        "CANDY_JAR": "Candy Jar",
+        "LUCKY_EGG": "Lucky Egg",
+        "GOLDEN_EGG": "Golden Egg",
+        "RARE_FORM_CHANGE_ITEM": "Rare Form Change Item",
+        "GENERIC_FORM_CHANGE_ITEM": "Generic Form Change Item",
+        "DIRE_HIT": "Dire Hit",
+        
+        # Arceus Plates
+        "FLAME_PLATE": "Flame Plate",
+        "SPLASH_PLATE": "Splash Plate", 
+        "ZAP_PLATE": "Zap Plate",
+        "MEADOW_PLATE": "Meadow Plate",
+        "ICICLE_PLATE": "Icicle Plate",
+        "FIST_PLATE": "Fist Plate",
+        "TOXIC_PLATE": "Toxic Plate",
+        "EARTH_PLATE": "Earth Plate",
+        "SKY_PLATE": "Sky Plate",
+        "MIND_PLATE": "Mind Plate",
+        "INSECT_PLATE": "Insect Plate",
+        "STONE_PLATE": "Stone Plate",
+        "SPOOKY_PLATE": "Spooky Plate",
+        "DRACO_PLATE": "Draco Plate",
+        "DREAD_PLATE": "Dread Plate",
+        "IRON_PLATE": "Iron Plate",
+        "PIXIE_PLATE": "Pixie Plate",
+        
+        # Type: Null Memory Discs
+        "FIRE_MEMORY": "Fire Memory",
+        "WATER_MEMORY": "Water Memory",
+        "ELECTRIC_MEMORY": "Electric Memory",
+        "GRASS_MEMORY": "Grass Memory",
+        "ICE_MEMORY": "Ice Memory",
+        "FIGHTING_MEMORY": "Fighting Memory",
+        "POISON_MEMORY": "Poison Memory",
+        "GROUND_MEMORY": "Ground Memory",
+        "FLYING_MEMORY": "Flying Memory",
+        "PSYCHIC_MEMORY": "Psychic Memory",
+        "BUG_MEMORY": "Bug Memory",
+        "ROCK_MEMORY": "Rock Memory",
+        "GHOST_MEMORY": "Ghost Memory",
+        "DRAGON_MEMORY": "Dragon Memory",
+        "DARK_MEMORY": "Dark Memory",
+        "STEEL_MEMORY": "Steel Memory",
+        "FAIRY_MEMORY": "Fairy Memory",
+    }
+    
+    if item_id in special_cases:
+        return special_cases[item_id]
+    
+    # Default formatting: convert underscores to spaces and title case
+    return item_id.replace("_", " ").title()
+
+
+def _format_stat_name(stat_id: str) -> str:
+    """Convert stat ID to human-friendly name."""
+    stat_names = {
+        "hp": "HP",
+        "atk": "Attack", 
+        "def": "Defense",
+        "spa": "Sp. Attack",
+        "spd": "Sp. Defense", 
+        "spe": "Speed"
+    }
+    return stat_names.get(stat_id.lower(), stat_id.upper())
+
+
+def _format_type_name(type_id: str) -> str:
+    """Convert type ID to human-friendly name."""
+    return type_id.replace("_", " ").title()
+
+
+def _format_nature_name(nature_id: str) -> str:
+    """Convert nature ID to human-friendly name."""
+    return nature_id.replace("_", " ").title()
+
+
+def _extract_id_from_formatted_string(formatted_string: str) -> str:
+    """Extract the ID from a formatted string like 'Display Name (ID)'."""
+    if not formatted_string:
+        return ""
+    
+    if formatted_string.endswith(")") and "(" in formatted_string:
+        try:
+            return formatted_string.rsplit("(", 1)[1].rstrip(")")
+        except Exception:
+            pass
+    
+    # Fallback: return the string as-is (for backward compatibility)
+    return formatted_string
 
 
 # Extracted from Source/gui.py (Phase 3). See debug/docs/GUI_MIGRATION_PLAN.md.
@@ -32,6 +168,13 @@ class ItemManagerDialog(tk.Toplevel):
         # Dirty state flags
         self._dirty_local = False
         self._dirty_server = False
+        
+        # Initialize Pokémon-specific form change items first
+        self._init_pokemon_specific_forms()
+        
+        # Initialize cache for formatted item lists
+        self._item_list_cache = {}
+        
         self._build()
         self._refresh()
         self._preselect_party()
@@ -136,6 +279,25 @@ class ItemManagerDialog(tk.Toplevel):
             value="Trainer",
             command=self._on_target_change,
         ).pack(side=tk.LEFT, padx=8)
+        
+        # Cache invalidation button
+        self.btn_refresh_cache = ttk.Button(
+            target_row,
+            text="🔄 Refresh Lists",
+            command=self._invalidate_item_cache,
+            width=16
+        )
+        self.btn_refresh_cache.pack(side=tk.RIGHT, padx=(8, 0))
+        
+        # Add tooltip for the refresh button
+        try:
+            from tkinter import messagebox
+            def show_refresh_tooltip():
+                messagebox.showinfo("Refresh Lists", "This button refreshes all item lists by clearing the cache and reloading data from catalogs. Use this if you notice outdated or missing items.")
+            self.btn_refresh_cache.bind("<Button-3>", lambda e: show_refresh_tooltip())  # Right-click for tooltip
+        except Exception:
+            pass
+        
         ttk.Label(left, text="Party:").pack(anchor=tk.W, padx=4)
         self.party_list = tk.Listbox(left, height=10, exportselection=False)
         self.party_list.pack(fill=tk.BOTH, expand=True, padx=4, pady=4)
@@ -156,6 +318,11 @@ class ItemManagerDialog(tk.Toplevel):
         # Right: pickers to add items/modifiers
         right = ttk.LabelFrame(top, text="Add Item / Modifier")
         right.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=4, pady=4)
+        
+        # Configure grid for stable button positioning
+        right.grid_columnconfigure(1, weight=1)  # Allow column 1 to expand
+        right.grid_rowconfigure(100, weight=1)   # Allow row 100 to expand (buttons row)
+        
         row = 0
         try:
             ttk.Label(right, text=f"Target Slot: {self.slot}", foreground='gray').grid(row=row, column=0, columnspan=4, sticky=tk.W)
@@ -177,7 +344,7 @@ class ItemManagerDialog(tk.Toplevel):
             "Trainer",
         ]
         self.cat_cb = ttk.Combobox(
-            right, textvariable=self.cat_var, values=cat_opts, state="readonly", width=24
+            right, textvariable=self.cat_var, values=cat_opts, state="readonly", width=28
         )
         self.cat_cb.grid(row=row, column=1, sticky=tk.W, padx=4, pady=2)
         self.cat_cb.bind("<<ComboboxSelected>>", lambda e: (self._on_cat_change(), self._update_button_states()))
@@ -186,7 +353,7 @@ class ItemManagerDialog(tk.Toplevel):
         # Common one-arg items
         self.common_var = tk.StringVar()
         self.common_cb = ttk.Combobox(
-            right, textvariable=self.common_var, values=sorted(list(self._common_items())), width=28
+            right, textvariable=self.common_var, values=self._common_items_formatted(), width=28
         )
         self.lbl_common = ttk.Label(right, text="Common:")
         self.lbl_common.grid(row=row, column=0, sticky=tk.W)
@@ -197,9 +364,9 @@ class ItemManagerDialog(tk.Toplevel):
         # Accuracy items with boost (permanent pickers area)
         self.acc_var = tk.StringVar()
         self.acc_cb = ttk.Combobox(
-            right, textvariable=self.acc_var, values=["WIDE_LENS", "MULTI_LENS"], width=28
+            right, textvariable=self.acc_var, values=self._accuracy_items_formatted(), width=28
         )
-        self.lbl_acc_item = ttk.Label(right, text="Accuracy item:")
+        self.lbl_acc_item = ttk.Label(right, text="Accuracy:")
         self.lbl_acc_item.grid(row=row, column=0, sticky=tk.W)
         self.acc_cb.grid(row=row, column=1, sticky=tk.W, padx=4, pady=2)
         self.acc_cb.bind("<<ComboboxSelected>>", lambda e: self._update_button_states())
@@ -213,7 +380,7 @@ class ItemManagerDialog(tk.Toplevel):
         self.berry_cb = ttk.Combobox(
             right,
             textvariable=self.berry_var,
-            values=sorted([f"{k} ({v})" for k, v in berry_n2i.items()]),
+            values=self._berry_items_formatted(),
             width=28,
         )
         self.lbl_berry = ttk.Label(right, text="Berry:")
@@ -232,19 +399,13 @@ class ItemManagerDialog(tk.Toplevel):
         self.stat_cb = ttk.Combobox(
             right,
             textvariable=self.stat_var,
-            values=sorted([f"{k} ({v})" for k, v in stat_n2i.items()]),
+            values=self._vitamin_items_formatted(),
             width=28,
         )
-        self.lbl_stat = ttk.Label(right, text="Base stat:")
+        self.lbl_stat = ttk.Label(right, text="Vitamin:")
         self.lbl_stat.grid(row=row, column=0, sticky=tk.W)
         self.stat_cb.grid(row=row, column=1, sticky=tk.W, padx=4, pady=2)
         self.stat_cb.bind("<<ComboboxSelected>>", lambda e: self._update_button_states())
-        # Hint about stat boosters per stack
-        try:
-            self.stat_hint = ttk.Label(right, text="")
-            self.stat_hint.grid(row=row, column=2, columnspan=2, sticky=tk.W)
-        except Exception:
-            pass
         row += 1
 
         # Type Booster (Attack Type Booster)
@@ -254,12 +415,10 @@ class ItemManagerDialog(tk.Toplevel):
                 _types = _json.load(_tf) or {}
             _n2i = {str(k).lower(): int(v) for k, v in (_types.get("name_to_id") or {}).items()}
             self._type_name_to_id = _n2i
-            type_values = [f"{k.upper()} ({v})" for k, v in sorted(_n2i.items(), key=lambda kv: kv[1])]
         except Exception:
             self._type_name_to_id = {}
-            type_values = []
-        self.type_cb = ttk.Combobox(right, textvariable=self.type_var, values=type_values, width=28)
-        self.lbl_type = ttk.Label(right, text="Type:")
+        self.type_cb = ttk.Combobox(right, textvariable=self.type_var, values=self._type_booster_items_formatted(), width=28)
+        self.lbl_type = ttk.Label(right, text="Type Booster:")
         self.lbl_type.grid(row=row, column=0, sticky=tk.W)
         self.type_cb.grid(row=row, column=1, sticky=tk.W, padx=4, pady=2)
         self.type_cb.bind("<<ComboboxSelected>>", lambda e: self._update_button_states())
@@ -268,9 +427,8 @@ class ItemManagerDialog(tk.Toplevel):
         # Mint (Nature change)
         _nat_n2i, _nat_i2n = load_nature_catalog()
         self.nature_var = tk.StringVar()
-        nat_values = [f"{name.title().replace('_',' ')} ({nid})" for nid, name in sorted(_nat_i2n.items(), key=lambda kv: kv[0])]
-        self.nature_cb = ttk.Combobox(right, textvariable=self.nature_var, values=nat_values, width=28)
-        self.lbl_nature = ttk.Label(right, text="Nature:")
+        self.nature_cb = ttk.Combobox(right, textvariable=self.nature_var, values=self._mint_items_formatted(), width=28)
+        self.lbl_nature = ttk.Label(right, text="Mint:")
         self.lbl_nature.grid(row=row, column=0, sticky=tk.W)
         self.nature_cb.grid(row=row, column=1, sticky=tk.W, padx=4, pady=2)
         self.nature_cb.bind("<<ComboboxSelected>>", lambda e: self._update_button_states())
@@ -278,66 +436,79 @@ class ItemManagerDialog(tk.Toplevel):
 
         # Temp Battle Modifiers (X-items, DIRE_HIT, LUREs)
         self.temp_battle_var = tk.StringVar()
-        temp_battle_values = [
-            "X Attack (1)",
-            "X Defense (2)",
-            "X Sp. Atk (3)",
-            "X Sp. Def (4)",
-            "X Speed (5)",
-            "X Accuracy (6)",
-            "DIRE_HIT",
-            "LURE",
-            "SUPER_LURE",
-            "MAX_LURE"
+        temp_battle_items = [
+            ("X Attack", "1"),
+            ("X Defense", "2"), 
+            ("X Sp. Attack", "3"),
+            ("X Sp. Defense", "4"),
+            ("X Speed", "5"),
+            ("X Accuracy", "6"),
+            ("Lure", "LURE"),
+            ("Super Lure", "SUPER_LURE"),
+            ("Max Lure", "MAX_LURE")
         ]
-        self.temp_battle_cb = ttk.Combobox(right, textvariable=self.temp_battle_var, values=temp_battle_values, width=28)
-        self.lbl_temp_battle = ttk.Label(right, text="Temp Battle Modifier:")
+        self.temp_battle_cb = ttk.Combobox(right, textvariable=self.temp_battle_var, values=self._temp_battle_items_formatted(), width=28)
+        self.lbl_temp_battle = ttk.Label(right, text="Temp Battle:")
         self.lbl_temp_battle.grid(row=row, column=0, sticky=tk.W)
         self.temp_battle_cb.grid(row=row, column=1, sticky=tk.W, padx=4, pady=2)
         self.temp_battle_cb.bind("<<ComboboxSelected>>", lambda e: self._update_button_states())
+        row += 1
+
+        # Experience items
+        self.exp_var = tk.StringVar()
+        self.exp_cb = ttk.Combobox(right, textvariable=self.exp_var, values=self._experience_items_formatted(), width=28)
+        self.lbl_exp_item = ttk.Label(right, text="Experience:")
+        self.lbl_exp_item.grid(row=row, column=0, sticky=tk.W)
+        self.exp_cb.grid(row=row, column=1, sticky=tk.W, padx=4, pady=2)
+        self.exp_cb.bind("<<ComboboxSelected>>", lambda e: self._update_button_states())
         row += 1
 
         # Observed types are merged into Common values; no separate UI row
         self._observed_types: set[str] = set()
 
         # Trainer modifiers
-        self.lbl_player_type = ttk.Label(right, text="Trainer mod typeId:")
+        self.lbl_player_type = ttk.Label(right, text="Trainer Item:")
         self.lbl_player_type.grid(row=row, column=0, sticky=tk.W)
         self.player_type_var = tk.StringVar()
+        # Organize trainer items by category and remove duplicates
+        trainer_items = [
+            # Experience and progression
+            ("Exp Charm", "EXP_CHARM"),
+            ("Super Exp Charm", "SUPER_EXP_CHARM"),
+            ("Exp Share", "EXP_SHARE"),
+            ("Map", "MAP"),
+            ("IV Scanner", "IV_SCANNER"),
+            ("Golden Pokéball", "GOLDEN_POKEBALL"),
+            
+            # Battle and encounter modifiers
+            ("Amulet Coin", "AMULET_COIN"),
+            ("Mega Bracelet", "MEGA_BRACELET"),
+            ("Tera Orb", "TERA_ORB"),
+            ("Dynamax Band", "DYNAMAX_BAND"),
+            
+            # Charms and quality of life
+            ("Shiny Charm", "SHINY_CHARM"),
+            ("Ability Charm", "ABILITY_CHARM"),
+            ("Catching Charm", "CATCHING_CHARM"),
+            ("Healing Charm", "HEALING_CHARM"),
+            
+            # Battle modifiers
+            ("Dire Hit", "DIRE_HIT"),
+            
+            # Currency and items
+            ("Nugget", "NUGGET"),
+            ("Big Nugget", "BIG_NUGGET"),
+            ("Relic Gold", "RELIC_GOLD"),
+            ("Coin Case", "COIN_CASE"),
+            ("Lock Capsule", "LOCK_CAPSULE"),
+            ("Berry Pouch", "BERRY_POUCH"),
+            ("Candy Jar", "CANDY_JAR"),
+        ]
+        
         self.player_type_cb = ttk.Combobox(
             right,
             textvariable=self.player_type_var,
-            values=[
-                "EXP_CHARM",
-                "SUPER_EXP_CHARM",
-                "EXP_SHARE",
-                "MAP",
-                "IV_SCANNER",
-                "GOLDEN_POKEBALL",
-                # Curated player items
-                "LURE",
-                "SUPER_LURE",
-                "MAX_LURE",
-                "AMULET_COIN",
-                "MEGA_BRACELET",
-                "TERA_ORB",
-                "DYNAMAX_BAND",
-                # Quality-of-life trainer items
-                "SHINY_CHARM",
-                "ABILITY_CHARM",
-                "CATCHING_CHARM",
-                "NUGGET",
-                "BIG_NUGGET",
-                "RELIC_GOLD",
-                "COIN_CASE",
-                "LOCK_CAPSULE",
-                "BERRY_POUCH",
-                "HEALING_CHARM",
-                "CANDY_JAR",
-                "VOUCHER",
-                "VOUCHER_PLUS",
-                "VOUCHER_PREMIUM",
-            ],
+            values=self._trainer_items_formatted(),
             width=28,
         )
         self.player_type_cb.grid(row=row, column=1, sticky=tk.W, padx=4, pady=2)
@@ -345,6 +516,8 @@ class ItemManagerDialog(tk.Toplevel):
             "<<ComboboxSelected>>",
             lambda e: (self._maybe_preset_player_args(), self._apply_visibility(), self._update_button_states()),
         )
+        row += 1  # Move to next row after trainer dropdown
+        
         # Optionally augment from TmpServerFiles if present
         try:
             extras = self._augment_player_types_from_tmp()
@@ -355,41 +528,49 @@ class ItemManagerDialog(tk.Toplevel):
                         vals.append(v)
                 self.player_type_cb["values"] = vals
             # Store the full list for later category-specific filtering
-            self._player_type_all_values = list(self.player_type_cb["values"])
+            self._player_type_all_values = self._trainer_items_formatted()
         except Exception:
             pass
-        # Generic args (rarely used). Kept for compatibility; positioned in options rows
-        self.lbl_player_args = ttk.Label(right, text="Args (auto-filled, customizable):")
+        # Generic args (rarely used). Kept for compatibility; positioned in dynamic frame
         self.player_args_var = tk.StringVar()
-        self.player_args_entry = ttk.Entry(right, textvariable=self.player_args_var, width=18)
-        row += 1
 
         # Options (dynamic controls placed below): accuracy boost, stacks, args
+        # Hints row - shows contextual hints for the selected category
+        self.hint_label = ttk.Label(right, text="", foreground="blue", font=("TkDefaultFont", 8))
+        self.hint_label.grid(row=row, column=0, columnspan=4, sticky=tk.W, padx=4, pady=2)
+        row += 1
+        
+        # Dynamic fields row - shows relevant input fields based on selection
+        self.dynamic_frame = ttk.Frame(right)
+        self.dynamic_frame.grid(row=row, column=0, columnspan=4, sticky=tk.EW, padx=4, pady=2)
+        self.dynamic_frame.grid_columnconfigure(1, weight=1)
+        self.dynamic_frame.grid_columnconfigure(3, weight=1)
+        
         # Accuracy boost (for WIDE_LENS)
-        self.lbl_acc_boost = ttk.Label(right, text="Boost:")
-        self.acc_boost = ttk.Entry(right, width=6)
+        self.lbl_acc_boost = ttk.Label(self.dynamic_frame, text="Boost:")
+        self.acc_boost = ttk.Entry(self.dynamic_frame, width=6)
         self.acc_boost.insert(0, "5")
         self.acc_boost.bind("<KeyRelease>", lambda e: self._update_button_states())
+        
         # Stacks
-        self.lbl_stacks = ttk.Label(right, text="Stacks:")
+        self.lbl_stacks = ttk.Label(self.dynamic_frame, text="Stacks:")
         self.stack_var = tk.StringVar(value="1")
-        self.stack_entry = ttk.Entry(right, textvariable=self.stack_var, width=6)
+        self.stack_entry = ttk.Entry(self.dynamic_frame, textvariable=self.stack_var, width=6)
         self.stack_entry.bind("<KeyRelease>", lambda e: self._update_button_states())
-        # Grid options in two rows: row (acc boost + stacks), row+1 (args)
-        self.lbl_acc_boost.grid(row=row, column=0, sticky=tk.E)
-        self.acc_boost.grid(row=row, column=1, sticky=tk.W)
-        self.lbl_stacks.grid(row=row, column=2, sticky=tk.E)
-        self.stack_entry.grid(row=row, column=3, sticky=tk.W)
-        # Player args on next row
-        self.lbl_player_args.grid(row=row+1, column=0, sticky=tk.E)
-        self.player_args_entry.grid(row=row+1, column=1, sticky=tk.W)
-        row += 2
-        self.btn_add = ttk.Button(right, text="Add", command=self._add, state=tk.DISABLED)
-        self.btn_add.grid(row=row, column=1, sticky=tk.W, padx=4, pady=6)
-        self.btn_save = ttk.Button(right, text="Save to file", command=self._save, state=tk.DISABLED)
-        self.btn_save.grid(row=row, column=2, sticky=tk.W, padx=4, pady=6)
-        self.btn_upload = ttk.Button(right, text="Upload", command=self._upload, state=tk.DISABLED)
-        self.btn_upload.grid(row=row, column=3, sticky=tk.W, padx=4, pady=6)
+        
+        # Player args
+        self.lbl_player_args = ttk.Label(self.dynamic_frame, text="Args (auto-filled, customizable):")
+        self.player_args_entry = ttk.Entry(self.dynamic_frame, textvariable=self.player_args_var, width=18)
+        self.player_args_entry.bind("<KeyRelease>", lambda e: self._update_button_states())
+        
+        # Position dynamic fields
+        self.lbl_acc_boost.grid(row=0, column=0, sticky=tk.E, padx=(0, 4))
+        self.acc_boost.grid(row=0, column=1, sticky=tk.W, padx=(0, 8))
+        self.lbl_stacks.grid(row=0, column=2, sticky=tk.E, padx=(0, 4))
+        self.stack_entry.grid(row=0, column=3, sticky=tk.W, padx=(0, 8))
+        self.lbl_player_args.grid(row=1, column=0, sticky=tk.E, padx=(0, 4))
+        self.player_args_entry.grid(row=1, column=1, sticky=tk.W, padx=(0, 8))
+        
 
         # Trainer properties panel (only visible for Trainer target)
         row += 1
@@ -403,43 +584,413 @@ class ItemManagerDialog(tk.Toplevel):
         self.btn_apply_trainer = ttk.Button(self.trainer_frame, text="Apply Trainer Changes", command=self._apply_trainer_changes)
         self.btn_apply_trainer.grid(row=0, column=2, sticky=tk.W, padx=6, pady=2)
 
+        # Pokéball management section
+        row += 1
+        self.pokeball_frame = ttk.LabelFrame(right, text="Pokéball Inventory")
+        self.pokeball_frame.grid(row=row, column=0, columnspan=4, sticky=tk.EW, padx=2, pady=(8, 4))
+        self.pokeball_frame.grid_columnconfigure(1, weight=1)
+        self.pokeball_frame.grid_columnconfigure(3, weight=1)
+        self.pokeball_frame.grid_columnconfigure(5, weight=1)
+        
+        # Pokéball types and their variables
+        self.pokeball_types = [
+            ("Poké Ball", "pokeball"),
+            ("Great Ball", "greatball"), 
+            ("Ultra Ball", "ultraball"),
+            ("Master Ball", "masterball"),
+            ("Beast Ball", "beastball"),
+            ("Cherish Ball", "cherishball")
+        ]
+        
+        self.pokeball_vars = {}
+        for i, (name, key) in enumerate(self.pokeball_types):
+            row_idx = i // 3
+            col_idx = (i % 3) * 2
+            
+            ttk.Label(self.pokeball_frame, text=f"{name}:").grid(row=row_idx, column=col_idx, sticky=tk.E, padx=4, pady=2)
+            var = tk.StringVar(value="0")
+            self.pokeball_vars[key] = var
+            entry = ttk.Entry(self.pokeball_frame, textvariable=var, width=8)
+            entry.grid(row=row_idx, column=col_idx + 1, sticky=tk.W, padx=4, pady=2)
+            entry.bind("<KeyRelease>", lambda e: self._update_button_states())
+
+        # Load Pokéball data
+        self._load_pokeball_data()
+
+        # Button layout - Add on bottom left, Save/Upload on bottom right
+        # Position buttons at the very bottom for stable layout
+        self.btn_add = ttk.Button(right, text="Add", command=self._add, state=tk.DISABLED)
+        self.btn_add.grid(row=100, column=0, sticky=tk.W, padx=4, pady=6)
+        
+        self.btn_save = ttk.Button(right, text="Save to file", command=self._save, state=tk.DISABLED)
+        self.btn_save.grid(row=100, column=2, sticky=tk.E, padx=4, pady=6)
+        self.btn_upload = ttk.Button(right, text="Upload", command=self._upload, state=tk.DISABLED)
+        self.btn_upload.grid(row=100, column=3, sticky=tk.E, padx=4, pady=6)
+
         # Initial visibility/state
         self._apply_visibility()
         self._update_button_states()
 
     def _common_items(self) -> set[str]:
+        """Get common items as a set for internal use."""
+        # Core held items (not duplicated in other categories)
+        # Removed items that are better placed in other categories:
+        # - SCOPE_LENS, WIDE_LENS, MULTI_LENS -> Accuracy category
+        # - LURE, SUPER_LURE, MAX_LURE -> Temp Battle Modifiers
+        # - EXP_SHARE, IV_SCANNER, MAP, AMULET_COIN, MEGA_BRACELET, TERA_ORB, DYNAMAX_BAND -> Trainer items
+        # - DIRE_HIT -> Trainer items
+        # - LUCKY_EGG, GOLDEN_EGG -> Should be in a separate "Experience" category
         return {
-            "FOCUS_BAND",
-            "MYSTICAL_ROCK",
-            "SOOTHE_BELL",
-            "SCOPE_LENS",
-            "LEEK",
-            "EVIOLITE",
-            "SOUL_DEW",
-            "GOLDEN_PUNCH",
-            "GRIP_CLAW",
-            "QUICK_CLAW",
-            "KINGS_ROCK",
-            "LEFTOVERS",
-            "SHELL_BELL",
-            "TOXIC_ORB",
-            "FLAME_ORB",
-            "BATON",
+            # Core held items that don't fit other categories
+            "FOCUS_BAND",      # Survive fatal damage
+            "MYSTICAL_ROCK",   # Extend weather/terrain
+            "SOOTHE_BELL",     # Friendship boost
+            "LEEK",            # Crit boost for specific species
+            "EVIOLITE",        # Pre-evolution stat boost
+            "SOUL_DEW",        # Nature effect boost
+            "GOLDEN_PUNCH",    # Money reward on hit
+            "GRIP_CLAW",       # Trap effect
+            "QUICK_CLAW",      # Speed priority chance
+            "KINGS_ROCK",      # Flinch chance
+            "LEFTOVERS",       # Turn heal
+            "SHELL_BELL",      # Hit heal
+            "TOXIC_ORB",       # Toxic status
+            "FLAME_ORB",       # Burn status
+            "BATON",           # Switch item
+            "MULTI_LENS",      # Multi-hit conversion
+            # Form change items (Pokémon-specific)
+            "RARE_FORM_CHANGE_ITEM",
         }
+    
+    def _invalidate_item_cache(self):
+        """Invalidate the item list cache and recalculate all formatted lists."""
+        # Clear the cache
+        self._item_list_cache.clear()
+        print(f"Cache invalidated. Cache keys: {list(self._item_list_cache.keys())}")
+        
+        # Refresh all dropdowns that depend on cached data
+        self._refresh_all_dropdowns()
+    
+    def _refresh_all_dropdowns(self):
+        """Refresh all dropdowns with fresh cached data."""
+        try:
+            # Refresh common items
+            self.common_cb["values"] = self._common_items_formatted()
+            
+            # Refresh other dropdowns based on current selection
+            tgt = self.target_var.get()
+            cat = self.cat_var.get()
+            
+            if tgt == "Pokemon":
+                if cat == "Accuracy":
+                    self.acc_cb["values"] = self._accuracy_items_formatted()
+                elif cat == "Berries":
+                    self.berry_cb["values"] = self._berry_items_formatted()
+                elif cat == "Vitamins":
+                    self.stat_cb["values"] = self._vitamin_items_formatted()
+                elif cat == "Type Booster":
+                    self.type_cb["values"] = self._type_booster_items_formatted()
+                elif cat == "Mint":
+                    self.nature_cb["values"] = self._mint_items_formatted()
+                elif cat == "Experience":
+                    self.exp_cb["values"] = self._experience_items_formatted()
+            elif tgt == "Trainer":
+                if cat == "Temp Battle Modifiers":
+                    self.temp_battle_cb["values"] = self._temp_battle_items_formatted()
+                elif cat == "Trainer EXP Charms":
+                    self.player_type_cb["values"] = self._trainer_exp_charm_items_formatted()
+                elif cat == "Trainer":
+                    self.player_type_cb["values"] = self._trainer_items_formatted()
+        except Exception:
+            pass
+
+    def _common_items_formatted(self) -> list[str]:
+        """Get common items with human-friendly formatting for display."""
+        cache_key = "common_items"
+        if cache_key in self._item_list_cache:
+            return self._item_list_cache[cache_key]
+        
+        items = sorted(self._common_items())
+        
+        # Add Pokémon-specific form change items if a Pokémon is selected
+        if hasattr(self, 'preselect_mon_id') and self.preselect_mon_id:
+            try:
+                # Get the Pokémon's species ID
+                pokemon_data = self.data.get("party", {}).get(str(self.preselect_mon_id), {})
+                species_id = pokemon_data.get("species", 0)
+                
+                # Add all form change items available for this Pokémon
+                form_change_items = self._get_form_change_items_for_pokemon(species_id)
+                items.extend(form_change_items)
+                
+                items = sorted(items)  # Re-sort with new items
+            except Exception:
+                pass
+        
+        # Format items with emojis and descriptions like other lists
+        formatted_items = []
+        for item in items:
+            if self._is_pokemon_specific_form_item(item):
+                # Pokémon-specific form items get special formatting
+                pokemon_id = self._get_pokemon_for_form_item(item)
+                if pokemon_id in self.pokemon_specific_forms:
+                    data = self.pokemon_specific_forms[pokemon_id]
+                    emoji = data["emoji"]
+                    category = data["category_name"]
+                    formatted_items.append(f"{emoji} {_format_item_name(item)} - {category} ({item})")
+                else:
+                    formatted_items.append(f"🔄 {_format_item_name(item)} - Form Change ({item})")
+            elif item == "RARE_FORM_CHANGE_ITEM" and hasattr(self, 'preselect_mon_id') and self.preselect_mon_id:
+                # Show specific form information for RARE_FORM_CHANGE_ITEM
+                try:
+                    pokemon_data = self.data.get("party", {}).get(str(self.preselect_mon_id), {})
+                    species_id = pokemon_data.get("species", 0)
+                    alternative_forms = self._get_alternative_forms_for_pokemon(species_id)
+                    
+                    if alternative_forms:
+                        # Show all available forms for this Pokémon
+                        form_descriptions = []
+                        for form_type, form_data in alternative_forms.items():
+                            form_descriptions.append(f"{form_data['name']} ({form_type.upper()})")
+                        
+                        form_info = " | ".join(form_descriptions)
+                        formatted_items.append(f"🔄 {_format_item_name(item)} - {form_info} ({item})")
+                    else:
+                        formatted_items.append(f"🔄 {_format_item_name(item)} - Form Change ({item})")
+                except Exception:
+                    formatted_items.append(f"🔄 {_format_item_name(item)} - Form Change ({item})")
+            else:
+                # Regular common items get standard formatting with emojis
+                emoji = self._get_item_emoji(item)
+                description = self._get_item_description(item)
+                formatted_items.append(f"{emoji} {_format_item_name(item)} - {description} ({item})")
+        
+        # Cache the result
+        self._item_list_cache[cache_key] = formatted_items
+        return formatted_items
+
+    def _accuracy_items_formatted(self) -> list[str]:
+        """Get accuracy items with human-friendly formatting for display."""
+        cache_key = "accuracy_items"
+        if cache_key in self._item_list_cache:
+            return self._item_list_cache[cache_key]
+        
+        items = ["WIDE_LENS", "SCOPE_LENS"]
+        formatted_items = []
+        for item in items:
+            emoji = self._get_item_emoji(item)
+            description = self._get_item_description(item)
+            formatted_items.append(f"{emoji} {_format_item_name(item)} ({item}) - {description}")
+        
+        # Cache the result
+        self._item_list_cache[cache_key] = formatted_items
+        return formatted_items
+
+    def _experience_items_formatted(self) -> list[str]:
+        """Get experience items with human-friendly formatting for display."""
+        cache_key = "experience_items"
+        if cache_key in self._item_list_cache:
+            return self._item_list_cache[cache_key]
+        
+        items = ["LUCKY_EGG", "GOLDEN_EGG"]
+        formatted_items = []
+        for item in items:
+            emoji = self._get_item_emoji(item)
+            description = self._get_item_description(item)
+            formatted_items.append(f"{emoji} {_format_item_name(item)} ({item}) - {description}")
+        
+        # Cache the result
+        self._item_list_cache[cache_key] = formatted_items
+        return formatted_items
+
+    def _berry_items_formatted(self) -> list[str]:
+        """Get berry items with human-friendly formatting for display."""
+        cache_key = "berry_items"
+        if cache_key in self._item_list_cache:
+            return self._item_list_cache[cache_key]
+        
+        try:
+            from rogueeditor.catalog import load_berry_catalog
+            berry_n2i, berry_i2n = load_berry_catalog()
+            
+            formatted_items = []
+            for name, berry_id in sorted(berry_n2i.items(), key=lambda kv: kv[1]):
+                formatted_name = name.replace("_", " ").title()
+                emoji = "🍓"  # Default berry emoji
+                description = "Berry"
+                formatted_items.append(f"{emoji} {formatted_name} ({name}) - {description}")
+            
+            # Cache the result
+            self._item_list_cache[cache_key] = formatted_items
+            return formatted_items
+        except Exception:
+            return []
+
+    def _vitamin_items_formatted(self) -> list[str]:
+        """Get vitamin items with human-friendly formatting for display."""
+        cache_key = "vitamin_items"
+        if cache_key in self._item_list_cache:
+            return self._item_list_cache[cache_key]
+        
+        # Traditional vitamins only (exclude accuracy and evasion)
+        vitamin_stats = {
+            "hp": "HP Up",
+            "atk": "Protein", 
+            "def": "Iron",
+            "spatk": "Calcium",
+            "spdef": "Zinc",
+            "spd": "Carbos"
+        }
+        
+        formatted_items = []
+        for stat_name, vitamin_name in vitamin_stats.items():
+            emoji = "💊"  # Default vitamin emoji
+            description = "Vitamin"
+            formatted_items.append(f"{emoji} {vitamin_name} ({stat_name}) - {description}")
+        
+        # Cache the result
+        self._item_list_cache[cache_key] = formatted_items
+        return formatted_items
+
+    def _type_booster_items_formatted(self) -> list[str]:
+        """Get type booster items with human-friendly formatting for display."""
+        cache_key = "type_booster_items"
+        if cache_key in self._item_list_cache:
+            return self._item_list_cache[cache_key]
+        
+        try:
+            from rogueeditor.catalog import load_types_catalog
+            type_n2i, type_i2n = load_types_catalog()
+            
+            formatted_items = []
+            for name, type_id in sorted(type_n2i.items(), key=lambda kv: kv[1]):
+                formatted_name = _format_type_name(name)
+                emoji = "⚔️"  # Default type booster emoji
+                description = "Type Booster"
+                formatted_items.append(f"{emoji} {formatted_name} ({name}) - {description}")
+            
+            # Cache the result
+            self._item_list_cache[cache_key] = formatted_items
+            return formatted_items
+        except Exception:
+            return []
+
+    def _mint_items_formatted(self) -> list[str]:
+        """Get mint items with human-friendly formatting for display."""
+        cache_key = "mint_items"
+        if cache_key in self._item_list_cache:
+            return self._item_list_cache[cache_key]
+        
+        try:
+            from rogueeditor.catalog import load_nature_catalog
+            nature_n2i, nature_i2n = load_nature_catalog()
+            
+            formatted_items = []
+            for nid, name in sorted(nature_i2n.items(), key=lambda kv: kv[0]):
+                formatted_name = _format_nature_name(name)
+                emoji = "🌿"  # Default mint emoji
+                description = "Mint"
+                formatted_items.append(f"{emoji} {formatted_name} ({nid}) - {description}")
+            
+            # Cache the result
+            self._item_list_cache[cache_key] = formatted_items
+            return formatted_items
+        except Exception:
+            return []
+
+    def _temp_battle_items_formatted(self) -> list[str]:
+        """Get temp battle items with human-friendly formatting for display."""
+        cache_key = "temp_battle_items"
+        if cache_key in self._item_list_cache:
+            return self._item_list_cache[cache_key]
+        
+        temp_battle_items = [
+            ("X Attack", "X_ATTACK"),
+            ("X Defense", "X_DEFENSE"),
+            ("X Sp. Attack", "X_SP_ATTACK"),
+            ("X Sp. Defense", "X_SP_DEFENSE"),
+            ("X Speed", "X_SPEED"),
+            ("X Accuracy", "X_ACCURACY"),
+            ("Dire Hit", "DIRE_HIT"),
+            ("Lure", "LURE"),
+            ("Super Lure", "SUPER_LURE"),
+            ("Max Lure", "MAX_LURE")
+        ]
+        formatted_items = []
+        for name, item_id in temp_battle_items:
+            emoji = self._get_item_emoji(item_id)
+            description = self._get_item_description(item_id)
+            formatted_items.append(f"{emoji} {name} ({item_id}) - {description}")
+        
+        # Cache the result
+        self._item_list_cache[cache_key] = formatted_items
+        return formatted_items
+
+    def _trainer_exp_charm_items_formatted(self) -> list[str]:
+        """Get trainer EXP charm items with human-friendly formatting for display."""
+        cache_key = "trainer_exp_charm_items"
+        if cache_key in self._item_list_cache:
+            return self._item_list_cache[cache_key]
+        
+        exp_charm_items = [
+            ("Exp Charm", "EXP_CHARM"),
+            ("Super Exp Charm", "SUPER_EXP_CHARM")
+        ]
+        formatted_items = []
+        for name, item_id in exp_charm_items:
+            emoji = self._get_item_emoji(item_id)
+            description = self._get_item_description(item_id)
+            formatted_items.append(f"{emoji} {name} ({item_id}) - {description}")
+        
+        # Cache the result
+        self._item_list_cache[cache_key] = formatted_items
+        return formatted_items
+
+    def _trainer_items_formatted(self) -> list[str]:
+        """Get trainer items with human-friendly formatting for display."""
+        cache_key = "trainer_items"
+        if cache_key in self._item_list_cache:
+            return self._item_list_cache[cache_key]
+        
+        trainer_items = [
+            ("Exp Share", "EXP_SHARE"),
+            ("IV Scanner", "IV_SCANNER"),
+            ("Map", "MAP"),
+            ("Amulet Coin", "AMULET_COIN"),
+            ("Golden Pokéball", "GOLDEN_POKEBALL"),
+            ("Mega Bracelet", "MEGA_BRACELET"),
+            ("Tera Orb", "TERA_ORB"),
+            ("Dynamax Band", "DYNAMAX_BAND"),
+            ("Shiny Charm", "SHINY_CHARM"),
+            ("Ability Charm", "ABILITY_CHARM"),
+            ("Catching Charm", "CATCHING_CHARM"),
+            ("Nugget", "NUGGET"),
+            ("Big Nugget", "BIG_NUGGET"),
+            ("Relic Gold", "RELIC_GOLD"),
+            ("Coin Case", "COIN_CASE"),
+            ("Lock Capsule", "LOCK_CAPSULE"),
+            ("Berry Pouch", "BERRY_POUCH"),
+            ("Healing Charm", "HEALING_CHARM"),
+            ("Candy Jar", "CANDY_JAR"),
+        ]
+        formatted_items = []
+        for name, item_id in trainer_items:
+            emoji = self._get_item_emoji(item_id)
+            description = self._get_item_description(item_id)
+            formatted_items.append(f"{emoji} {name} ({item_id}) - {description}")
+        
+        # Cache the result
+        self._item_list_cache[cache_key] = formatted_items
+        return formatted_items
 
     def _on_cat_change(self):
         # Adjust available categories and hint text when switching contexts
-        try:
-            if hasattr(self, "stat_hint"):
-                self.stat_hint.configure(text="")
-        except Exception:
-            pass
         # When target changes, restrict categories accordingly
         tgt = self.target_var.get()
         if tgt == "Trainer":
             vals = ["Temp Battle Modifiers", "Trainer EXP Charms", "Trainer"]
         else:
-            vals = ["Common", "Accuracy", "Berries", "Vitamins", "Type Booster", "Mint"]
+            vals = ["Common", "Experience", "Accuracy", "Berries", "Vitamins", "Type Booster", "Mint"]
         try:
             self.cat_cb["values"] = vals
             if self.cat_var.get() not in vals:
@@ -532,7 +1083,11 @@ class ItemManagerDialog(tk.Toplevel):
     def _maybe_preset_player_args(self):
         # Pre-populate args for known trainer items that use fixed values
         try:
-            t = (self.player_type_var.get() or "").strip().upper()
+            sel = (self.player_type_var.get() or "").strip()
+            if not sel:
+                return
+            # Extract ID from formatted string
+            t = _extract_id_from_formatted_string(sel).upper()
             if not t:
                 return
             # Prefill known values for modifiers with established patterns
@@ -611,16 +1166,14 @@ class ItemManagerDialog(tk.Toplevel):
             "BERRY_POUCH",
             "HEALING_CHARM",
             "CANDY_JAR",
-            "VOUCHER",
-            "VOUCHER_PLUS",
-            "VOUCHER_PREMIUM",
         }
         obs |= self._common_items()
         self._observed_types = obs
         try:
             cur = set(self._common_items())
             allowed = (self._observed_types - reserved - trainer_only) | cur
-            self.common_cb["values"] = sorted(list(allowed))
+            # Use formatted items for display, but keep raw IDs for internal logic
+            self.common_cb["values"] = self._common_items_formatted()
         except Exception:
             pass
 
@@ -644,10 +1197,9 @@ class ItemManagerDialog(tk.Toplevel):
                 args = m.get("args") or []
                 first = args[0] if (isinstance(args, list) and args) else None
                 if not (isinstance(first, int) and first in party_ids):
-                    self.mod_list.insert(
-                        tk.END,
-                        f"[{i}] {m.get('typeId')} args={m.get('args')} stack={m.get('stackCount')}",
-                    )
+                    # Use formatted display for better readability
+                    display_text = self._format_modifier_display(m, i, True)
+                    self.mod_list.insert(tk.END, display_text)
         else:
             mon = self._current_mon()
             if not mon:
@@ -658,10 +1210,9 @@ class ItemManagerDialog(tk.Toplevel):
                     continue
                 args = m.get("args") or []
                 if args and isinstance(args, list) and isinstance(args[0], int) and args[0] == mon_id:
-                    self.mod_list.insert(
-                        tk.END,
-                        f"[{i}] {m.get('typeId')} args={m.get('args')} stack={m.get('stackCount')}",
-                    )
+                    # Use formatted display for better readability
+                    display_text = self._format_modifier_display(m, i, False)
+                    self.mod_list.insert(tk.END, display_text)
         # Adjust category and button states after refresh
         try:
             self._on_cat_change()
@@ -687,11 +1238,12 @@ class ItemManagerDialog(tk.Toplevel):
         is_trainer_stat = (cat == "Trainer Stat Stage Boosters")  # Legacy - no longer used
         is_trainer_exp = (cat == "Trainer EXP Charms")
         is_temp_battle = (cat == "Temp Battle Modifiers")
+        is_exp = (cat == "Experience")
         trainer_catchall = (cat == "Trainer")
         # Player stat selector visible for trainer stat boosters
         player_needs_stat = is_trainer_stat
         # Player args are hidden in grouped categories (exp/stat); only in catch-all for rare items
-        player_args_visible = (trainer_catchall and (self.player_type_var.get() or "").strip().upper() in {"EXP_CHARM", "SUPER_EXP_CHARM"})
+        player_args_visible = (trainer_catchall and _extract_id_from_formatted_string(self.player_type_var.get() or "").upper() in {"EXP_CHARM", "SUPER_EXP_CHARM"})
         # Pokemon-only categories
         common_v = (tgt == "Pokemon" and cat == "Common")
         acc_v = (tgt == "Pokemon" and cat == "Accuracy")
@@ -699,12 +1251,13 @@ class ItemManagerDialog(tk.Toplevel):
         stat_v = (tgt == "Pokemon" and cat == "Vitamins")
         typeb_v = (tgt == "Pokemon" and cat == "Type Booster")
         mint_v = (tgt == "Pokemon" and cat == "Mint")
+        exp_v = (tgt == "Pokemon" and cat == "Experience")
         # No separate Observed category; merged into Common
         # Toggle
         # Configure player type values per category
         if is_trainer_exp:
             try:
-                self.player_type_cb["values"] = ["EXP_CHARM", "SUPER_EXP_CHARM"]
+                self.player_type_cb["values"] = self._trainer_exp_charm_items_formatted()
             except Exception:
                 pass
         elif trainer_catchall:
@@ -729,26 +1282,76 @@ class ItemManagerDialog(tk.Toplevel):
             show(w, typeb_v)
         for w in (self.lbl_nature, self.nature_cb):
             show(w, mint_v)
+        for w in (self.lbl_exp_item, self.exp_cb):
+            show(w, exp_v)
         # Temp battle modifiers
         for w in (self.lbl_temp_battle, self.temp_battle_cb):
             show(w, is_temp_battle)
+        # Update hint text based on category
+        try:
+            hint_text = ""
+            if stat_v:
+                hint_text = "Hint: Each stack applies a percentage effect per stack."
+            elif player_needs_stat:
+                hint_text = "Choose which battle stat to boost temporarily."
+            elif acc_v:
+                hint_text = "Hint: Set accuracy boost percentage (default: 5)."
+            elif mint_v:
+                hint_text = "Hint: Mints change the Pokémon's nature permanently."
+            elif common_v:
+                hint_text = "Hint: Most common items don't need stacks, but some do."
+            elif exp_v:
+                hint_text = "Hint: Experience items boost EXP gain for Pokémon."
+            elif is_temp_battle:
+                hint_text = "Hint: Temp battle modifiers affect the next few battles."
+            elif is_trainer_exp:
+                hint_text = "Hint: EXP charms boost experience gain."
+            elif trainer_catchall:
+                hint_text = "Hint: Trainer items provide various benefits."
+            
+            self.hint_label.configure(text=hint_text)
+            show(self.hint_label, True)  # Always show hint label to reserve the row
+        except Exception:
+            pass
+        
         # Options visibility: accuracy boost only when accuracy category selected
         show(self.lbl_acc_boost, acc_v)
         show(self.acc_boost, acc_v)
-        # Stacks are broadly applicable (vitamins, accuracy items, common helds, and trainer groups)
+        
+        # Stacks visibility - exclude items that don't make sense to stack
         stacks_visible = (
-            common_v or acc_v or berry_v or stat_v or typeb_v or mint_v or is_trainer_stat or is_trainer_exp or is_temp_battle or trainer_catchall
+            acc_v or berry_v or stat_v or typeb_v or is_trainer_stat or is_trainer_exp or is_temp_battle or trainer_catchall
         )
+        # Exclude mints and certain common items that don't stack
+        if common_v:
+            try:
+                # Check if selected common item should have stacks
+                selected_common = _extract_id_from_formatted_string(self.common_var.get() or "")
+                # Items that don't make sense to stack: orbs, form change items, etc.
+                non_stackable_common = {
+                    "TOXIC_ORB", "FLAME_ORB", "RARE_FORM_CHANGE_ITEM", "GENERIC_FORM_CHANGE_ITEM",
+                    "BATON", "LEFTOVERS", "SHELL_BELL", "FOCUS_BAND",
+                    "LUCKY_EGG", "GOLDEN_EGG"
+                }
+                
+                # Add Pokémon-specific form items to non-stackable list
+                if hasattr(self, 'preselect_mon_id') and self.preselect_mon_id:
+                    pokemon_data = self.data.get("party", {}).get(str(self.preselect_mon_id), {})
+                    species_id = pokemon_data.get("species", 0)
+                    pokemon_specific_items = self._get_pokemon_specific_form_items(species_id)
+                    non_stackable_common.update(pokemon_specific_items)
+                
+                if selected_common not in non_stackable_common:
+                    stacks_visible = True
+            except Exception:
+                pass
+        
         show(self.lbl_stacks, stacks_visible)
         show(self.stack_entry, stacks_visible)
-        try:
-            show(self.stat_hint, stat_v or player_needs_stat)
-            if stat_v:
-                self.stat_hint.configure(text="Hint: Each stack applies a percentage effect per stack.")
-            elif player_needs_stat:
-                self.stat_hint.configure(text="Choose which battle stat to boost temporarily.")
-        except Exception:
-            pass
+        
+        # Show/hide the entire dynamic frame based on whether any fields are visible
+        dynamic_visible = acc_v or stacks_visible or player_args_visible
+        show(self.dynamic_frame, True)  # Always show dynamic frame to reserve the row
         # Contextual relabeling of the stat selector values
         try:
             def _preserve_by_id():
@@ -770,7 +1373,7 @@ class ItemManagerDialog(tk.Toplevel):
                         break
             if (tgt == "Pokemon" and cat == "Vitamins"):
                 sid = _preserve_by_id()
-                self.stat_cb["values"] = self._vitamin_stat_values()
+                self.stat_cb["values"] = self._vitamin_items_formatted()
                 _select_id(sid)
             elif player_needs_stat:
                 sid = _preserve_by_id()
@@ -780,6 +1383,8 @@ class ItemManagerDialog(tk.Toplevel):
             pass
         # Trainer properties panel visibility
         show(self.trainer_frame, tgt == "Trainer")
+        # Pokéball inventory visibility (only for trainer target)
+        show(self.pokeball_frame, tgt == "Trainer")
 
     def _update_button_states(self):
         # Save/Upload gating
@@ -799,16 +1404,18 @@ class ItemManagerDialog(tk.Toplevel):
                 # Temp battle modifiers (X-items, DIRE_HIT, LUREs) need selection
                 valid = bool((self.temp_battle_var.get() or "").strip())
             elif cat == "Trainer EXP Charms":
-                psel = (self.player_type_var.get() or "").strip().upper()
+                psel = _extract_id_from_formatted_string(self.player_type_var.get() or "").upper()
                 valid = psel in {"EXP_CHARM", "SUPER_EXP_CHARM"}
             else:
-                psel = (self.player_type_var.get() or "").strip().upper()
+                psel = _extract_id_from_formatted_string(self.player_type_var.get() or "").upper()
                 valid = bool(psel)
         else:
             # Need a selected mon
             valid_mon = self._current_mon() is not None
             if cat == "Common":
                 valid = valid_mon and bool((self.common_var.get() or "").strip())
+            elif cat == "Experience":
+                valid = valid_mon and bool((self.exp_var.get() or "").strip())
             elif cat == "Accuracy":
                 t_ok = bool((self.acc_var.get() or "").strip())
                 try:
@@ -844,6 +1451,288 @@ class ItemManagerDialog(tk.Toplevel):
             messagebox.showinfo("Applied", "Trainer properties updated locally. Save/Upload to persist.")
         except Exception:
             messagebox.showwarning("Invalid", "Money must be an integer >= 0")
+
+    def _load_pokeball_data(self):
+        """Load Pokéball data from the save file."""
+        try:
+            # Initialize Pokéball data if not present
+            if "pokeballs" not in self.data:
+                self.data["pokeballs"] = {}
+            
+            # Load each Pokéball type
+            for name, key in self.pokeball_types:
+                count = self.data["pokeballs"].get(key, 0)
+                self.pokeball_vars[key].set(str(count))
+        except Exception as e:
+            print(f"Error loading Pokéball data: {e}")
+
+    def _save_pokeball_data(self):
+        """Save Pokéball data to the save file."""
+        try:
+            # Update Pokéball data from UI
+            for name, key in self.pokeball_types:
+                try:
+                    count = int(self.pokeball_vars[key].get() or "0")
+                    if count < 0:
+                        count = 0
+                    self.data["pokeballs"][key] = count
+                except ValueError:
+                    self.data["pokeballs"][key] = 0
+            
+            self._dirty_local = True
+            self._dirty_server = True
+            self._update_button_states()
+        except Exception as e:
+            print(f"Error saving Pokéball data: {e}")
+
+    def _init_pokemon_specific_forms(self):
+        """Initialize Pokémon-specific form change items mapping."""
+        # Map Pokémon species IDs to their specific form change items
+        self.pokemon_specific_forms = {
+            # Arceus (species ID 493) - Plates
+            493: {
+                "items": ["FLAME_PLATE", "SPLASH_PLATE", "ZAP_PLATE", "MEADOW_PLATE", "ICICLE_PLATE", "FIST_PLATE",
+                         "TOXIC_PLATE", "EARTH_PLATE", "SKY_PLATE", "MIND_PLATE", "INSECT_PLATE", "STONE_PLATE",
+                         "SPOOKY_PLATE", "DRACO_PLATE", "DREAD_PLATE", "IRON_PLATE", "PIXIE_PLATE"],
+                "category_name": "Arceus Plates",
+                "emoji": "🏺"
+            },
+            # Type: Null/Silvally (species ID 772) - Memory Discs
+            772: {
+                "items": ["FIRE_MEMORY", "WATER_MEMORY", "ELECTRIC_MEMORY", "GRASS_MEMORY", "ICE_MEMORY", "FIGHTING_MEMORY",
+                         "POISON_MEMORY", "GROUND_MEMORY", "FLYING_MEMORY", "PSYCHIC_MEMORY", "BUG_MEMORY", "ROCK_MEMORY",
+                         "GHOST_MEMORY", "DRAGON_MEMORY", "DARK_MEMORY", "STEEL_MEMORY", "FAIRY_MEMORY"],
+                "category_name": "Silvally Memories",
+                "emoji": "💾"
+            },
+            # Add more Pokémon-specific rare form change items as discovered
+            # Example: Mega Rayquaza (species ID 384) - could have specific items
+            # 384: {
+            #     "items": ["MEGA_RAYQUAZA_ITEM"],
+            #     "category_name": "Mega Rayquaza Items",
+            #     "emoji": "🐉"
+            # }
+        }
+        
+        # Create reverse mapping for quick lookup
+        self.form_item_to_pokemon = {}
+        for pokemon_id, data in self.pokemon_specific_forms.items():
+            for item in data["items"]:
+                self.form_item_to_pokemon[item] = pokemon_id
+
+    def _get_pokemon_specific_form_items(self, pokemon_id: int) -> list[str]:
+        """Get form change items specific to a Pokémon species."""
+        if pokemon_id in self.pokemon_specific_forms:
+            return self.pokemon_specific_forms[pokemon_id]["items"]
+        return []
+
+    def _get_pokemon_specific_rare_form_items(self, pokemon_id: int) -> list[str]:
+        """Get rare form change items specific to a Pokémon species."""
+        # This method can be extended to return Pokémon-specific rare form change items
+        # For now, return empty list, but this is where we'd add items like:
+        # - Mega Rayquaza specific items
+        # - Primal Groudon/Kyogre items
+        # - Other legendary-specific form change items
+        return []
+
+    def _should_show_rare_form_change_item(self, pokemon_id: int) -> bool:
+        """Check if RARE_FORM_CHANGE_ITEM should be shown for a specific Pokémon."""
+        # Show RARE_FORM_CHANGE_ITEM for Pokémon that have specific rare form change items
+        # or for Pokémon that are known to have alternative forms
+        return (
+            pokemon_id in self.pokemon_specific_forms or
+            len(self._get_pokemon_specific_rare_form_items(pokemon_id)) > 0 or
+            # Add more conditions for Pokémon with alternative forms
+            pokemon_id in [3, 9, 130, 384, 428, 445, 448, 460]  # Known Mega/G-Max Pokémon
+        )
+
+    def _get_alternative_forms_for_pokemon(self, pokemon_id: int) -> dict:
+        """Get all alternative forms available for a specific Pokémon."""
+        try:
+            species = self._get_pokemon_species(pokemon_id)
+            
+            # Define alternative forms by type
+            alternative_forms = {
+                # Mega Evolutions
+                "mega": {
+                    3: {"form_id": 48, "name": "Mega Venusaur", "description": "Mega Evolution"},
+                    130: {"form_id": 22, "name": "Mega Gyarados", "description": "Mega Evolution"},
+                    # Add more Mega forms as discovered
+                },
+                # G-Max Forms
+                "gmax": {
+                    9: {"form_id": 56, "name": "G-Max Blastoise", "description": "Gigantamax Form"},
+                    # Add more G-Max forms as discovered
+                },
+                # Other special forms (Deoxys, Kyurem, etc.)
+                "special": {
+                    # Add special forms as discovered
+                }
+            }
+            
+            # Return forms available for this Pokémon
+            available_forms = {}
+            for form_type, forms in alternative_forms.items():
+                if species in forms:
+                    available_forms[form_type] = forms[species]
+            
+            return available_forms
+        except Exception:
+            return {}
+
+    def _get_form_change_items_for_pokemon(self, pokemon_id: int) -> list[str]:
+        """Get all form change items available for a specific Pokémon."""
+        try:
+            species = self._get_pokemon_species(pokemon_id)
+            form_items = []
+            
+            # Get Pokémon-specific form items (Arceus Plates, Silvally Memories, etc.)
+            pokemon_specific = self._get_pokemon_specific_form_items(species)
+            form_items.extend(pokemon_specific)
+            
+            # Get alternative forms for this Pokémon
+            alternative_forms = self._get_alternative_forms_for_pokemon(species)
+            
+            # Add RARE_FORM_CHANGE_ITEM if this Pokémon has alternative forms
+            if alternative_forms:
+                form_items.append("RARE_FORM_CHANGE_ITEM")
+            
+            # Always add generic form change item as fallback for any Pokémon
+            form_items.append("GENERIC_FORM_CHANGE_ITEM")
+            
+            return form_items
+        except Exception:
+            return ["GENERIC_FORM_CHANGE_ITEM"]  # Fallback to generic item
+
+    def _is_pokemon_specific_form_item(self, item_id: str) -> bool:
+        """Check if an item is a Pokémon-specific form change item."""
+        return item_id in self.form_item_to_pokemon
+
+    def _get_pokemon_for_form_item(self, item_id: str) -> int:
+        """Get the Pokémon species ID for a specific form change item."""
+        return self.form_item_to_pokemon.get(item_id, None)
+
+    def _get_item_emoji(self, item_id: str) -> str:
+        """Get emoji for a common item."""
+        emoji_map = {
+            "FOCUS_BAND": "🎗",
+            "MYSTICAL_ROCK": "🪨",
+            "SOOTHE_BELL": "🔔",
+            "LEEK": "🥬",
+            "EVIOLITE": "💎",
+            "SOUL_DEW": "💎",
+            "GOLDEN_PUNCH": "👊",
+            "GRIP_CLAW": "🦀",
+            "QUICK_CLAW": "⚡",
+            "KINGS_ROCK": "👑",
+            "LEFTOVERS": "🍖",
+            "SHELL_BELL": "🐚",
+            "TOXIC_ORB": "☠️",
+            "FLAME_ORB": "🔥",
+            "BATON": "🏃",
+            "LUCKY_EGG": "🥚",
+            "GOLDEN_EGG": "🥚",
+            "RARE_FORM_CHANGE_ITEM": "🔄",
+            "GENERIC_FORM_CHANGE_ITEM": "⚙️",
+            "MULTI_LENS": "🔀",
+            "MAP": "🗺",
+            "WIDE_LENS": "🎯",
+            "SCOPE_LENS": "🔍",
+            # Temp Battle Items
+            "X_ATTACK": "⚔️",
+            "X_DEFENSE": "🛡",
+            "X_SP_ATTACK": "💫",
+            "X_SP_DEFENSE": "🔮",
+            "X_SPEED": "💨",
+            "X_ACCURACY": "🎯",
+            "DIRE_HIT": "💥",
+            "LURE": "🎣",
+            "SUPER_LURE": "🎣",
+            "MAX_LURE": "🎣",
+            # Trainer Items
+            "EXP_CHARM": "⭐",
+            "SUPER_EXP_CHARM": "⭐",
+            "EXP_SHARE": "⭐",
+            "IV_SCANNER": "🔍",
+            "AMULET_COIN": "💰",
+            "GOLDEN_POKEBALL": "⚪",
+            "MEGA_BRACELET": "💎",
+            "TERA_ORB": "💎",
+            "DYNAMAX_BAND": "💎",
+            "SHINY_CHARM": "✨",
+            "ABILITY_CHARM": "🔮",
+            "CATCHING_CHARM": "🎣",
+            "NUGGET": "💰",
+            "BIG_NUGGET": "💰",
+            "RELIC_GOLD": "💰",
+            "COIN_CASE": "💰",
+            "LOCK_CAPSULE": "🔒",
+            "BERRY_POUCH": "🍓",
+            "HEALING_CHARM": "❤️",
+            "CANDY_JAR": "🍬",
+        }
+        return emoji_map.get(item_id, "📦")
+
+    def _get_item_description(self, item_id: str) -> str:
+        """Get description for a common item."""
+        description_map = {
+            "FOCUS_BAND": "Survive Fatal",
+            "MYSTICAL_ROCK": "Weather Extend",
+            "SOOTHE_BELL": "Friendship Boost",
+            "LEEK": "Crit Boost",
+            "EVIOLITE": "Pre-Evo Boost",
+            "SOUL_DEW": "Nature Boost",
+            "GOLDEN_PUNCH": "Money Reward",
+            "GRIP_CLAW": "Trap Effect",
+            "QUICK_CLAW": "Speed Priority",
+            "KINGS_ROCK": "Flinch Chance",
+            "LEFTOVERS": "Turn Heal",
+            "SHELL_BELL": "Hit Heal",
+            "TOXIC_ORB": "Toxic Status",
+            "FLAME_ORB": "Burn Status",
+            "BATON": "Switch Item",
+            "LUCKY_EGG": "Exp Boost",
+            "GOLDEN_EGG": "Super Exp Boost",
+            "RARE_FORM_CHANGE_ITEM": "Form Change",
+            "GENERIC_FORM_CHANGE_ITEM": "Custom Form",
+            "MULTI_LENS": "Multi-Hit",
+            "MAP": "Choose Next Destinations",
+            "WIDE_LENS": "Accuracy Boost",
+            "SCOPE_LENS": "Critical Hit",
+            # Temp Battle Items
+            "X_ATTACK": "Attack Boost",
+            "X_DEFENSE": "Defense Boost",
+            "X_SP_ATTACK": "Sp. Attack Boost",
+            "X_SP_DEFENSE": "Sp. Defense Boost",
+            "X_SPEED": "Speed Boost",
+            "X_ACCURACY": "Accuracy Boost",
+            "DIRE_HIT": "Critical Hit",
+            "LURE": "Encounter Rate",
+            "SUPER_LURE": "Super Encounter",
+            "MAX_LURE": "Max Encounter",
+            # Trainer Items
+            "EXP_CHARM": "Exp Boost",
+            "SUPER_EXP_CHARM": "Super Exp Boost",
+            "EXP_SHARE": "20% Exp per Party Member (Max 100%)",
+            "IV_SCANNER": "IV Scanner",
+            "AMULET_COIN": "Money Multiplier",
+            "GOLDEN_POKEBALL": "Golden Pokéball",
+            "MEGA_BRACELET": "Mega Evolution",
+            "TERA_ORB": "Terastallize",
+            "DYNAMAX_BAND": "Gigantamax",
+            "SHINY_CHARM": "Shiny Rate",
+            "ABILITY_CHARM": "Ability Rate",
+            "CATCHING_CHARM": "Catch Rate",
+            "NUGGET": "Money Value",
+            "BIG_NUGGET": "Big Money",
+            "RELIC_GOLD": "Relic Gold",
+            "COIN_CASE": "Coin Storage",
+            "LOCK_CAPSULE": "Lock Capsule",
+            "BERRY_POUCH": "Berry Storage",
+            "HEALING_CHARM": "Healing Boost",
+            "CANDY_JAR": "Candy Storage",
+        }
+        return description_map.get(item_id, "Held Item")
 
     def _vitamin_stat_values(self) -> list[str]:
         # Map stat ids to mainstream vitamin names
@@ -910,9 +1799,6 @@ class ItemManagerDialog(tk.Toplevel):
             "IV_SCANNER",
             "MAP",
             "LOCK_CAPSULE",
-            "VOUCHER",
-            "VOUCHER_PLUS",
-            "VOUCHER_PREMIUM",
             "GOLDEN_POKEBALL",
         }
         paths = [
@@ -961,8 +1847,26 @@ class ItemManagerDialog(tk.Toplevel):
                     new_args = new_entry.get("args", [])
                     mod_args = mod.get("args", [])
 
-                    # If both have Pokemon ID as first arg, check if same Pokemon
-                    if (new_args and mod_args and
+                    # Special handling for BASE_STAT_BOOSTER - check both Pokemon ID and stat ID
+                    if type_id == "BASE_STAT_BOOSTER":
+                        if (new_args and mod_args and len(new_args) >= 2 and len(mod_args) >= 2 and
+                            isinstance(new_args[0], int) and isinstance(mod_args[0], int) and
+                            isinstance(new_args[1], int) and isinstance(mod_args[1], int) and
+                            new_args[0] > 1000000 and mod_args[0] > 1000000):  # Pokemon IDs are large
+                            if new_args[0] == mod_args[0] and new_args[1] == mod_args[1]:  # Same Pokemon AND same stat
+                                existing_idx = i
+                                break
+                    # Special handling for BERRY - check both Pokemon ID and berry ID
+                    elif type_id == "BERRY":
+                        if (new_args and mod_args and len(new_args) >= 2 and len(mod_args) >= 2 and
+                            isinstance(new_args[0], int) and isinstance(mod_args[0], int) and
+                            isinstance(new_args[1], int) and isinstance(mod_args[1], int) and
+                            new_args[0] > 1000000 and mod_args[0] > 1000000):  # Pokemon IDs are large
+                            if new_args[0] == mod_args[0] and new_args[1] == mod_args[1]:  # Same Pokemon AND same berry
+                                existing_idx = i
+                                break
+                    # For other Pokemon-specific modifiers, check if same Pokemon
+                    elif (new_args and mod_args and
                         isinstance(new_args[0], int) and isinstance(mod_args[0], int) and
                         new_args[0] > 1000000 and mod_args[0] > 1000000):  # Pokemon IDs are large
                         if new_args[0] == mod_args[0]:  # Same Pokemon
@@ -990,9 +1894,19 @@ class ItemManagerDialog(tk.Toplevel):
                     return False  # Don't append, we replaced
                 else:
                     # Ask user if they want to stack or replace
+                    if type_id == "BASE_STAT_BOOSTER" and len(new_args) >= 2:
+                        # More specific message for stat boosters using vitamin names
+                        vitamin_names = {
+                            0: "HP Up", 1: "Protein", 2: "Iron", 3: "Calcium", 4: "Zinc", 5: "Carbos"
+                        }
+                        vitamin_name = vitamin_names.get(new_args[1], f"Vitamin {new_args[1]}")
+                        message = f"{vitamin_name} already exists with {existing_stacks} stacks.\n\n"
+                    else:
+                        message = f"{type_id} already exists with {existing_stacks} stacks.\n\n"
+                    
                     result = messagebox.askyesnocancel(
                         "Existing Modifier Found",
-                        f"{type_id} already exists with {existing_stacks} stacks.\n\n"
+                        message +
                         f"Yes: Add {new_stacks} more stacks (total: {existing_stacks + new_stacks})\n"
                         f"No: Replace with {new_stacks} stacks\n"
                         f"Cancel: Keep existing unchanged"
@@ -1075,39 +1989,50 @@ class ItemManagerDialog(tk.Toplevel):
                 messagebox.showwarning("Invalid", "Select a temp battle modifier")
                 return
 
-            if sel == "DIRE_HIT":
-                # DIRE_HIT: critical hit booster, args=[5, 5] pattern from save analysis
-                entry = {"args": [5, 5], "player": True, "stackCount": stacks, "typeId": "DIRE_HIT", "className": "TempCritBoosterModifier"}
-            elif sel.startswith("X ") and "(" in sel:
+            # Extract ID from formatted string "Display Name (ID)"
+            item_id = None
+            if sel.endswith(")") and "(" in sel:
+                try:
+                    item_id = sel.rsplit("(", 1)[1].rstrip(")")
+                except Exception:
+                    pass
+            
+            if not item_id:
+                messagebox.showwarning("Invalid", "Invalid temp battle modifier format")
+                return
+
+            if item_id.isdigit():
                 # X-items: extract stat ID and create TEMP_STAT_STAGE_BOOSTER
                 try:
-                    sid = int(sel.rsplit("(", 1)[1].rstrip(")"))
+                    sid = int(item_id)
                     # TEMP_STAT_STAGE_BOOSTER: args=[stat_id, 5, 5], typePregenArgs=[stat_id] - using 5,5 pattern
                     entry = {"args": [sid, 5, 5], "player": True, "stackCount": stacks, "typeId": "TEMP_STAT_STAGE_BOOSTER", "typePregenArgs": [sid], "className": "TempStatStageBoosterModifier"}
                 except Exception:
                     messagebox.showwarning("Invalid", "Could not parse stat ID from selection")
                     return
-            elif sel in {"LURE", "SUPER_LURE", "MAX_LURE"}:
+            elif item_id in {"LURE", "SUPER_LURE", "MAX_LURE"}:
                 # LUREs: args=[duration, waves_remaining] pattern
-                if sel == "LURE":
+                if item_id == "LURE":
                     duration = 10
-                elif sel == "SUPER_LURE":
+                elif item_id == "SUPER_LURE":
                     duration = 15
                 else:  # MAX_LURE
                     duration = 30
-                entry = {"args": [duration, duration], "player": True, "stackCount": stacks, "typeId": sel, "className": "DoubleBattleChanceBoosterModifier"}
+                entry = {"args": [duration, duration], "player": True, "stackCount": stacks, "typeId": item_id, "className": "DoubleBattleChanceBoosterModifier"}
             else:
                 messagebox.showwarning("Invalid", f"Unknown temp battle modifier: {sel}")
                 return
         elif cat == "Trainer EXP Charms":
-            t = (self.player_type_var.get() or "").strip().upper()
+            sel = (self.player_type_var.get() or "").strip()
+            t = _extract_id_from_formatted_string(sel).upper()
             if t not in {"EXP_CHARM", "SUPER_EXP_CHARM"}:
                 messagebox.showwarning("Invalid", "Select EXP_CHARM or SUPER_EXP_CHARM")
                 return
             amt = 25 if t == "EXP_CHARM" else 60
             entry = {"args": [amt], "player": True, "stackCount": stacks, "typeId": t, "className": "ExpBoosterModifier"}
         elif cat == "Trainer" or target == "Trainer":
-            t = (self.player_type_var.get() or "").strip().upper()
+            sel = (self.player_type_var.get() or "").strip()
+            t = _extract_id_from_formatted_string(sel).upper()
             if not t:
                 return
             # Parse args as comma separated ints
@@ -1141,9 +2066,6 @@ class ItemManagerDialog(tk.Toplevel):
                 "BERRY_POUCH": "PreserveBerryModifier",
                 "HEALING_CHARM": "HealingBoosterModifier",
                 "CANDY_JAR": "LevelIncrementBoosterModifier",
-                "VOUCHER": "AddVoucherModifier",
-                "VOUCHER_PLUS": "AddVoucherModifier",
-                "VOUCHER_PREMIUM": "AddVoucherModifier",
                 # Access items
                 "MEGA_BRACELET": "MegaEvolutionAccessModifier",
                 "TERA_ORB": "TerastallizeAccessModifier",
@@ -1168,13 +2090,13 @@ class ItemManagerDialog(tk.Toplevel):
                         entry["args"] = [15, 15]
                     elif t == "MAX_LURE":
                         entry["args"] = [30, 30]
-                elif t == "DIRE_HIT":
-                    # DIRE_HIT: args=[5, 5] from save analysis
+                elif t == "DIRE_HIT" and not args:
+                    # DIRE_HIT: critical hit booster, args=[5, 5] pattern from save analysis
                     entry["args"] = [5, 5]
                 elif t == "HEALING_CHARM" and not args:
                     # HEALING_CHARM: args=[multiplier] - 10% boost
                     entry["args"] = [1.1]
-                elif t in {"MAP", "AMULET_COIN", "GOLDEN_POKEBALL", "MEGA_BRACELET", "TERA_ORB", "DYNAMAX_BAND", "EXP_SHARE", "IV_SCANNER", "SHINY_CHARM", "ABILITY_CHARM", "CATCHING_CHARM", "NUGGET", "BIG_NUGGET", "RELIC_GOLD", "COIN_CASE", "LOCK_CAPSULE", "BERRY_POUCH", "CANDY_JAR", "VOUCHER", "VOUCHER_PLUS", "VOUCHER_PREMIUM"}:
+                elif t in {"MAP", "AMULET_COIN", "GOLDEN_POKEBALL", "MEGA_BRACELET", "TERA_ORB", "DYNAMAX_BAND", "EXP_SHARE", "IV_SCANNER", "SHINY_CHARM", "ABILITY_CHARM", "CATCHING_CHARM", "NUGGET", "BIG_NUGGET", "RELIC_GOLD", "COIN_CASE", "LOCK_CAPSULE", "BERRY_POUCH", "CANDY_JAR"}:
                     entry["args"] = None
                 # EXP charms need numeric amounts if not provided
                 if t in {"EXP_CHARM", "SUPER_EXP_CHARM"}:
@@ -1203,60 +2125,45 @@ class ItemManagerDialog(tk.Toplevel):
                         # Pattern from save analysis: args=[stat_id, 5, 3]
                         entry["args"] = [sid, 5, 3]
         elif cat == "Common":
-            t = (self.common_var.get() or "").strip().upper()
+            sel = (self.common_var.get() or "").strip()
+            if not sel:
+                return
+            # Extract item ID from formatted string "Display Name (ID)"
+            t = None
+        elif cat == "Experience":
+            sel = (self.exp_var.get() or "").strip()
+            if not sel:
+                return
+            # Extract item ID from formatted string "Display Name (ID)"
+            t = None
+            if sel.endswith(")") and "(" in sel:
+                try:
+                    t = sel.rsplit("(", 1)[1].rstrip(")").upper()
+                except Exception:
+                    pass
             if not t:
                 return
-            # Handle special arg patterns for complex modifiers
-            if t == "RARE_FORM_CHANGE_ITEM":
-                # RARE_FORM_CHANGE_ITEM: args=[pokemon_id, form_id, activate] from save analysis
-                # Get Pokemon species to determine correct form_id
-                form_id = self._get_form_id_for_pokemon(mon_id)
-                entry = {"args": [mon_id, form_id, True], "typePregenArgs": [form_id], "player": True, "stackCount": stacks, "typeId": t}
-            elif t == "LUCKY_EGG":
-                # LUCKY_EGG: args=[pokemon_id, exp_boost] from save analysis
-                entry = {"args": [mon_id, 40], "player": True, "stackCount": stacks, "typeId": t}
-            elif t == "GOLDEN_EGG":
-                # GOLDEN_EGG: args=[pokemon_id, exp_boost] - higher boost than LUCKY_EGG
-                entry = {"args": [mon_id, 100], "player": True, "stackCount": stacks, "typeId": t}
-            elif t == "SCOPE_LENS":
-                # SCOPE_LENS: args=[pokemon_id, crit_boost] - critical hit booster
-                entry = {"args": [mon_id, 1], "player": True, "stackCount": stacks, "typeId": t}
-            elif t == "LEEK":
-                # LEEK: args=[pokemon_id, crit_boost, species_array] - species-specific crit booster
-                entry = {"args": [mon_id, 2], "player": True, "stackCount": stacks, "typeId": t}
-            elif t == "WIDE_LENS":
-                # WIDE_LENS gets special handling in Accuracy section, default here
-                entry = {"args": [mon_id, 5], "player": True, "stackCount": stacks, "typeId": t}
-            else:
-                entry = {"args": [mon_id], "player": True, "stackCount": stacks, "typeId": t}
-            # Known held-item class names from server sources
-            common_class_map = {
-                # Existing Pokemon held items
-                "FOCUS_BAND": "SurviveDamageModifier",
-                "LEFTOVERS": "TurnHealModifier",
-                "SHELL_BELL": "HitHealModifier",
-                "QUICK_CLAW": "BypassSpeedChanceModifier",
-                "KINGS_ROCK": "FlinchChanceModifier",
-                "TOXIC_ORB": "TurnStatusEffectModifier",
-                "FLAME_ORB": "TurnStatusEffectModifier",
-                "BATON": "SwitchEffectTransferModifier",
-                "GOLDEN_PUNCH": "DamageMoneyRewardModifier",
-                "WIDE_LENS": "PokemonMoveAccuracyBoosterModifier",
-                # New Pokemon held items from modifier-type.ts
-                "SCOPE_LENS": "CritBoosterModifier",
-                "LEEK": "SpeciesCritBoosterModifier",
-                "MULTI_LENS": "PokemonMultiHitModifier",
+            # Experience items are simple - just the item ID
+            entry = {"args": [mon_id], "typePregenArgs": [], "player": True, "stackCount": stacks, "typeId": t}
+            # Map to appropriate class
+            exp_class_map = {
                 "LUCKY_EGG": "PokemonExpBoosterModifier",
                 "GOLDEN_EGG": "PokemonExpBoosterModifier",
-                "SOOTHE_BELL": "PokemonFriendshipBoosterModifier",
-                "RARE_FORM_CHANGE_ITEM": "PokemonFormChangeItemModifier",
-                # Leave others unmapped if unknown
             }
-            cname = common_class_map.get(t)
+            cname = exp_class_map.get(t)
             if cname:
                 entry["className"] = cname
         elif cat == "Accuracy":
-            t = (self.acc_var.get() or "").strip().upper()
+            sel = (self.acc_var.get() or "").strip()
+            if not sel:
+                return
+            # Extract item ID from formatted string "Display Name (ID)"
+            t = None
+            if sel.endswith(")") and "(" in sel:
+                try:
+                    t = sel.rsplit("(", 1)[1].rstrip(")").upper()
+                except Exception:
+                    pass
             if not t:
                 return
             if t == "WIDE_LENS":
@@ -1410,6 +2317,9 @@ class ItemManagerDialog(tk.Toplevel):
     def _save(self):
         from rogueeditor.utils import slot_save_path, dump_json, safe_dump_json
 
+        # Save Pokéball data before saving
+        self._save_pokeball_data()
+
         p = slot_save_path(self.api.username, self.slot)
 
         try:
@@ -1551,78 +2461,112 @@ class ItemManagerDialog(tk.Toplevel):
             stack_count = modifier.get("stackCount", 1)
             type_pregen_args = modifier.get("typePregenArgs", [])
 
+            # Load catalogs for better display names
+            try:
+                berry_n2i, berry_i2n = load_berry_catalog()
+                type_n2i, type_i2n = load_types_catalog()
+            except Exception:
+                berry_n2i, berry_i2n = {}, {}
+                type_n2i, type_i2n = {}, {}
+
             # Create detailed description based on modifier type
+            # Normalize index to 3-digit format for cleaner display
+            index_str = f"{index:03d}"
+            
             if type_id == "BERRY":
                 if len(args) > 1:
                     berry_id = args[1]
-                    return f"[{index}] Berry (ID: {berry_id}) x{stack_count}"
-                return f"[{index}] Berry x{stack_count}"
+                    berry_name = berry_i2n.get(berry_id, f"Berry {berry_id}")
+                    # Use consistent berry emoji for all berries
+                    return f"[{index_str}] 🍓 {berry_name} x{stack_count}"
+                return f"[{index_str}] 🍓 Berry x{stack_count}"
 
             elif type_id == "BASE_STAT_BOOSTER":
                 if len(args) > 1:
                     stat_id = args[1]
-                    stat_names = ["HP", "Attack", "Defense", "Sp. Attack", "Sp. Defense", "Speed"]
-                    stat_name = stat_names[stat_id] if 0 <= stat_id < len(stat_names) else f"Stat {stat_id}"
-                    return f"[{index}] {stat_name} Vitamin x{stack_count}"
-                return f"[{index}] Stat Vitamin x{stack_count}"
+                    # Use the same vitamin names as the dropdown
+                    vitamin_names = {
+                        0: "HP Up",
+                        1: "Protein", 
+                        2: "Iron",
+                        3: "Calcium",
+                        4: "Zinc",
+                        5: "Carbos",
+                    }
+                    stat_labels = {
+                        0: "HP+",
+                        1: "Atk+", 
+                        2: "Def+",
+                        3: "SpA+",
+                        4: "SpD+",
+                        5: "Spd+",
+                    }
+                    vitamin_name = vitamin_names.get(stat_id, f"Vitamin {stat_id}")
+                    stat_label = stat_labels.get(stat_id, f"Stat+ {stat_id}")
+                    # Use consistent pill emoji for all vitamins
+                    return f"[{index_str}] 💊 {vitamin_name} ({stat_label})({stat_id}) x{stack_count}"
+                return f"[{index_str}] 💊 Stat Vitamin x{stack_count}"
 
             elif type_id == "ATTACK_TYPE_BOOSTER":
                 if len(args) > 1:
                     type_id_arg = args[1]
-                    # Common type names
-                    type_names = {
-                        0: "Normal", 1: "Fighting", 2: "Flying", 3: "Poison", 4: "Ground", 5: "Rock",
-                        6: "Bug", 7: "Ghost", 8: "Steel", 9: "Fire", 10: "Water", 11: "Grass",
-                        12: "Electric", 13: "Psychic", 14: "Ice", 15: "Dragon", 16: "Dark", 17: "Fairy"
-                    }
+                    # Use catalog for type names, fallback to hardcoded list
+                    type_name = type_i2n.get(type_id_arg, f"Type {type_id_arg}")
+                    if type_name == f"Type {type_id_arg}":
+                        # Fallback to hardcoded names if catalog doesn't have it
+                        type_names = {
+                            0: "Normal", 1: "Fighting", 2: "Flying", 3: "Poison", 4: "Ground", 5: "Rock",
+                            6: "Bug", 7: "Ghost", 8: "Steel", 9: "Fire", 10: "Water", 11: "Grass",
+                            12: "Electric", 13: "Psychic", 14: "Ice", 15: "Dragon", 16: "Dark", 17: "Fairy"
+                        }
                     type_name = type_names.get(type_id_arg, f"Type {type_id_arg}")
-                    return f"[{index}] {type_name} Type Booster x{stack_count}"
-                return f"[{index}] Type Booster x{stack_count}"
+                    return f"[{index_str}] ⚔️ {type_name} Type Booster x{stack_count}"
+                return f"[{index_str}] ⚔️ Type Booster x{stack_count}"
 
             elif type_id == "TEMP_STAT_STAGE_BOOSTER":
                 if type_pregen_args:
                     stat_id = type_pregen_args[0]
                     stat_names = ["HP", "Attack", "Defense", "Sp. Attack", "Sp. Defense", "Speed"]
                     stat_name = stat_names[stat_id] if 0 <= stat_id < len(stat_names) else f"Stat {stat_id}"
-                    return f"[{index}] X {stat_name} (Trainer) x{stack_count}"
-                return f"[{index}] X Stat Booster (Trainer) x{stack_count}"
+                    return f"[{index_str}] ⏰ X {stat_name} (Temporary) x{stack_count}"
+                return f"[{index_str}] ⏰ X Stat Booster (Temporary) x{stack_count}"
 
             elif type_id == "DIRE_HIT":
-                return f"[{index}] Dire Hit (Critical+) x{stack_count}"
+                return f"[{index_str}] 🎯 Dire Hit (Critical+) x{stack_count}"
 
             elif type_id == "EXP_CHARM":
                 exp_amount = args[0] if args else 25
                 total_boost = exp_amount * stack_count
-                return f"[{index}] Exp Charm (+{total_boost}% total) x{stack_count}"
+                return f"[{index_str}] ⭐ Exp Charm (+{total_boost}% total) x{stack_count}"
 
             elif type_id == "SUPER_EXP_CHARM":
                 exp_amount = args[0] if args else 60
                 total_boost = exp_amount * stack_count
-                return f"[{index}] Super Exp Charm (+{total_boost}% total) x{stack_count}"
+                return f"[{index_str}] ⭐⭐ Super Exp Charm (+{total_boost}% total) x{stack_count}"
 
             elif type_id == "LURE":
                 if len(args) >= 2:
                     max_turns, remaining = args[0], args[1]
-                    return f"[{index}] Lure ({remaining}/{max_turns} turns) x{stack_count}"
-                return f"[{index}] Lure (10 turns) x{stack_count}"
+                    return f"[{index_str}] 🎣 Lure ({remaining}/{max_turns} turns) x{stack_count}"
+                return f"[{index_str}] 🎣 Lure (10 turns) x{stack_count}"
 
             elif type_id == "SUPER_LURE":
                 if len(args) >= 2:
                     max_turns, remaining = args[0], args[1]
-                    return f"[{index}] Super Lure ({remaining}/{max_turns} turns) x{stack_count}"
-                return f"[{index}] Super Lure (15 turns) x{stack_count}"
+                    return f"[{index_str}] 🎣 Super Lure ({remaining}/{max_turns} turns) x{stack_count}"
+                return f"[{index_str}] 🎣 Super Lure (15 turns) x{stack_count}"
 
             elif type_id == "MAX_LURE":
                 if len(args) >= 2:
                     max_turns, remaining = args[0], args[1]
-                    return f"[{index}] Max Lure ({remaining}/{max_turns} turns) x{stack_count}"
-                return f"[{index}] Max Lure (30 turns) x{stack_count}"
+                    return f"[{index_str}] 🎣 Max Lure ({remaining}/{max_turns} turns) x{stack_count}"
+                return f"[{index_str}] 🎣 Max Lure (30 turns) x{stack_count}"
 
             elif type_id == "WIDE_LENS":
                 if len(args) > 1:
                     accuracy_boost = args[1]
-                    return f"[{index}] Wide Lens (+{accuracy_boost} Accuracy) x{stack_count}"
-                return f"[{index}] Wide Lens (Accuracy+) x{stack_count}"
+                    return f"[{index_str}] 🎯 Wide Lens (+{accuracy_boost} Accuracy) x{stack_count}"
+                return f"[{index_str}] 🎯 Wide Lens (Accuracy+) x{stack_count}"
 
             elif type_id == "RARE_FORM_CHANGE_ITEM":
                 if len(args) > 1:
@@ -1648,102 +2592,153 @@ class ItemManagerDialog(tk.Toplevel):
                             pass
 
                     if pokemon_name:
-                        return f"[{index}] {pokemon_name} Form Change (Form {form_id}) x{stack_count}"
+                        return f"[{index_str}] 🔄 {pokemon_name} Form Change (Form {form_id}) x{stack_count}"
                     else:
-                        return f"[{index}] {form_name} Form Change x{stack_count}"
-                return f"[{index}] Form Change Item x{stack_count}"
+                        return f"[{index_str}] 🔄 {form_name} Form Change x{stack_count}"
+                return f"[{index_str}] 🔄 Form Change Item x{stack_count}"
+
+            elif type_id == "GENERIC_FORM_CHANGE_ITEM":
+                if len(args) > 1:
+                    form_id = args[1]
+                    return f"[{index_str}] ⚙️ Generic Form Change (Form {form_id}) x{stack_count}"
+                return f"[{index_str}] ⚙️ Generic Form Change x{stack_count}"
+
+            elif type_id in ["FLAME_PLATE", "SPLASH_PLATE", "ZAP_PLATE", "MEADOW_PLATE", "ICICLE_PLATE", "FIST_PLATE",
+                            "TOXIC_PLATE", "EARTH_PLATE", "SKY_PLATE", "MIND_PLATE", "INSECT_PLATE", "STONE_PLATE",
+                            "SPOOKY_PLATE", "DRACO_PLATE", "DREAD_PLATE", "IRON_PLATE", "PIXIE_PLATE"]:
+                # Arceus Plates - show the plate name and type
+                plate_name = _format_item_name(type_id)
+                return f"[{index_str}] 🏺 {plate_name} (Arceus Form) x{stack_count}"
+
+            elif type_id in ["FIRE_MEMORY", "WATER_MEMORY", "ELECTRIC_MEMORY", "GRASS_MEMORY", "ICE_MEMORY", "FIGHTING_MEMORY",
+                            "POISON_MEMORY", "GROUND_MEMORY", "FLYING_MEMORY", "PSYCHIC_MEMORY", "BUG_MEMORY", "ROCK_MEMORY",
+                            "GHOST_MEMORY", "DRAGON_MEMORY", "DARK_MEMORY", "STEEL_MEMORY", "FAIRY_MEMORY"]:
+                # Type: Null Memory Discs - show the memory name and type
+                memory_name = _format_item_name(type_id)
+                return f"[{index_str}] 💾 {memory_name} (Silvally Form) x{stack_count}"
 
             elif type_id == "LUCKY_EGG":
                 if len(args) > 1:
                     exp_boost = args[1]
-                    return f"[{index}] Lucky Egg (+{exp_boost}% Pokemon Exp) x{stack_count}"
-                return f"[{index}] Lucky Egg (Pokemon Exp+) x{stack_count}"
+                    return f"[{index_str}] 🥚 Lucky Egg (+{exp_boost}% Pokemon Exp) x{stack_count}"
+                return f"[{index_str}] 🥚 Lucky Egg (Pokemon Exp+) x{stack_count}"
 
             elif type_id == "LEFTOVERS":
-                return f"[{index}] Leftovers (Turn Heal) x{stack_count}"
+                return f"[{index_str}] 🍖 Leftovers (Turn Heal) x{stack_count}"
 
             elif type_id == "FOCUS_BAND":
-                return f"[{index}] Focus Band (Survive Fatal) x{stack_count}"
+                return f"[{index_str}] 🎗 Focus Band (Survive Fatal) x{stack_count}"
 
             elif type_id == "EXP_SHARE":
-                return f"[{index}] Exp Share (Party Exp) x{stack_count}"
+                # EXP_SHARE: 20% per party member, max 100% at 5 stacks
+                exp_per_stack = 20
+                clamped_stacks = min(stack_count, 5)  # Clamp at max 5 stacks
+                total_boost = exp_per_stack * clamped_stacks
+                return f"[{index_str}] ⭐ Exp Share (+{total_boost}% Party Exp) x{stack_count}"
 
             elif type_id == "IV_SCANNER":
-                return f"[{index}] IV Scanner x{stack_count}"
+                return f"[{index_str}] 🔍 IV Scanner x{stack_count}"
 
             elif type_id == "MEGA_BRACELET":
-                return f"[{index}] Mega Bracelet x{stack_count}"
+                return f"[{index_str}] 💎 Mega Bracelet x{stack_count}"
 
             elif type_id == "GOLDEN_EGG":
                 if len(args) > 1:
                     exp_boost = args[1]
-                    return f"[{index}] Golden Egg (+{exp_boost}% Pokemon Exp) x{stack_count}"
-                return f"[{index}] Golden Egg (Pokemon Exp++) x{stack_count}"
+                    return f"[{index_str}] 🥚 Golden Egg (+{exp_boost}% Pokemon Exp) x{stack_count}"
+                return f"[{index_str}] 🥚 Golden Egg (Pokemon Exp++) x{stack_count}"
 
             elif type_id == "SCOPE_LENS":
-                return f"[{index}] Scope Lens (Critical Hit+) x{stack_count}"
+                return f"[{index_str}] 🎯 Scope Lens (Critical Hit+) x{stack_count}"
 
             elif type_id == "LEEK":
-                return f"[{index}] Leek (Species Crit+) x{stack_count}"
+                return f"[{index_str}] 🥬 Leek (Species Crit+) x{stack_count}"
 
             elif type_id == "MULTI_LENS":
-                return f"[{index}] Multi Lens (Multi-Hit) x{stack_count}"
+                return f"[{index_str}] 🔀 Multi Lens (Multi-Hit) x{stack_count}"
 
             elif type_id == "SOOTHE_BELL":
-                return f"[{index}] Soothe Bell (Friendship+) x{stack_count}"
+                return f"[{index_str}] 🔔 Soothe Bell (Friendship+) x{stack_count}"
 
             elif type_id == "CANDY_JAR":
-                return f"[{index}] Candy Jar (Level Boost+) x{stack_count}"
+                return f"[{index_str}] 🍬 Candy Jar (Level Boost+) x{stack_count}"
 
             elif type_id == "BERRY_POUCH":
-                return f"[{index}] Berry Pouch (Preserve Berries) x{stack_count}"
+                return f"[{index_str}] 🎒 Berry Pouch (Preserve Berries) x{stack_count}"
 
             elif type_id == "HEALING_CHARM":
-                return f"[{index}] Healing Charm (Healing Boost) x{stack_count}"
+                return f"[{index_str}] ✨ Healing Charm (Healing Boost) x{stack_count}"
 
             elif type_id == "SHINY_CHARM":
-                return f"[{index}] Shiny Charm (Shiny Rate+) x{stack_count}"
+                return f"[{index_str}] ✨ Shiny Charm (Shiny Rate+) x{stack_count}"
 
             elif type_id == "OVAL_CHARM":
-                return f"[{index}] Oval Charm (Multi-Pokemon Exp) x{stack_count}"
+                return f"[{index_str}] ⭐ Oval Charm (Multi-Pokemon Exp) x{stack_count}"
 
             elif type_id == "CATCHING_CHARM":
-                return f"[{index}] Catching Charm (Critical Catch+) x{stack_count}"
+                return f"[{index_str}] 🎯 Catching Charm (Critical Catch+) x{stack_count}"
 
             elif type_id == "AMULET_COIN":
-                return f"[{index}] Amulet Coin (Money Multiplier) x{stack_count}"
+                return f"[{index_str}] 💰 Amulet Coin (Money Multiplier) x{stack_count}"
 
             elif type_id == "LOCK_CAPSULE":
-                return f"[{index}] Lock Capsule (Lock Tiers) x{stack_count}"
+                return f"[{index_str}] 🔒 Lock Capsule (Lock Tiers) x{stack_count}"
 
             elif type_id == "TERA_ORB":
-                return f"[{index}] Tera Orb (Terastallize Access) x{stack_count}"
+                return f"[{index_str}] 💎 Tera Orb (Terastallize Access) x{stack_count}"
 
             elif type_id == "DYNAMAX_BAND":
-                return f"[{index}] Dynamax Band (Gigantamax Access) x{stack_count}"
+                return f"[{index_str}] 💎 Dynamax Band (Gigantamax Access) x{stack_count}"
 
             elif type_id == "MAP":
-                return f"[{index}] Map (Area Info) x{stack_count}"
+                return f"[{index_str}] 🗺 Map (Choose Next Destinations) x{stack_count}"
 
-            elif type_id.startswith("VOUCHER"):
-                if type_id == "VOUCHER_PLUS":
-                    return f"[{index}] Voucher Plus x{stack_count}"
-                elif type_id == "VOUCHER_PREMIUM":
-                    return f"[{index}] Voucher Premium x{stack_count}"
-                else:
-                    return f"[{index}] Voucher x{stack_count}"
 
             elif type_id == "GOLDEN_POKEBALL":
-                return f"[{index}] Golden Pokeball x{stack_count}"
+                return f"[{index_str}] ⚪ Golden Pokeball x{stack_count}"
+
+            # Additional common items that were missing emojis
+            elif type_id == "KINGS_ROCK":
+                return f"[{index_str}] 👑 King's Rock (Flinch Chance) x{stack_count}"
+
+            elif type_id == "GOLDEN_PUNCH":
+                return f"[{index_str}] 👊 Golden Punch (Money Reward) x{stack_count}"
+
+            elif type_id == "MYSTICAL_ROCK":
+                return f"[{index_str}] 🪨 Mystical Rock x{stack_count}"
+
+            elif type_id == "EVIOLITE":
+                return f"[{index_str}] 💎 Eviolite (Defense Boost) x{stack_count}"
+
+            elif type_id == "SOUL_DEW":
+                return f"[{index_str}] 💎 Soul Dew (Nature Boost) x{stack_count}"
+
+            elif type_id == "GRIP_CLAW":
+                return f"[{index_str}] 🦀 Grip Claw (Trap Effect) x{stack_count}"
+
+            elif type_id == "QUICK_CLAW":
+                return f"[{index_str}] ⚡ Quick Claw (Speed Priority) x{stack_count}"
+
+            elif type_id == "SHELL_BELL":
+                return f"[{index_str}] 🐚 Shell Bell (Hit Heal) x{stack_count}"
+
+            elif type_id == "TOXIC_ORB":
+                return f"[{index_str}] ☠️ Toxic Orb (Poison Status) x{stack_count}"
+
+            elif type_id == "FLAME_ORB":
+                return f"[{index_str}] 🔥 Flame Orb (Burn Status) x{stack_count}"
+
+            elif type_id == "BATON":
+                return f"[{index_str}] 🏃 Baton (Switch Effect) x{stack_count}"
 
             else:
                 # Fallback to informative format
                 args_display = str(args) if args else "None"
-                return f"[{index}] {type_id} (args: {args_display}) x{stack_count}"
+                return f"[{index_str}] {type_id} (args: {args_display}) x{stack_count}"
 
         except Exception:
             # Fallback to safe format on any error
-            return f"[{index}] {modifier.get('typeId', 'UNKNOWN')} x{modifier.get('stackCount', 1)}"
+            return f"[{index_str}] {modifier.get('typeId', 'UNKNOWN')} x{modifier.get('stackCount', 1)}"
 
     def _get_form_id_for_pokemon(self, pokemon_id: int) -> int:
         """Get the appropriate form_id for a Pokemon based on its species from save analysis."""
@@ -1754,48 +2749,14 @@ class ItemManagerDialog(tk.Toplevel):
             # Species-to-form mapping based on real save data analysis
             # Format: species_id: form_id
             species_to_form = {
+                # Confirmed from save data analysis
                 3: 48,    # Venusaur (Mega Venusaur - confirmed from save data)
-                9: 56,    # Blastoise (Mega Blastoise - confirmed from save data)
+                9: 56,    # Blastoise (G-Max Blastoise - confirmed from save data)
                 130: 22,  # Gyarados (Mega Gyarados - confirmed from save data)
+                
                 # Add more species as they are discovered in saves
-                # Common mega evolutions (estimated form IDs):
-                6: 6,     # Charizard X/Y
-                15: 15,   # Beedrill
-                18: 18,   # Pidgeot
-                65: 65,   # Alakazam
-                80: 80,   # Slowbro
-                94: 94,   # Gengar
-                115: 115, # Kangaskhan
-                127: 127, # Pinsir
-                142: 142, # Aerodactyl
-                150: 150, # Mewtwo X/Y
-                181: 181, # Ampharos
-                208: 208, # Steelix
-                212: 212, # Scizor
-                229: 229, # Houndoom
-                248: 248, # Tyranitar
-                254: 254, # Sceptile
-                257: 257, # Blaziken
-                260: 260, # Swampert
-                282: 282, # Gardevoir
-                302: 302, # Sableye
-                303: 303, # Mawile
-                306: 306, # Aggron
-                308: 308, # Medicham
-                310: 310, # Manectric
-                319: 319, # Sharpedo
-                323: 323, # Camerupt
-                334: 334, # Altaria
-                354: 354, # Banette
-                359: 359, # Absol
-                362: 362, # Glalie
-                373: 373, # Salamence
-                376: 376, # Metagross
-                384: 384, # Rayquaza
-                428: 428, # Lopunny
-                445: 445, # Garchomp
-                448: 448, # Lucario
-                460: 460, # Abomasnow
+                # Includes: Mega, G-Max, Calyrex forms, Deoxys forms, Kyurem forms, 
+                # Zacian/Zamazenta items, and other special forms
             }
 
             return species_to_form.get(species, species)  # Default to species ID as form ID
