@@ -2510,16 +2510,8 @@ class ItemManagerDialog(tk.Toplevel):
             elif type_id == "ATTACK_TYPE_BOOSTER":
                 if len(args) > 1:
                     type_id_arg = args[1]
-                    # Use catalog for type names, fallback to hardcoded list
-                    type_name = type_i2n.get(type_id_arg, f"Type {type_id_arg}")
-                    if type_name == f"Type {type_id_arg}":
-                        # Fallback to hardcoded names if catalog doesn't have it
-                        type_names = {
-                            0: "Normal", 1: "Fighting", 2: "Flying", 3: "Poison", 4: "Ground", 5: "Rock",
-                            6: "Bug", 7: "Ghost", 8: "Steel", 9: "Fire", 10: "Water", 11: "Grass",
-                            12: "Electric", 13: "Psychic", 14: "Ice", 15: "Dragon", 16: "Dark", 17: "Fairy"
-                        }
-                    type_name = type_names.get(type_id_arg, f"Type {type_id_arg}")
+                    # Use the existing _format_type_name function for consistent formatting
+                    type_name = _format_type_name(type_i2n.get(type_id_arg, f"TYPE_{type_id_arg}"))
                     return f"[{index_str}] ⚔️ {type_name} Type Booster x{stack_count}"
                 return f"[{index_str}] ⚔️ Type Booster x{stack_count}"
 
