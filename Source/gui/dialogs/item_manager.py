@@ -175,6 +175,9 @@ class ItemManagerDialog(tk.Toplevel):
         # Initialize cache for formatted item lists
         self._item_list_cache = {}
         
+        # Define tooltip method before building UI
+        self._create_tooltip = self._create_tooltip_method
+        
         self._build()
         self._refresh()
         self._preselect_party()
@@ -581,8 +584,9 @@ class ItemManagerDialog(tk.Toplevel):
         self.money_var = tk.StringVar(value="")
         self.money_entry = ttk.Entry(self.trainer_frame, textvariable=self.money_var, width=12)
         self.money_entry.grid(row=0, column=1, sticky=tk.W, padx=4, pady=2)
-        self.btn_apply_trainer = ttk.Button(self.trainer_frame, text="Apply Trainer Changes", command=self._apply_trainer_changes)
-        self.btn_apply_trainer.grid(row=0, column=2, sticky=tk.W, padx=6, pady=2)
+        # Bind money field changes to automatically update data
+        self.money_var.trace_add("write", lambda *args: self._on_money_change())
+        self.money_entry.bind("<KeyRelease>", lambda e: self._on_money_change())
 
         # Pokéball management section
         row += 1
@@ -594,12 +598,11 @@ class ItemManagerDialog(tk.Toplevel):
         
         # Pokéball types and their variables
         self.pokeball_types = [
-            ("Poké Ball", "pokeball"),
-            ("Great Ball", "greatball"), 
-            ("Ultra Ball", "ultraball"),
-            ("Master Ball", "masterball"),
-            ("Beast Ball", "beastball"),
-            ("Cherish Ball", "cherishball")
+            ("Poké Ball", "pokeball"),      # ID 0
+            ("Great Ball", "greatball"),    # ID 1
+            ("Ultra Ball", "ultraball"),    # ID 2
+            ("Rogue Ball", "rogueball"),    # ID 3
+            ("Master Ball", "masterball")   # ID 4
         ]
         
         self.pokeball_vars = {}
@@ -610,9 +613,11 @@ class ItemManagerDialog(tk.Toplevel):
             ttk.Label(self.pokeball_frame, text=f"{name}:").grid(row=row_idx, column=col_idx, sticky=tk.E, padx=4, pady=2)
             var = tk.StringVar(value="0")
             self.pokeball_vars[key] = var
+            # Bind to variable changes as well as key releases
+            var.trace_add("write", lambda *args: self._on_pokeball_change())
             entry = ttk.Entry(self.pokeball_frame, textvariable=var, width=8)
             entry.grid(row=row_idx, column=col_idx + 1, sticky=tk.W, padx=4, pady=2)
-            entry.bind("<KeyRelease>", lambda e: self._update_button_states())
+            entry.bind("<KeyRelease>", lambda e: self._on_pokeball_change())
 
         # Load Pokéball data
         self._load_pokeball_data()
@@ -624,8 +629,18 @@ class ItemManagerDialog(tk.Toplevel):
         
         self.btn_save = ttk.Button(right, text="Save to file", command=self._save, state=tk.DISABLED)
         self.btn_save.grid(row=100, column=2, sticky=tk.E, padx=4, pady=6)
+        # Add tooltip to clarify the difference
+        self._create_tooltip(self.btn_save, 
+            "Save to file: Writes all changes to the local save file on disk.\n"
+            "This includes Pokémon modifiers, trainer data, and Pokéball inventory.\n"
+            "Changes are automatically applied to memory as you type.")
         self.btn_upload = ttk.Button(right, text="Upload", command=self._upload, state=tk.DISABLED)
         self.btn_upload.grid(row=100, column=3, sticky=tk.E, padx=4, pady=6)
+        # Add tooltip to clarify the difference
+        self._create_tooltip(self.btn_upload, 
+            "Upload: Syncs all changes to the server.\n"
+            "This uploads the current save data to the online game.\n"
+            "Changes are automatically applied to memory as you type.")
 
         # Initial visibility/state
         self._apply_visibility()
@@ -815,7 +830,7 @@ class ItemManagerDialog(tk.Toplevel):
             
             formatted_items = []
             for name, berry_id in sorted(berry_n2i.items(), key=lambda kv: kv[1]):
-                formatted_name = name.replace("_", " ").title()
+                formatted_name = name.replace("_", " ").title()  # Convert to Title Case
                 emoji = "🍓"  # Default berry emoji
                 description = "Berry"
                 formatted_items.append(f"{emoji} {formatted_name} ({name}) - {description}")
@@ -905,22 +920,22 @@ class ItemManagerDialog(tk.Toplevel):
             return self._item_list_cache[cache_key]
         
         temp_battle_items = [
-            ("X Attack", "X_ATTACK"),
-            ("X Defense", "X_DEFENSE"),
-            ("X Sp. Attack", "X_SP_ATTACK"),
-            ("X Sp. Defense", "X_SP_DEFENSE"),
-            ("X Speed", "X_SPEED"),
-            ("X Accuracy", "X_ACCURACY"),
-            ("Dire Hit", "DIRE_HIT"),
-            ("Lure", "LURE"),
-            ("Super Lure", "SUPER_LURE"),
-            ("Max Lure", "MAX_LURE")
+            ("X Attack", "X_ATTACK", "5 waves"),
+            ("X Defense", "X_DEFENSE", "5 waves"),
+            ("X Sp. Attack", "X_SP_ATTACK", "5 waves"),
+            ("X Sp. Defense", "X_SP_DEFENSE", "5 waves"),
+            ("X Speed", "X_SPEED", "5 waves"),
+            ("X Accuracy", "X_ACCURACY", "5 waves"),
+            ("Dire Hit", "DIRE_HIT", "5 waves"),
+            ("Lure", "LURE", "10 turns"),
+            ("Super Lure", "SUPER_LURE", "15 turns"),
+            ("Max Lure", "MAX_LURE", "30 turns")
         ]
         formatted_items = []
-        for name, item_id in temp_battle_items:
+        for name, item_id, duration in temp_battle_items:
             emoji = self._get_item_emoji(item_id)
             description = self._get_item_description(item_id)
-            formatted_items.append(f"{emoji} {name} ({item_id}) - {description}")
+            formatted_items.append(f"{emoji} {name} - {duration} - {description} ({item_id})")
         
         # Cache the result
         self._item_list_cache[cache_key] = formatted_items
@@ -1060,6 +1075,9 @@ class ItemManagerDialog(tk.Toplevel):
                 self.money_var.set(str(self.data.get("money") or ""))
             except Exception:
                 pass
+        
+        # Reload Pokéball data when refreshing
+        self._load_pokeball_data()
 
     def _preselect_party(self):
         try:
@@ -1438,46 +1456,149 @@ class ItemManagerDialog(tk.Toplevel):
         except Exception:
             pass
 
-    def _apply_trainer_changes(self):
-        # Write trainer-related fields (e.g., money) into local snapshot and gate save/upload
-        try:
-            m = int((self.money_var.get() or "").strip())
-            if m < 0:
-                m = 0
-            self.data["money"] = m
-            self._dirty_local = True
-            self._dirty_server = True
-            self._update_button_states()
-            messagebox.showinfo("Applied", "Trainer properties updated locally. Save/Upload to persist.")
-        except Exception:
-            messagebox.showwarning("Invalid", "Money must be an integer >= 0")
 
     def _load_pokeball_data(self):
         """Load Pokéball data from the save file."""
         try:
-            # Initialize Pokéball data if not present
-            if "pokeballs" not in self.data:
-                self.data["pokeballs"] = {}
+            # Load Pokéball catalog for ID mapping
+            from rogueeditor.catalog import load_pokeball_catalog
+            ball_n2i, ball_i2n = load_pokeball_catalog()
             
-            # Load each Pokéball type
+            # Get pokeballCounts from save file (correct structure)
+            pokeball_counts = self.data.get("pokeballCounts", {})
+            
+            # Map numeric IDs to our UI keys (only available types)
+            id_to_key = {
+                "0": "pokeball",      # POKEBALL
+                "1": "greatball",     # GREAT_BALL  
+                "2": "ultraball",     # ULTRA_BALL
+                "3": "rogueball",     # ROGUE_BALL
+                "4": "masterball"     # MASTER_BALL
+            }
+            
+            # Load counts from save file
             for name, key in self.pokeball_types:
-                count = self.data["pokeballs"].get(key, 0)
-                self.pokeball_vars[key].set(str(count))
+                # Find the numeric ID for this Pokéball type
+                ball_id = None
+                for num_id, ball_key in id_to_key.items():
+                    if ball_key == key:
+                        ball_id = num_id
+                        break
+                
+                if ball_id is not None:
+                    count = pokeball_counts.get(ball_id, 0)
+                    self.pokeball_vars[key].set(str(count))
+                else:
+                    self.pokeball_vars[key].set("0")
+                    
         except Exception as e:
             print(f"Error loading Pokéball data: {e}")
+            # Set defaults on error
+            for name, key in self.pokeball_types:
+                self.pokeball_vars[key].set("0")
+
+    def _on_money_change(self):
+        """Handle money field changes and update data automatically."""
+        try:
+            # Update money in data immediately
+            money_str = (self.money_var.get() or "").strip()
+            if money_str:
+                try:
+                    money = int(money_str)
+                    if money < 0:
+                        money = 0
+                    self.data["money"] = money
+                except ValueError:
+                    # Invalid number, don't update data
+                    pass
+            else:
+                self.data["money"] = 0
+            
+            # Mark as dirty and update buttons
+            self._dirty_local = True
+            self._dirty_server = True
+            self._update_button_states()
+        except Exception as e:
+            print(f"Error handling money change: {e}")
+
+    def _on_pokeball_change(self):
+        """Handle Pokéball field changes and update data automatically."""
+        try:
+            # Update Pokéball data immediately
+            self._save_pokeball_data()
+            
+            # Mark as dirty and update buttons
+            self._dirty_local = True
+            self._dirty_server = True
+            self._update_button_states()
+        except Exception as e:
+            print(f"Error handling Pokéball change: {e}")
+
+    def _create_tooltip_method(self, widget, text):
+        """Create a tooltip for a widget."""
+        try:
+            def on_enter(event):
+                tooltip = tk.Toplevel()
+                tooltip.wm_overrideredirect(True)
+                tooltip.wm_geometry(f"+{event.x_root+10}+{event.y_root+10}")
+                label = tk.Label(tooltip, text=text, justify=tk.LEFT, 
+                               background="lightyellow", relief=tk.SOLID, borderwidth=1,
+                               font=("TkDefaultFont", 9))
+                label.pack(ipadx=4, ipady=2)
+                widget._tooltip = tooltip
+            
+            def on_leave(event):
+                if hasattr(widget, '_tooltip'):
+                    widget._tooltip.destroy()
+                    del widget._tooltip
+            
+            widget.bind("<Enter>", on_enter)
+            widget.bind("<Leave>", on_leave)
+        except Exception as e:
+            print(f"Error creating tooltip: {e}")
 
     def _save_pokeball_data(self):
         """Save Pokéball data to the save file."""
         try:
-            # Update Pokéball data from UI
+            # Initialize pokeballCounts if not present
+            if "pokeballCounts" not in self.data:
+                self.data["pokeballCounts"] = {}
+            
+            # Map UI keys to numeric IDs (only available types)
+            key_to_id = {
+                "pokeball": "0",      # POKEBALL
+                "greatball": "1",     # GREAT_BALL  
+                "ultraball": "2",     # ULTRA_BALL
+                "rogueball": "3",     # ROGUE_BALL
+                "masterball": "4"     # MASTER_BALL
+            }
+            
+            # Update Pokéball data from UI (only available types 0-4)
             for name, key in self.pokeball_types:
                 try:
                     count = int(self.pokeball_vars[key].get() or "0")
                     if count < 0:
                         count = 0
-                    self.data["pokeballs"][key] = count
+                    
+                    # Map to numeric ID for server compatibility
+                    ball_id = key_to_id.get(key)
+                    if ball_id is not None:
+                        self.data["pokeballCounts"][ball_id] = count
                 except ValueError:
-                    self.data["pokeballs"][key] = 0
+                    ball_id = key_to_id.get(key)
+                    if ball_id is not None:
+                        self.data["pokeballCounts"][ball_id] = 0
+            
+            # Remove any unavailable types (like type 5) from the data
+            available_ids = set(key_to_id.values())
+            pokeball_counts = self.data.get("pokeballCounts", {})
+            for ball_id in list(pokeball_counts.keys()):
+                if ball_id not in available_ids:
+                    del self.data["pokeballCounts"][ball_id]
+            
+            # Remove the incorrect "pokeballs" structure if it exists
+            if "pokeballs" in self.data:
+                del self.data["pokeballs"]
             
             self._dirty_local = True
             self._dirty_server = True
@@ -2019,6 +2140,9 @@ class ItemManagerDialog(tk.Toplevel):
                 else:  # MAX_LURE
                     duration = 30
                 entry = {"args": [duration, duration], "player": True, "stackCount": stacks, "typeId": item_id, "className": "DoubleBattleChanceBoosterModifier"}
+            elif item_id == "DIRE_HIT":
+                # DIRE_HIT: args=[max_duration, remaining_waves] pattern
+                entry = {"args": [5, 5], "player": True, "stackCount": stacks, "typeId": item_id, "className": "TempStatStageBoosterModifier"}
             else:
                 messagebox.showwarning("Invalid", f"Unknown temp battle modifier: {sel}")
                 return
@@ -2449,6 +2573,9 @@ class ItemManagerDialog(tk.Toplevel):
         try:
             self._refresh_mods()
             self._on_cat_change()
+            # Reload Pokéball data when switching to trainer target
+            if self.target_var.get() == "Trainer":
+                self._load_pokeball_data()
             self._update_button_states()
         except Exception:
             pass
@@ -2476,7 +2603,9 @@ class ItemManagerDialog(tk.Toplevel):
             if type_id == "BERRY":
                 if len(args) > 1:
                     berry_id = args[1]
-                    berry_name = berry_i2n.get(berry_id, f"Berry {berry_id}")
+                    berry_name_raw = berry_i2n.get(berry_id, f"BERRY_{berry_id}")
+                    # Format to Title Case for consistency with dropdown
+                    berry_name = berry_name_raw.replace("_", " ").title()
                     # Use consistent berry emoji for all berries
                     return f"[{index_str}] 🍓 {berry_name} x{stack_count}"
                 return f"[{index_str}] 🍓 Berry x{stack_count}"
@@ -2520,11 +2649,22 @@ class ItemManagerDialog(tk.Toplevel):
                     stat_id = type_pregen_args[0]
                     stat_names = ["HP", "Attack", "Defense", "Sp. Attack", "Sp. Defense", "Speed"]
                     stat_name = stat_names[stat_id] if 0 <= stat_id < len(stat_names) else f"Stat {stat_id}"
-                    return f"[{index_str}] ⏰ X {stat_name} (Temporary) x{stack_count}"
+                    
+                    # Show duration if args are available (max_duration, remaining_waves)
+                    if len(args) >= 3:
+                        max_duration, remaining_waves = args[1], args[2]
+                        return f"[{index_str}] ⏰ X {stat_name} ({remaining_waves}/{max_duration} waves) x{stack_count}"
+                    else:
+                        return f"[{index_str}] ⏰ X {stat_name} (Temporary) x{stack_count}"
                 return f"[{index_str}] ⏰ X Stat Booster (Temporary) x{stack_count}"
 
             elif type_id == "DIRE_HIT":
-                return f"[{index_str}] 🎯 Dire Hit (Critical+) x{stack_count}"
+                # Show duration if args are available (max_duration, remaining_waves)
+                if len(args) >= 2:
+                    max_duration, remaining_waves = args[0], args[1]
+                    return f"[{index_str}] 🎯 Dire Hit ({remaining_waves}/{max_duration} waves) x{stack_count}"
+                else:
+                    return f"[{index_str}] 🎯 Dire Hit (Critical+) x{stack_count}"
 
             elif type_id == "EXP_CHARM":
                 exp_amount = args[0] if args else 25

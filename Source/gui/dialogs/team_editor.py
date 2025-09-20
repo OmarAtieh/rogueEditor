@@ -1279,6 +1279,16 @@ class TeamManagerDialog(tk.Toplevel):
         self.btn_upload = ttk.Button(buttons_frame, text="Upload", command=self._upload, state=tk.DISABLED)
         self.btn_save.pack(side=tk.LEFT, padx=(0, 6))
         self.btn_upload.pack(side=tk.LEFT)
+        
+        # Add tooltips to clarify the workflow
+        self._create_tooltip(self.btn_save, 
+            "Save to file: Writes all changes to the local save file on disk.\n"
+            "This includes Pokémon data, trainer data, and party order changes.\n"
+            "Changes are automatically applied to memory as you edit.")
+        self._create_tooltip(self.btn_upload, 
+            "Upload: Syncs all changes to the server.\n"
+            "This uploads the current save data to the online game.\n"
+            "Make sure to 'Save to file' first to persist changes locally.")
 
         # Tabs below header
         self.tabs = ttk.Notebook(right)
@@ -1327,6 +1337,9 @@ class TeamManagerDialog(tk.Toplevel):
         # Initial view
         self._apply_target_visibility()
 
+        # Bind all fields for automatic updates
+        self._bind_all_fields_auto_update()
+
         # Center the window relative to parent
         self._center_relative_to_parent()
 
@@ -1360,6 +1373,436 @@ class TeamManagerDialog(tk.Toplevel):
         except Exception:
             # Fallback to default positioning if centering fails
             pass
+
+    def _create_tooltip(self, widget, text):
+        """Create a tooltip for a widget."""
+        try:
+            def on_enter(event):
+                tooltip = tk.Toplevel()
+                tooltip.wm_overrideredirect(True)
+                tooltip.wm_geometry(f"+{event.x_root+10}+{event.y_root+10}")
+                label = tk.Label(tooltip, text=text, justify=tk.LEFT, 
+                               background="lightyellow", relief=tk.SOLID, borderwidth=1,
+                               font=("TkDefaultFont", 9))
+                label.pack(ipadx=4, ipady=2)
+                widget._tooltip = tooltip
+            
+            def on_leave(event):
+                if hasattr(widget, '_tooltip'):
+                    widget._tooltip.destroy()
+                    del widget._tooltip
+            
+            widget.bind("<Enter>", on_enter)
+            widget.bind("<Leave>", on_leave)
+        except Exception as e:
+            debug_log(f"Error creating tooltip: {e}")
+
+    def _on_money_change(self):
+        """Handle money field changes and update data automatically."""
+        try:
+            # Update money in data immediately
+            money_str = (self.var_money.get() or "").strip()
+            if money_str:
+                try:
+                    money = int(money_str)
+                    if money < 0:
+                        money = 0
+                    self.data["money"] = money
+                except ValueError:
+                    # Invalid number, don't update data
+                    pass
+            else:
+                self.data["money"] = 0
+            
+            # Mark as dirty and update buttons
+            self._dirty_local = True
+            self._dirty_server = True
+            self._update_button_states()
+        except Exception as e:
+            debug_log(f"Error handling money change: {e}")
+
+    def _on_weather_change(self):
+        """Handle weather field changes and update data automatically."""
+        try:
+            # Update weather in data immediately
+            weather_text = (self.var_weather.get() or "").strip()
+            if weather_text and hasattr(self, '_weather_n2i'):
+                # Extract weather ID from formatted text
+                weather_id = None
+                for name, wid in self._weather_n2i.items():
+                    if f"{name} ({wid})" == weather_text:
+                        weather_id = wid
+                        break
+                
+                if weather_id is not None:
+                    self.data[self._weather_key()] = weather_id
+                else:
+                    # Clear weather if not found
+                    if self._weather_key() in self.data:
+                        del self.data[self._weather_key()]
+            else:
+                # Clear weather if empty
+                if self._weather_key() in self.data:
+                    del self.data[self._weather_key()]
+            
+            # Mark as dirty and update buttons
+            self._dirty_local = True
+            self._dirty_server = True
+            self._update_button_states()
+        except Exception as e:
+            debug_log(f"Error handling weather change: {e}")
+
+    def _bind_all_fields_auto_update(self):
+        """Bind all form fields to automatically update data when changed."""
+        try:
+            # Basics tab fields
+            if hasattr(self, 'var_name'):
+                self.var_name.trace_add("write", lambda *args: self._on_pokemon_field_change())
+            if hasattr(self, 'var_hp'):
+                self.var_hp.trace_add("write", lambda *args: self._on_pokemon_field_change())
+            if hasattr(self, 'var_level'):
+                self.var_level.trace_add("write", lambda *args: self._on_pokemon_field_change())
+            if hasattr(self, 'var_exp'):
+                self.var_exp.trace_add("write", lambda *args: self._on_pokemon_field_change())
+            if hasattr(self, 'var_friend'):
+                self.var_friend.trace_add("write", lambda *args: self._on_pokemon_field_change())
+            if hasattr(self, 'var_status'):
+                self.var_status.trace_add("write", lambda *args: self._on_pokemon_field_change())
+            if hasattr(self, 'var_ability'):
+                self.var_ability.trace_add("write", lambda *args: self._on_pokemon_field_change())
+            if hasattr(self, 'var_passive'):
+                self.var_passive.trace_add("write", lambda *args: self._on_pokemon_field_change())
+            if hasattr(self, 'var_pokerus'):
+                self.var_pokerus.trace_add("write", lambda *args: self._on_pokemon_field_change())
+            
+            # Stats tab fields
+            if hasattr(self, 'var_nature'):
+                self.var_nature.trace_add("write", lambda *args: self._on_pokemon_field_change())
+            
+            # Form & Visuals tab fields
+            if hasattr(self, 'var_tera'):
+                self.var_tera.trace_add("write", lambda *args: self._on_pokemon_field_change())
+            if hasattr(self, 'var_shiny'):
+                self.var_shiny.trace_add("write", lambda *args: self._on_pokemon_field_change())
+            if hasattr(self, 'var_luck'):
+                self.var_luck.trace_add("write", lambda *args: self._on_pokemon_field_change())
+            if hasattr(self, 'var_pause_evo'):
+                self.var_pause_evo.trace_add("write", lambda *args: self._on_pokemon_field_change())
+            if hasattr(self, 'var_gender'):
+                self.var_gender.trace_add("write", lambda *args: self._on_pokemon_field_change())
+            if hasattr(self, 'var_ball'):
+                self.var_ball.trace_add("write", lambda *args: self._on_pokemon_field_change())
+            
+            # IV fields (if they exist)
+            if hasattr(self, 'iv_vars') and isinstance(self.iv_vars, list):
+                for iv_var in self.iv_vars:
+                    if iv_var:
+                        iv_var.trace_add("write", lambda *args: self._on_pokemon_field_change())
+            
+            # Move fields (if they exist)
+            if hasattr(self, 'move_vars') and isinstance(self.move_vars, list):
+                for move_var in self.move_vars:
+                    if move_var:
+                        move_var.trace_add("write", lambda *args: self._on_pokemon_field_change())
+            
+            if hasattr(self, 'move_ppup_vars') and isinstance(self.move_ppup_vars, list):
+                for ppup_var in self.move_ppup_vars:
+                    if ppup_var:
+                        ppup_var.trace_add("write", lambda *args: self._on_pokemon_field_change())
+            
+            if hasattr(self, 'move_ppused_vars') and isinstance(self.move_ppused_vars, list):
+                for ppused_var in self.move_ppused_vars:
+                    if ppused_var:
+                        ppused_var.trace_add("write", lambda *args: self._on_pokemon_field_change())
+                    
+        except Exception as e:
+            debug_log(f"Error binding fields for auto-update: {e}")
+
+    def _on_pokemon_field_change(self):
+        """Handle any Pokémon field change and apply changes to data immediately."""
+        try:
+            # Skip if we're currently loading data to prevent conflicts
+            if getattr(self, '_loading_data', False):
+                return
+                
+            mon = self._current_mon()
+            if not mon:
+                return
+            
+            # Apply changes to the current Pokémon data
+            self._apply_pokemon_changes_to_data(mon)
+            
+            # Mark as dirty and update buttons
+            self._dirty_local = True
+            self._dirty_server = True
+            self._update_button_states()
+        except Exception as e:
+            debug_log(f"Error handling Pokémon field change: {e}")
+
+    def _apply_pokemon_changes_to_data(self, mon: dict):
+        """Apply all current field values to the Pokémon data with special case handling."""
+        try:
+            # Set sync guard to prevent recursion during EXP/level synchronization
+            self._sync_guard = True
+            
+            # Basics tab fields
+            if hasattr(self, 'var_name'):
+                mon['nickname'] = (self.var_name.get() or "").strip()
+            
+            if hasattr(self, 'var_hp'):
+                try:
+                    hp = int((self.var_hp.get() or "0").strip() or "0")
+                    if hp < 0:
+                        hp = 0
+                    mon['currentHp'] = hp
+                except Exception:
+                    pass
+            
+            # Special case: EXP/Level synchronization
+            # Handle EXP and Level changes with proper synchronization
+            if hasattr(self, 'var_exp') and hasattr(self, 'var_level'):
+                try:
+                    exp = int((self.var_exp.get() or "0").strip() or "0")
+                    level = int((self.var_level.get() or "1").strip() or "1")
+                    
+                    if exp < 0:
+                        exp = 0
+                    if level < 1:
+                        level = 1
+                    
+                    # Apply both values to data
+                    mon['exp'] = exp
+                    mon['level'] = level
+                    
+                    # Synchronize: if EXP changed, update level; if level changed, update EXP
+                    gidx = self._growth_index_for_mon(mon)
+                    
+                    # Calculate what level this EXP should give
+                    calculated_level = level_from_exp(gidx, exp)
+                    if calculated_level < 1:
+                        calculated_level = 1
+                    
+                    # Calculate what EXP this level should give
+                    calculated_exp = exp_for_level(gidx, level)
+                    
+                    # Update the UI to reflect the calculated values (without triggering recursion)
+                    if calculated_level != level:
+                        self.var_level.set(str(calculated_level))
+                        mon['level'] = calculated_level
+                    
+                    if calculated_exp != exp:
+                        self.var_exp.set(str(calculated_exp))
+                        mon['exp'] = calculated_exp
+                        
+                except Exception as e:
+                    debug_log(f"Error in EXP/Level synchronization: {e}")
+            else:
+                # Fallback: handle EXP and Level separately if only one exists
+                if hasattr(self, 'var_level'):
+                    try:
+                        level = int((self.var_level.get() or "1").strip() or "1")
+                        if level < 1:
+                            level = 1
+                        mon['level'] = level
+                        if hasattr(self, 'var_exp'):
+                            gidx = self._growth_index_for_mon(mon)
+                            exp = exp_for_level(gidx, level)
+                            mon['exp'] = exp
+                    except Exception:
+                        pass
+                
+                if hasattr(self, 'var_exp'):
+                    try:
+                        exp = int((self.var_exp.get() or "0").strip() or "0")
+                        if exp < 0:
+                            exp = 0
+                        mon['exp'] = exp
+                        gidx = self._growth_index_for_mon(mon)
+                        level = level_from_exp(gidx, exp)
+                        if level < 1:
+                            level = 1
+                        mon['level'] = level
+                    except Exception:
+                        pass
+            
+            if hasattr(self, 'var_friend'):
+                try:
+                    friendship = int((self.var_friend.get() or "0").strip() or "0")
+                    if friendship < 0:
+                        friendship = 0
+                    mon['friendship'] = friendship
+                except Exception:
+                    pass
+            
+            if hasattr(self, 'var_status'):
+                status = (self.var_status.get() or "").strip()
+                if status and status != "none":
+                    mon['status'] = status
+                    # Update status fields visibility and summary
+                    self._update_status_fields_visibility()
+                    self._update_status_summary()
+                else:
+                    mon.pop('status', None)
+                    # Clear status fields when status is removed
+                    self._update_status_fields_visibility()
+                    self._update_status_summary()
+            
+            if hasattr(self, 'var_ability'):
+                ability_text = self.var_ability.get()
+                if ability_text and hasattr(self, 'ability_n2i'):
+                    ability_id = self._parse_id_from_combo(ability_text, self.ability_n2i)
+                    if isinstance(ability_id, int):
+                        mon['abilityId'] = ability_id
+            
+            if hasattr(self, 'var_passive'):
+                mon['passive'] = bool(self.var_passive.get())
+            
+            if hasattr(self, 'var_pokerus'):
+                mon['pokerus'] = bool(self.var_pokerus.get())
+            
+            # Stats tab fields
+            if hasattr(self, 'var_nature'):
+                nature_text = self.var_nature.get()
+                if nature_text and hasattr(self, 'nat_n2i'):
+                    nature_id = self._parse_id_from_combo(nature_text, self.nat_n2i)
+                    if isinstance(nature_id, int):
+                        mon['nature'] = nature_id
+                        # Update nature hint display
+                        self._update_nature_hint()
+            
+            # Apply IVs if they exist
+            if hasattr(self, 'iv_vars'):
+                ivs = []
+                for v in self.iv_vars:
+                    try:
+                        x = int((v.get() or "0").strip())
+                        if x < 0:
+                            x = 0
+                        if x > 31:
+                            x = 31
+                        ivs.append(x)
+                    except Exception:
+                        ivs.append(0)
+                mon["ivs"] = ivs
+            
+            # Form & Visuals tab fields
+            if hasattr(self, 'var_tera'):
+                tera_text = self.var_tera.get()
+                if tera_text and hasattr(self, '_type_n2i'):
+                    tera_id = self._parse_id_from_combo(tera_text, self._type_n2i)
+                    if isinstance(tera_id, int):
+                        mon['teraType'] = tera_id
+            
+            if hasattr(self, 'var_shiny'):
+                shiny = bool(self.var_shiny.get())
+                mon['shiny'] = shiny
+                # Reset luck if not shiny
+                if not shiny and hasattr(self, 'var_luck'):
+                    mon['luck'] = 0
+                    # Update UI to reflect luck reset
+                    self.var_luck.set('0')
+            
+            if hasattr(self, 'var_luck'):
+                try:
+                    luck = int((self.var_luck.get() or '0').strip() or '0')
+                    if luck < 0:
+                        luck = 0
+                    mon['luck'] = luck
+                except Exception:
+                    mon['luck'] = 0
+            
+            if hasattr(self, 'var_pause_evo'):
+                mon['pauseEvolutions'] = bool(self.var_pause_evo.get())
+            
+            if hasattr(self, 'var_gender'):
+                gender_text = self.var_gender.get()
+                if gender_text and hasattr(self, '_gender_n2i'):
+                    gender_id = self._parse_id_from_combo(gender_text, self._gender_n2i)
+                    if isinstance(gender_id, int):
+                        mon['gender'] = gender_id
+            
+            if hasattr(self, 'var_ball'):
+                ball_text = self.var_ball.get()
+                if ball_text and hasattr(self, '_ball_n2i'):
+                    ball_id = self._parse_id_from_combo(ball_text, self._ball_n2i)
+                    if isinstance(ball_id, int):
+                        mon['ball'] = ball_id
+            
+            # Apply moves if they exist
+            if hasattr(self, 'move_vars') and hasattr(self, 'move_n2i'):
+                self._apply_moves_to_data(mon)
+            
+            # Recalculate stats after changes
+            self._recalc_stats_safe()
+            
+        except Exception as e:
+            debug_log(f"Error applying Pokémon changes to data: {e}")
+        finally:
+            # Always clear the sync guard
+            self._sync_guard = False
+
+    def _apply_moves_to_data(self, mon: dict):
+        """Apply move changes to Pokémon data."""
+        try:
+            if not hasattr(self, 'move_vars') or not hasattr(self, 'move_n2i'):
+                return
+            
+            # Ensure we have a key and shapes from last bind; if not, derive again
+            key, shapes, current = self._derive_moves(mon)
+            lst = mon.get(key)
+            if not isinstance(lst, list):
+                lst = []
+            
+            # Build new list preserving shapes and any extra dict fields
+            out = list(lst)  # copy
+            for i in range(4):
+                mid = self._parse_id_from_combo(self.move_vars[i].get(), self.move_n2i)
+                mid_i = int(mid or 0)
+                shape = shapes[i] if i < len(shapes) else "int"
+                
+                if i < len(out):
+                    cur = out[i]
+                else:
+                    cur = None
+                
+                if shape == "id":
+                    if isinstance(cur, dict):
+                        cur["id"] = mid_i
+                    else:
+                        out[i] = {"id": mid_i}
+                else:
+                    out[i] = mid_i
+                
+                # Apply PP Up and PP Used if they exist
+                if hasattr(self, 'move_ppup_vars') and i < len(self.move_ppup_vars):
+                    try:
+                        ppup = int((self.move_ppup_vars[i].get() or "0").strip())
+                        if ppup < 0:
+                            ppup = 0
+                        if ppup > 3:
+                            ppup = 3
+                        if isinstance(out[i], dict):
+                            out[i]["ppUp"] = ppup
+                    except Exception:
+                        pass
+                
+                if hasattr(self, 'move_ppused_vars') and i < len(self.move_ppused_vars):
+                    try:
+                        ppused = int((self.move_ppused_vars[i].get() or "0").strip())
+                        if ppused < 0:
+                            ppused = 0
+                        if isinstance(out[i], dict):
+                            out[i]["ppUsed"] = ppused
+                    except Exception:
+                        pass
+            
+            mon[key] = out
+            
+            # Invalidate offensive matchups cache for this specific Pokémon since moves affect offensive analysis
+            self._invalidate_pokemon_offensive_cache(mon)
+            
+        except Exception as e:
+            debug_log(f"Error applying moves to data: {e}")
 
     def _build_basics(self, parent: ttk.Frame):
         frm = ttk.Frame(parent)
@@ -1422,12 +1865,7 @@ class TeamManagerDialog(tk.Toplevel):
         ttk.Label(basics_box, text="Friendship:").grid(row=2, column=2, sticky=tk.E, padx=8, pady=3)
         self.var_friend = tk.StringVar(value="")
         ttk.Entry(basics_box, textvariable=self.var_friend, width=8).grid(row=2, column=3, sticky=tk.W)
-        # Live recompute Level on EXP change
-        try:
-            self.var_exp.trace_add('write', lambda *args: self._on_exp_change())
-            self.var_level.trace_add('write', lambda *args: self._on_level_change())
-        except Exception:
-            pass
+        # Note: EXP and Level changes are handled by the comprehensive field binding system
         # EXP note inside basics
         self.exp_note = ttk.Label(basics_box, text="Note: Levels beyond 100 use last EXP step (supports 200+)", foreground="gray")
         self.exp_note.grid(row=3, column=0, columnspan=4, sticky=tk.W, padx=4, pady=(2,0))
@@ -1497,16 +1935,12 @@ class TeamManagerDialog(tk.Toplevel):
         self.var_pokerus = tk.BooleanVar(value=False)
         ttk.Checkbutton(actions_box, text="Pokérus: Infected", variable=self.var_pokerus).grid(row=2, column=0, padx=6, pady=(0,6), sticky=tk.W)
 
-        # Apply button (push down to avoid overlapping controls)
-        ttk.Button(frm, text="Apply Basics to Local", command=self._apply_basics).grid(row=8, column=0, columnspan=2, sticky=tk.W, padx=4, pady=(10, 6))
+        # Note: Changes are automatically applied to memory as you edit
+        # Use "Save to file" to persist changes to disk
         # Heal helpers (moved Full Restore to Actions box)
         heal_bar = ttk.Frame(frm)
         heal_bar.grid(row=8, column=2, columnspan=2, sticky=tk.W)
-        # Bind status changes to update visibility + summary
-        try:
-            self.var_status.trace_add('write', lambda *args: (self._update_status_fields_visibility(), self._update_status_summary()))
-        except Exception:
-            pass
+        # Note: Status changes are handled by the comprehensive field binding system
 
     def _update_status_fields_visibility(self):
         st = (self.var_status.get() or 'none').strip().lower()
@@ -1619,15 +2053,9 @@ class TeamManagerDialog(tk.Toplevel):
         header_frame.pack(fill=tk.X, padx=6, pady=(4, 2))
 
         info_label = ttk.Label(header_frame,
-                              text="Reorder party members by clicking arrows. Click Apply to save changes.",
+                              text="Reorder party members by clicking arrows. Changes are automatically applied to memory.",
                               foreground="gray")
         info_label.pack(side=tk.LEFT, anchor=tk.W)
-
-        # Apply button (initially disabled)
-        self.party_apply_btn = ttk.Button(header_frame, text="Apply Changes",
-                                         command=self._apply_party_reorder_changes,
-                                         state=tk.DISABLED)
-        self.party_apply_btn.pack(side=tk.RIGHT, padx=(10, 0))
 
         # Status indicator
         self.party_status_label = ttk.Label(header_frame, text="", foreground="orange")
@@ -2083,22 +2511,12 @@ class TeamManagerDialog(tk.Toplevel):
         self.ent_nature = ttk.Entry(frm, textvariable=self.var_nature, width=18)
         self.ent_nature.grid(row=7, column=1, sticky=tk.W)
         ttk.Button(frm, text="Pick…", command=self._pick_nature).grid(row=7, column=2, sticky=tk.W, padx=4)
-        # Live recalculation; no explicit button
-        ttk.Button(frm, text="Apply Stats to Local", command=self._apply_stats).grid(row=7, column=4, sticky=tk.W)
+        # Note: Changes are automatically applied to memory as you edit
         # Nature hint (neutral or +/- targets)
         self.nature_hint = ttk.Label(frm, text="", foreground="gray")
         self.nature_hint.grid(row=8, column=1, columnspan=3, sticky=tk.W)
         # Bind live recalc on changes
-        try:
-            # Level from Basics tab
-            self.var_level.trace_add('write', lambda *args: self._recalc_stats_safe())
-            # Nature
-            self.var_nature.trace_add('write', lambda *args: self._recalc_stats_safe())
-            # IVs
-            for v in self.iv_vars:
-                v.trace_add('write', lambda *args: self._recalc_stats_safe())
-        except Exception:
-            pass
+        # Note: Stats recalculation is handled by the comprehensive field binding system
 
     def _build_moves(self, parent: ttk.Frame):
         frm = ttk.Frame(parent)
@@ -2173,7 +2591,7 @@ class TeamManagerDialog(tk.Toplevel):
                 pass
         # Note for PP fields
         ttk.Label(frm, text="PP Up max: 3 per 5 base PP; PP Used clamped to max.", foreground="gray").grid(row=6, column=0, columnspan=10, sticky=tk.W, padx=4, pady=(8,0))
-        ttk.Button(frm, text="Apply Moves to Local", command=self._apply_moves).grid(row=7, column=0, columnspan=3, sticky=tk.W, padx=4, pady=(8, 4))
+        # Note: Changes are automatically applied to memory as you edit
 
     def _update_move_row_visuals(self, row_index: int, move_id: int) -> None:
         try:
@@ -3741,7 +4159,7 @@ class TeamManagerDialog(tk.Toplevel):
         )
         self.cb_ball.grid(row=2, column=1, sticky=tk.W)
 
-        ttk.Button(frm, text="Apply Form & Visuals", command=self._apply_form_visuals).grid(row=3, column=1, sticky=tk.W, padx=6, pady=(8, 2))
+        # Note: Changes are automatically applied to memory as you edit
 
     def _build_trainer_basics(self, parent: ttk.Frame):
         debug_log("_build_trainer_basics called - using safe approach")
@@ -3756,7 +4174,9 @@ class TeamManagerDialog(tk.Toplevel):
         self.var_money = tk.StringVar(value="")
         ent = ttk.Entry(parent, textvariable=self.var_money, width=12)
         ent.grid(row=4, column=1, sticky=tk.W)
-        ttk.Button(parent, text="Apply", command=self._apply_trainer_changes).grid(row=4, column=2, sticky=tk.W, padx=6)
+        # Bind money changes to automatically update data
+        self.var_money.trace_add("write", lambda *args: self._on_money_change())
+        ent.bind("<KeyRelease>", lambda e: self._on_money_change())
 
         # Defer weather catalog initialization to avoid blocking UI
         debug_log("Deferring weather catalog initialization...")
@@ -3772,7 +4192,9 @@ class TeamManagerDialog(tk.Toplevel):
             state="readonly",
         )
         self.cb_weather.grid(row=5, column=1, sticky=tk.W)
-        ttk.Button(parent, text="Apply", command=self._apply_trainer_changes).grid(row=5, column=2, sticky=tk.W, padx=6)
+        # Bind weather changes to automatically update data
+        self.var_weather.trace_add("write", lambda *args: self._on_weather_change())
+        self.cb_weather.bind("<<ComboboxSelected>>", lambda e: self._on_weather_change())
         ttk.Button(parent, text="Full Team Heal (Local)", command=self._full_team_heal).grid(row=5, column=3, sticky=tk.W, padx=6)
         # Quick open items/modifiers manager
         ttk.Button(parent, text="Open Modifiers / Items…", command=self._open_item_mgr_trainer).grid(row=6, column=1, sticky=tk.W, pady=(8, 0))
@@ -5558,6 +5980,9 @@ class TeamManagerDialog(tk.Toplevel):
     def _apply_pokemon_data_fast(self, mon: dict, cached_data: dict):
         """Ultra-fast UI application using fully cached data."""
         try:
+            # Set loading guard to prevent field change handlers from interfering
+            self._loading_data = True
+            
             # Prepare per-tab skeletons before applying any content
             try:
                 if hasattr(self, 'tab_poke_basics'):
@@ -5610,6 +6035,9 @@ class TeamManagerDialog(tk.Toplevel):
 
         except Exception as e:
             debug_log(f"Error in fast data application: {e}")
+        finally:
+            # Clear loading guard after a short delay to allow all UI updates to complete
+            self.after(100, lambda: setattr(self, '_loading_data', False))
 
     def _rebuild_destroyed_tabs(self, mon: dict):
         """Rebuild tabs that were destroyed during party selection."""
@@ -5694,6 +6122,9 @@ class TeamManagerDialog(tk.Toplevel):
     def _apply_secondary_data(self, mon: dict, cached_data: dict):
         """Apply secondary data in idle time to avoid blocking."""
         try:
+            # Set loading guard to prevent field change handlers from interfering
+            self._loading_data = True
+            
             # Capture generation to guard async updates
             current_gen = int(getattr(self, '_selection_gen', 0))
             # Passive, ability, stats (medium priority)
@@ -5894,6 +6325,9 @@ class TeamManagerDialog(tk.Toplevel):
 
         except Exception as e:
             debug_log(f"Error applying secondary data: {e}")
+        finally:
+            # Clear loading guard after a short delay to allow all UI updates to complete
+            self.after(100, lambda: setattr(self, '_loading_data', False))
 
     def _populate_stats_fields(self, mon: dict):
         """Populate IV inputs and Nature selector from current mon safely."""
@@ -6342,9 +6776,15 @@ class TeamManagerDialog(tk.Toplevel):
         except Exception:
             pass
         try:
+            # Refresh data from server to get latest held items and modifiers
             self.data = self.api.get_slot(self.slot)
             self.party = self.data.get("party") or []
+            # Apply any pending changes to the refreshed data
+            current_mon = self._current_mon()
+            if current_mon:
+                self._apply_pokemon_changes_to_data(current_mon)
             self._recalc_stats_safe()
+            self._mark_dirty()
         except Exception:
             pass
 
@@ -6680,9 +7120,15 @@ class TeamManagerDialog(tk.Toplevel):
         except Exception:
             pass
         try:
+            # Refresh data from server to get latest trainer data
             self.data = self.api.get_slot(self.slot)
             self.party = self.data.get("party") or []
+            # Apply any pending changes to the refreshed data
+            current_mon = self._current_mon()
+            if current_mon:
+                self._apply_pokemon_changes_to_data(current_mon)
             self._recalc_stats_safe()
+            self._mark_dirty()
             self._load_trainer_snapshot()
         except Exception:
             pass
@@ -8663,6 +9109,47 @@ class TeamManagerDialog(tk.Toplevel):
 
         except Exception as e:
             debug_log(f"Error invalidating team analysis caches: {e}")
+
+    def _invalidate_pokemon_offensive_cache(self, mon: dict):
+        """Invalidate offensive analysis caches for a specific Pokémon when its moves change."""
+        try:
+            if not mon:
+                return
+                
+            # Generate cache key for this specific Pokémon
+            mon_key = self._get_pokemon_cache_key(mon)
+            if not mon_key:
+                return
+            
+            # Invalidate only this Pokémon's coverage cache
+            if hasattr(self, '_mon_coverage_cache'):
+                old_size = len(self._mon_coverage_cache)
+                self._mon_coverage_cache.pop(mon_key, None)
+                debug_log(f"Invalidated offensive cache for Pokémon {mon_key}: {old_size} -> {len(self._mon_coverage_cache)}")
+            
+            # Invalidate team offensive cache since this Pokémon's moves affect team analysis
+            if hasattr(self, '_team_offensive_cache'):
+                self._team_offensive_cache.clear()
+                debug_log("Invalidated team offensive cache due to move changes")
+            
+            # Also invalidate general team analysis cache since offensive analysis is part of it
+            if hasattr(self, '_team_analysis_cache'):
+                self._team_analysis_cache.clear()
+                debug_log("Invalidated team analysis cache due to move changes")
+            
+        except Exception as e:
+            debug_log(f"Error invalidating Pokémon offensive cache: {e}")
+
+    def _get_pokemon_cache_key(self, mon: dict) -> str:
+        """Generate a cache key for a specific Pokémon."""
+        try:
+            if not mon:
+                return None
+            species_id = mon.get('species', 0)
+            form_id = mon.get('form', 0)
+            return f"{species_id}_{form_id}"
+        except Exception:
+            return None
 
     def _refresh_team_analysis_if_visible(self):
         """Refresh team analysis if analysis tabs are currently visible."""

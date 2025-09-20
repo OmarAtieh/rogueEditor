@@ -114,15 +114,6 @@ class RogueManagerGUI(ttk.Frame):
         
         # Slot selection
         self.slot_var = tk.StringVar(value="1")  # Default to slot 1
-        # Load last selected slot for this user using persistence manager
-        try:
-            from rogueeditor.persistence import persistence_manager
-            if self.username:
-                last_slot = persistence_manager.get_last_selected_slot(self.username)
-                self.slot_var.set(last_slot)
-                self._log(f"[DEBUG] Loaded last selected slot: {last_slot}")
-        except Exception as e:
-            self._log(f"[DEBUG] Failed to load last selected slot: {e}")
 
         self._debug_log("API and editor attributes initialized")
 
@@ -265,8 +256,15 @@ class RogueManagerGUI(ttk.Frame):
             self._build_login()
             self._debug_log("Login section built")
 
+            # Set up window geometry persistence immediately (not just after login)
+            self._setup_window_persistence()
+            self._debug_log("Window persistence setup completed")
+
             self._build_actions()
             self._debug_log("Actions section built")
+            
+            # Check for auto-login credentials
+            self._check_auto_login()
 
             self._build_console()
             self._debug_log("Console section built")
@@ -282,6 +280,41 @@ class RogueManagerGUI(ttk.Frame):
             self._debug_log(f"Grid layout setup failed: {e}")
             import traceback
             self._debug_log(f"Traceback: {traceback.format_exc()}")
+
+    def _check_auto_login(self):
+        """Check for auto-login credentials and perform automatic login."""
+        try:
+            import os
+            username = os.environ.get('ROGUEEDITOR_AUTO_USERNAME')
+            password = os.environ.get('ROGUEEDITOR_AUTO_PASSWORD')
+            
+            if username and password:
+                self._debug_log(f"Auto-login credentials found for user: {username}")
+                
+                # Set the username in the combo box
+                try:
+                    self.user_combo.set(username)
+                    self.pass_entry.delete(0, tk.END)
+                    self.pass_entry.insert(0, password)
+                    self._debug_log("Auto-login credentials set in UI")
+                    
+                    # Schedule auto-login after a short delay to ensure UI is ready
+                    self.after(1000, self._perform_auto_login)
+                except Exception as e:
+                    self._debug_log(f"Failed to set auto-login credentials in UI: {e}")
+            else:
+                self._debug_log("No auto-login credentials found")
+        except Exception as e:
+            self._debug_log(f"Auto-login check failed: {e}")
+
+    def _perform_auto_login(self):
+        """Perform the actual auto-login."""
+        try:
+            self._debug_log("Performing auto-login...")
+            self._login()
+        except Exception as e:
+            self._debug_log(f"Auto-login failed: {e}")
+            self.feedback.show_error_toast(f"Auto-login failed: {e}")
 
     def _debug_log(self, message):
         """Write debug message to file for initialization tracking."""
@@ -309,6 +342,7 @@ class RogueManagerGUI(ttk.Frame):
         """Load the last selected slot for the current user."""
         try:
             if not self.username:
+                self._log("[DEBUG] No username available for slot saving")
                 return
                 
             from rogueeditor.persistence import persistence_manager
@@ -321,25 +355,10 @@ class RogueManagerGUI(ttk.Frame):
             self.slot_var.set("1")
 
     def _save_last_selected_slot(self):
-        """Load user's preferred log level from settings."""
-        try:
-            from rogueeditor.persistence import persistence_manager
-            import os
-            
-            # Use a safe default directory if username is not set yet
-            username = getattr(self, 'username', None) or "default"
-            log_level = persistence_manager.get_log_level(username)
-            if log_level in self.log_levels:
-                self.current_log_level.set(log_level)
-                # Can't log here since logging system might not be fully initialized yet
-        except Exception:
-            # Silently fail - don't log since logging might not be ready
-            pass
-
-    def _save_last_selected_slot(self):
         """Save the currently selected slot for the current user."""
         try:
             if not self.username:
+                self._log("[DEBUG] No username available for slot saving")
                 return
                 
             from rogueeditor.persistence import persistence_manager
@@ -369,19 +388,13 @@ class RogueManagerGUI(ttk.Frame):
         """Load the last selected slot for the current user."""
         try:
             if not self.username:
+                self._log("[DEBUG] No username available for slot loading")
                 return
                 
-            from rogueeditor.utils import user_save_dir
-            import os
-            import json
-            
-            settings_file = os.path.join(user_save_dir(self.username), "gui_settings.json")
-            if os.path.exists(settings_file):
-                with open(settings_file, 'r') as f:
-                    settings = json.load(f)
-                    last_slot = settings.get("last_selected_slot", "1")
-                    self.slot_var.set(last_slot)
-                    self._log(f"[DEBUG] Loaded last selected slot: {last_slot}")
+            from rogueeditor.persistence import persistence_manager
+            last_slot = persistence_manager.get_last_selected_slot(self.username)
+            self.slot_var.set(last_slot)
+            self._log(f"[DEBUG] Loaded last selected slot: {last_slot}")
         except Exception as e:
             self._log(f"[DEBUG] Failed to load last selected slot: {e}")
             # Default to slot 1 on error
@@ -391,6 +404,7 @@ class RogueManagerGUI(ttk.Frame):
         """Save the currently selected slot for the current user."""
         try:
             if not self.username:
+                self._log("[DEBUG] No username available for slot saving")
                 return
                 
             from rogueeditor.persistence import persistence_manager
@@ -1246,12 +1260,19 @@ class RogueManagerGUI(ttk.Frame):
                 "There are local changes not uploaded. Log out anyway?",
                 "logging out"):
                 return
+        
+        # Clear all user data and state completely
+        self._clear_user_data()
+        
         # Cleanup session manager and API
         try:
             self._cleanup_session_manager()
         except Exception:
             pass
         self.api = None
+        self.editor = None
+        self.username = None
+        
         # Reset UI pieces
         try:
             self.status_var.set("Status: Not logged in")
@@ -1266,22 +1287,55 @@ class RogueManagerGUI(ttk.Frame):
             self.btn_login.configure(text="Login", command=self._safe(self._login))
         except Exception:
             pass
-        # Clear user selection if requested
+        
+        # Clear all user-related UI elements
         try:
             self.user_combo.set("")
         except Exception:
             pass
-        # Clear session timestamp display
+        try:
+            self.pass_entry.delete(0, tk.END)
+        except Exception:
+            pass
+        try:
+            self.slot_var.set("1")
+        except Exception:
+            pass
         try:
             self.session_updated_var.set("Last session update: -")
         except Exception:
             pass
+        try:
+            self.backup_status_var.set("Last backup: none")
+        except Exception:
+            pass
+        
+        # Clear slot data
+        try:
+            self._available_slots = []
+        except Exception:
+            pass
+        
+        # Clear slot tree if it exists
+        try:
+            if hasattr(self, 'slot_tree'):
+                for item in self.slot_tree.get_children():
+                    self.slot_tree.delete(item)
+        except Exception:
+            pass
+        
+        # Clear any cached data
+        try:
+            self._clear_cached_data()
+        except Exception:
+            pass
+        
         finally:
             # Ensure busy indicator is always hidden
             try:
                 while self._busy_count > 0:
                     self._hide_busy()
-                self._log("[DEBUG] Busy indicator hidden in login completion wrapper")
+                self._log("[DEBUG] Busy indicator hidden in logout")
             except:
                 pass
         
@@ -3031,7 +3085,7 @@ class RogueManagerGUI(ttk.Frame):
         """Set up window geometry persistence for the main window."""
         try:
             root = self.winfo_toplevel()
-            # Load saved geometry if available
+            # Load saved geometry if available (try current user first, then fallback to app-wide)
             saved_geometry = self._load_main_window_geometry()
             if saved_geometry:
                 root.geometry(saved_geometry)
@@ -3045,8 +3099,13 @@ class RogueManagerGUI(ttk.Frame):
         """Load saved main window geometry from persistence."""
         try:
             from rogueeditor.persistence import persistence_manager
+            # Try user-specific geometry first
             if self.username:
-                return persistence_manager.get_user_value(self.username, 'main_window_geometry')
+                user_geometry = persistence_manager.get_user_value(self.username, 'main_window_geometry')
+                if user_geometry:
+                    return user_geometry
+            # Fallback to app-wide geometry
+            return persistence_manager.get_app_value('main_window_geometry')
         except Exception:
             pass
         return None
@@ -3058,9 +3117,12 @@ class RogueManagerGUI(ttk.Frame):
             return
         try:
             from rogueeditor.persistence import persistence_manager
+            root = self.winfo_toplevel()
+            geometry = root.geometry()
+            # Save to app-wide settings (works for all users)
+            persistence_manager.set_app_value('main_window_geometry', geometry)
+            # Also save to user-specific settings if logged in
             if self.username:
-                root = self.winfo_toplevel()
-                geometry = root.geometry()
                 persistence_manager.set_user_value(self.username, 'main_window_geometry', geometry)
         except Exception:
             pass

@@ -17,6 +17,39 @@ class CatalogSelectDialog(tk.Toplevel):
         self.geometry('400x400')
         self.name_to_id = name_to_id
         self._build()
+        
+        # Center the window relative to parent
+        self._center_relative_to_parent()
+
+    def _center_relative_to_parent(self):
+        """Center this window relative to its parent window."""
+        try:
+            self.update_idletasks()
+
+            # Get parent window geometry
+            parent = self.master
+            parent_x = parent.winfo_rootx()
+            parent_y = parent.winfo_rooty()
+            parent_width = parent.winfo_width()
+            parent_height = parent.winfo_height()
+
+            # Get this window size
+            child_width = self.winfo_reqwidth()
+            child_height = self.winfo_reqheight()
+
+            # Calculate center position
+            x = parent_x + (parent_width - child_width) // 2
+            y = parent_y + (parent_height - child_height) // 2
+
+            # Ensure window stays on screen
+            x = max(0, x)
+            y = max(0, y)
+
+            # Set window position
+            self.geometry(f"{child_width}x{child_height}+{x}+{y}")
+        except Exception:
+            # Fallback to default positioning if centering fails
+            pass
 
     def _build(self):
         ttk.Label(self, text='Search:').pack(padx=6, pady=6, anchor=tk.W)

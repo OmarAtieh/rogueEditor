@@ -5,6 +5,64 @@ All notable changes to this project will be documented in this file.
 The format follows a simplified Keep a Changelog style.
 
 ## [Unreleased]
+
+### 🚀 Major Updates Summary
+This release introduces significant improvements to the RogueEditor application, focusing on user experience, automation capabilities, and system stability. The most notable changes include:
+
+- **🎯 GUI-First Experience**: RogueEditor now launches the GUI by default, making it more accessible to users
+- **🔐 Auto-Login System**: Complete automation support with command-line parameters and environment variables
+- **🎨 Enhanced Item Management**: Comprehensive formatting system with caching and improved UI stability
+- **🪟 Better Window Management**: Persistent window states and proper child window positioning
+- **🐛 Critical Bug Fixes**: Resolved syntax errors and initialization issues that prevented application launch
+
+### 📋 Detailed Changes
+
+- Application Launch System: Major Overhaul
+  - **Default GUI Launch**: RogueEditor now launches GUI by default instead of CLI for better user experience
+  - **Auto-Login Support**: Added `--username`/`--password` parameters for automatic login in both GUI and CLI modes
+  - **Shorthand Parameters**: Added `--u` and `--p` as convenient shortcuts for username and password
+  - **CLI Mode**: Preserved CLI functionality with `--cli` flag for power users and automation
+  - **Command-Line Interface**: Enhanced argument parsing with comprehensive help and usage examples
+  - **Environment Variables**: GUI auto-login supports `ROGUEEDITOR_AUTO_USERNAME` and `ROGUEEDITOR_AUTO_PASSWORD`
+  - **Backward Compatibility**: All existing usage patterns continue to work with new parameter system
+- Item Manager: Comprehensive Formatting & Caching System
+  - **Human-Friendly Formatting**: All item lists now display with emojis, descriptions, and proper formatting
+  - **Consistent Display**: Unified formatting between dropdowns and inventory displays across all item types
+  - **Caching System**: Implemented comprehensive caching for all formatted item lists with refresh button
+  - **Berry Formatting**: Fixed berries to display in Title Case instead of ALL CAPS
+  - **Vitamin Filtering**: Removed non-traditional "vitamins" (Accuracy/Evasion), kept only 6 core vitamins
+  - **Type Booster Display**: Enhanced type booster formatting with human-readable type names
+  - **Emoji Standardization**: Consistent emoji usage and spacing across all item types
+  - **Cache Invalidation**: Added "🔄 Refresh Lists" button to recalculate and refresh all item listings
+- Item Manager: UI/UX Improvements
+  - **Layout Stability**: Fixed hint overlays and dynamic field positioning to prevent UI jumping
+  - **Button Positioning**: Moved action buttons to bottom of frames for consistent layout
+  - **Reserved Space**: Hint rows and dynamic fields now reserve space whether visible or not
+  - **Pokémon-Specific Forms**: Enhanced form change item system with Arceus Plates and Silvally Memories
+  - **Form Item Filtering**: Form change items now only appear for their specific Pokémon
+  - **Generic Form Support**: Added generic form change item for user-defined forms
+  - **Deduplication**: Comprehensive deduplication of items across all category lists
+- Window Management: Enhanced Persistence & Positioning
+  - **Window State Persistence**: Main window geometry now persists across users and sessions
+  - **Child Window Centering**: All dialogs now open centered relative to parent window
+  - **Slot Persistence**: Last selected slot per user is now properly saved and restored
+  - **Cross-User Settings**: Window geometry persists across different user sessions
+- Bug Fixes & Technical Improvements
+  - **GUI Syntax Error**: Fixed critical syntax error in GUI module that prevented application launch
+  - **Indentation Issues**: Corrected try-except block indentation in main GUI initialization
+  - **Module Loading**: Resolved AttributeError issues in item manager initialization
+  - **Catalog Loading**: Fixed tuple unpacking issues in catalog loading functions
+  - **Emoji Spacing**: Removed Unicode variation selectors from emojis for consistent spacing
+  - **Variable Naming**: Fixed variable name inconsistencies in CLI auto-login functionality
+  - **Error Handling**: Enhanced error handling and logging throughout the application
+- Usage Examples & Migration Guide
+  - **Default Launch**: `python Source/RogueEditor.py` now launches GUI by default
+  - **CLI Mode**: `python Source/RogueEditor.py --cli` for command-line interface
+  - **Auto-Login GUI**: `python Source/RogueEditor.py --u myuser --p mypass`
+  - **Auto-Login CLI**: `python Source/RogueEditor.py --cli --u myuser --p mypass`
+  - **Environment Variables**: Set `ROGUEEDITOR_AUTO_USERNAME` and `ROGUEEDITOR_AUTO_PASSWORD` for GUI auto-login
+  - **Backward Compatibility**: Existing scripts using `python Source/cli.py` continue to work
+  - **Help System**: `python Source/RogueEditor.py --help` shows comprehensive usage information
 - Team Manager: Interface Restructure & Improvements
   - Rebranded "Team Editor" to "Team Manager" for clearer functionality description
   - Moved defensive and offensive analysis from Team Summary tab to standalone tabs

@@ -140,6 +140,8 @@ def main():
     parser.add_argument("--noninteractive", action="store_true", help="Run smoke validation using .env credentials and exit")
     parser.add_argument("--csid", help="Client session id (from browser) for slot endpoints", default=None)
     parser.add_argument("--gui", action="store_true", help="Launch GUI instead of CLI")
+    parser.add_argument("--username", "--u", "-u", help="Username for automatic login")
+    parser.add_argument("--password", "--p", "-p", help="Password for automatic login")
     args = parser.parse_args()
 
     if args.noninteractive:
@@ -159,23 +161,30 @@ def main():
 
     def init_user_session() -> tuple[str, PokerogueAPI, Editor, Optional[str]]:
         from rogueeditor.utils import list_usernames, sanitize_username
-        users = list_usernames()
-        print("Select user:")
-        for i, u in enumerate(users,  start=1):
-            print(f"{i}. {u}")
-        print(f"n. New user")
-        sel = input("Choice: ").strip().lower()
-        if sel == "n" or sel == "new" or not users:
-            username_l = sanitize_username(input("New username: ").strip())
+        
+        # Check for auto-login credentials
+        if args.username and args.password:
+            print(f"Auto-login with username: {args.username}")
+            user = sanitize_username(args.username)
+            password = args.password
         else:
-            try:
-                idx_l = int(sel)
-                username_l = users[idx_l-1]
-            except Exception:
-                print("Invalid choice; defaulting to new user")
-                username_l = sanitize_username(input("New username: ").strip())
-        password_l = input(f"Password for {username_l}: ")
-        api_l = PokerogueAPI(username_l, password_l)
+            users = list_usernames()
+            print("Select user:")
+            for i, u in enumerate(users,  start=1):
+                print(f"{i}. {u}")
+            print(f"n. New user")
+            sel = input("Choice: ").strip().lower()
+            if sel == "n" or sel == "new" or not users:
+                user = sanitize_username(input("New username: ").strip())
+            else:
+                try:
+                    idx_l = int(sel)
+                    user = users[idx_l-1]
+                except Exception:
+                    print("Invalid choice; defaulting to new user")
+                    user = sanitize_username(input("New username: ").strip())
+            password = input(f"Password for {user}: ")
+        api_l = PokerogueAPI(user, password)
         api_l.login()
         # Always establish a fresh clientSessionId after login (server-returned or generated)
         csid_l = _resolve_client_session_id_fresh(api_l, args.csid)

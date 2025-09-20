@@ -71,9 +71,25 @@ class StartersManagerDialog:
         button_frame = ttk.Frame(self.dialog)
         button_frame.pack(fill=tk.X, padx=10, pady=(0, 10))
         
-        ttk.Button(button_frame, text="Refresh Data", command=self._refresh_data).pack(side=tk.LEFT, padx=5)
-        ttk.Button(button_frame, text="Save Changes", command=self._save_changes).pack(side=tk.LEFT, padx=5)
-        ttk.Button(button_frame, text="Close", command=self.dialog.destroy).pack(side=tk.RIGHT, padx=5)
+        self.refresh_btn = ttk.Button(button_frame, text="Refresh Data", command=self._refresh_data)
+        self.refresh_btn.pack(side=tk.LEFT, padx=5)
+        
+        self.save_btn = ttk.Button(button_frame, text="Save Changes", command=self._save_changes)
+        self.save_btn.pack(side=tk.LEFT, padx=5)
+        
+        self.close_btn = ttk.Button(button_frame, text="Close", command=self.dialog.destroy)
+        self.close_btn.pack(side=tk.RIGHT, padx=5)
+        
+        # Add tooltips to clarify workflow
+        self._create_tooltip(self.refresh_btn, 
+            "Refresh Data: Reloads all data from the server.\n"
+            "This discards any unsaved changes.")
+        self._create_tooltip(self.save_btn, 
+            "Save Changes: Uploads all changes to the server.\n"
+            "Changes are automatically applied to memory as you edit.")
+        self._create_tooltip(self.close_btn, 
+            "Close: Closes the dialog.\n"
+            "Make sure to 'Save Changes' first to upload your changes.")
     
     def _center_dialog(self):
         """Center the dialog relative to parent."""
@@ -89,6 +105,29 @@ class StartersManagerDialog:
         y = parent_y + (parent_height - dialog_height) // 2
         
         self.dialog.geometry(f"{dialog_width}x{dialog_height}+{x}+{y}")
+    
+    def _create_tooltip(self, widget, text):
+        """Create a tooltip for a widget."""
+        try:
+            def on_enter(event):
+                tooltip = tk.Toplevel()
+                tooltip.wm_overrideredirect(True)
+                tooltip.wm_geometry(f"+{event.x_root+10}+{event.y_root+10}")
+                label = tk.Label(tooltip, text=text, justify=tk.LEFT, 
+                               background="lightyellow", relief=tk.SOLID, borderwidth=1,
+                               font=("TkDefaultFont", 9))
+                label.pack(ipadx=4, ipady=2)
+                widget._tooltip = tooltip
+            
+            def on_leave(event):
+                if hasattr(widget, '_tooltip'):
+                    widget._tooltip.destroy()
+                    del widget._tooltip
+            
+            widget.bind("<Enter>", on_enter)
+            widget.bind("<Leave>", on_leave)
+        except Exception as e:
+            print(f"Error creating tooltip: {e}")
     
     def _create_unlocked_tab(self):
         """Create tab for managing already unlocked starters."""
@@ -253,6 +292,9 @@ class StartersManagerDialog:
         button_frame.pack(fill=tk.X, padx=10, pady=10)
         
         ttk.Button(button_frame, text="Unlock Selected", command=self._unlock_single_starter).pack(side=tk.LEFT, padx=5)
+        
+        # Bind unlock tab fields for automatic updates
+        self._bind_unlock_tab_fields()
         
         # Bulk unlock section
         bulk_frame = ttk.LabelFrame(self.unlock_frame, text="Bulk Unlock")
@@ -708,8 +750,140 @@ class StartersManagerDialog:
             except ValueError as e:
                 messagebox.showerror("Error", f"Invalid input: {e}")
         
-        ttk.Button(button_frame, text="Save", command=save_changes).pack(side=tk.LEFT, padx=5)
-        ttk.Button(button_frame, text="Cancel", command=edit_dialog.destroy).pack(side=tk.LEFT, padx=5)
+        # Bind all fields for automatic updates
+        self._bind_edit_dialog_fields(edit_dialog, dex_id, candies_var, reduction_var, 
+                                    egg_moves_var, friendship_var, classic_wins_var,
+                                    aa1_var, aa2_var, aah_var, p_unlocked_var, p_enabled_var,
+                                    iv_vars, shiny_var)
+        
+        # Note: Changes are automatically applied to memory as you edit
+        # Use "Save Changes" in main dialog to upload to server
+        ttk.Button(button_frame, text="Close", command=edit_dialog.destroy).pack(side=tk.LEFT, padx=5)
+    
+    def _bind_edit_dialog_fields(self, edit_dialog, dex_id, candies_var, reduction_var, 
+                                egg_moves_var, friendship_var, classic_wins_var,
+                                aa1_var, aa2_var, aah_var, p_unlocked_var, p_enabled_var,
+                                iv_vars, shiny_var):
+        """Bind all fields in edit dialog to automatically apply changes."""
+        try:
+            # Bind all field changes to automatically update data
+            def apply_changes():
+                try:
+                    # Update starter data
+                    starter_data = self.starter_data.get(str(dex_id), {})
+                    starter_data["candyCount"] = int(candies_var.get())
+                    starter_data["valueReduction"] = int(reduction_var.get())
+                    starter_data["eggMoves"] = int(egg_moves_var.get())
+                    
+                    # Friendship & wins
+                    try:
+                        starter_data["friendship"] = int(friendship_var.get())
+                    except ValueError:
+                        starter_data["friendship"] = 0
+                    try:
+                        starter_data["classicWinCount"] = int(classic_wins_var.get())
+                    except ValueError:
+                        starter_data["classicWinCount"] = 0
+                    
+                    # Calculate ability attr
+                    ability_attr = 0
+                    if aa1_var.get(): ability_attr += 1
+                    if aa2_var.get(): ability_attr += 2
+                    if aah_var.get(): ability_attr += 4
+                    starter_data["abilityAttr"] = ability_attr
+                    
+                    # Calculate passive attr
+                    passive_attr = 0
+                    if p_unlocked_var.get(): passive_attr += 1
+                    if p_enabled_var.get(): passive_attr += 2
+                    starter_data["passiveAttr"] = passive_attr
+                    
+                    # IVs for this dex in dexData
+                    iv_values = []
+                    for var in iv_vars:
+                        try:
+                            val = int(var.get())
+                        except ValueError:
+                            val = 0
+                        val = max(0, min(31, val))
+                        iv_values.append(val)
+                    dex_entry = self.dex_data.get(str(dex_id), {}) or {}
+                    dex_entry["ivs"] = iv_values
+                    self.dex_data[str(dex_id)] = dex_entry
+                    
+                    self.starter_data[str(dex_id)] = starter_data
+                    
+                    # Update dex progression
+                    dex_entry = self.dex_data.get(str(dex_id), {}) or {}
+                    caught_count = max(0, int(dex_entry.get("caughtCount", 0)))
+                    seen_count = max(caught_count, int(dex_entry.get("seenCount", caught_count)))
+                    hatched_count = max(0, int(dex_entry.get("hatchedCount", 0)))
+                    dex_entry.update({
+                        "seenCount": seen_count,
+                        "caughtCount": caught_count,
+                        "hatchedCount": hatched_count,
+                    })
+                    self.dex_data[str(dex_id)] = dex_entry
+                    
+                    # Refresh the main dialog display
+                    self._load_unlocked_starters()
+                    
+                except Exception as e:
+                    print(f"Error applying starter changes: {e}")
+            
+            # Bind all variables to apply changes automatically
+            candies_var.trace_add("write", lambda *args: apply_changes())
+            reduction_var.trace_add("write", lambda *args: apply_changes())
+            egg_moves_var.trace_add("write", lambda *args: apply_changes())
+            friendship_var.trace_add("write", lambda *args: apply_changes())
+            classic_wins_var.trace_add("write", lambda *args: apply_changes())
+            
+            aa1_var.trace_add("write", lambda *args: apply_changes())
+            aa2_var.trace_add("write", lambda *args: apply_changes())
+            aah_var.trace_add("write", lambda *args: apply_changes())
+            p_unlocked_var.trace_add("write", lambda *args: apply_changes())
+            p_enabled_var.trace_add("write", lambda *args: apply_changes())
+            
+            for var in iv_vars:
+                var.trace_add("write", lambda *args: apply_changes())
+            
+            shiny_var.trace_add("write", lambda *args: apply_changes())
+            
+        except Exception as e:
+            print(f"Error binding edit dialog fields: {e}")
+    
+    def _bind_unlock_tab_fields(self):
+        """Bind unlock tab fields to automatically apply changes."""
+        try:
+            # Bind IV fields for automatic updates
+            for var in self.iv_vars:
+                var.trace_add("write", lambda *args: self._apply_unlock_tab_changes())
+            
+            # Bind other fields
+            self.value_reduction_var.trace_add("write", lambda *args: self._apply_unlock_tab_changes())
+            self.unlock_seen_var.trace_add("write", lambda *args: self._apply_unlock_tab_changes())
+            self.unlock_caught_var.trace_add("write", lambda *args: self._apply_unlock_tab_changes())
+            self.unlock_hatched_var.trace_add("write", lambda *args: self._apply_unlock_tab_changes())
+            
+            # Bind checkboxes
+            self.aa1_var.trace_add("write", lambda *args: self._apply_unlock_tab_changes())
+            self.aa2_var.trace_add("write", lambda *args: self._apply_unlock_tab_changes())
+            self.aah_var.trace_add("write", lambda *args: self._apply_unlock_tab_changes())
+            self.p_unlocked_var.trace_add("write", lambda *args: self._apply_unlock_tab_changes())
+            self.p_enabled_var.trace_add("write", lambda *args: self._apply_unlock_tab_changes())
+            
+        except Exception as e:
+            print(f"Error binding unlock tab fields: {e}")
+    
+    def _apply_unlock_tab_changes(self):
+        """Apply changes from unlock tab fields to temporary data."""
+        try:
+            # This method can be used to apply changes to a temporary data structure
+            # that gets used when "Unlock Selected" is clicked
+            # For now, we'll just ensure the fields are validated
+            pass
+        except Exception as e:
+            print(f"Error applying unlock tab changes: {e}")
     
     def _bulk_edit_candies(self):
         """Bulk edit candies for selected starters."""

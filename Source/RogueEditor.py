@@ -100,9 +100,81 @@ class pokeRogue:
 
 
 if __name__ == '__main__':
-    # Delegate legacy entrypoint to the modular CLI for a single, unified UX
-    try:
-        import cli  # from Source/cli.py
-        cli.main()
-    except Exception as e:
-        print(f"Failed to launch CLI: {e}")
+    import argparse
+    import sys
+    
+    # Set up argument parser
+    parser = argparse.ArgumentParser(
+        description="RogueEditor - Pokemon Rogue Save Editor",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+Examples:
+  python RogueEditor.py                    # Launch GUI (default)
+  python RogueEditor.py --cli              # Launch CLI interface
+  python RogueEditor.py --username myuser --password mypass  # Auto-login GUI
+  python RogueEditor.py --u myuser --p mypass  # Auto-login GUI (shorthand)
+  python RogueEditor.py --cli --u myuser --p mypass  # Auto-login CLI (shorthand)
+        """
+    )
+    
+    # Mode selection
+    parser.add_argument('--cli', action='store_true', 
+                       help='Launch CLI interface instead of GUI (default)')
+    
+    # Auto-login parameters
+    parser.add_argument('--username', '--u', '-u', 
+                       help='Username for automatic login')
+    parser.add_argument('--password', '--p', '-p', 
+                       help='Password for automatic login')
+    
+    # Other CLI options
+    parser.add_argument('--noninteractive', action='store_true', 
+                       help='Run smoke validation using .env credentials and exit')
+    parser.add_argument('--csid', 
+                       help='Client session id (from browser) for slot endpoints')
+    
+    args = parser.parse_args()
+    
+    # Handle noninteractive mode (delegate to CLI)
+    if args.noninteractive:
+        try:
+            import cli
+            sys.argv = ['RogueEditor.py', '--noninteractive']
+            if args.csid:
+                sys.argv.extend(['--csid', args.csid])
+            cli.main()
+        except Exception as e:
+            print(f"Failed to launch CLI: {e}")
+            sys.exit(1)
+    
+    # Default to GUI mode unless --cli is specified
+    if args.cli:
+        # Launch CLI with auto-login if credentials provided
+        try:
+            import cli
+            if args.username and args.password:
+                # Set up auto-login for CLI
+                sys.argv = ['RogueEditor.py', '--username', args.username, '--password', args.password]
+            else:
+                sys.argv = ['RogueEditor.py']
+            if args.csid:
+                sys.argv.extend(['--csid', args.csid])
+            cli.main()
+        except Exception as e:
+            print(f"Failed to launch CLI: {e}")
+            sys.exit(1)
+    else:
+        # Launch GUI with auto-login if credentials provided
+        try:
+            from gui import run as run_gui
+            
+            if args.username and args.password:
+                # Set up auto-login for GUI
+                import os
+                os.environ['ROGUEEDITOR_AUTO_USERNAME'] = args.username
+                os.environ['ROGUEEDITOR_AUTO_PASSWORD'] = args.password
+            
+            sys.exit(run_gui())
+        except Exception as e:
+            print(f"Failed to launch GUI: {e}")
+            sys.exit(1)
