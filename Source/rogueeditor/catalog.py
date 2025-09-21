@@ -30,6 +30,7 @@ DATA_POKEMON_TYPES_JSON = repo_path("data", "pokemon_types.json")
 DATA_GROWTH_MAP_JSON = repo_path("data", "growth_map.json")
 DATA_POKEMON_CATALOG_JSON = repo_path("data", "pokemon_catalog.json")
 DATA_TYPE_COLORS_JSON = repo_path("data", "type_colors.json")
+DATA_ALTERNATIVE_FORMS_JSON = repo_path("data", "alternative_forms_catalog.json")
 _HIGH_LEVEL_DATA_PATH = os.path.normpath(os.path.join(os.path.dirname(__file__), "..", "..", "high_level_pokemon_data.json"))
 
 
@@ -1257,3 +1258,260 @@ def compute_ppup_bounds(base_pp: Optional[int]) -> Tuple[int, int]:
         return max_extra, b + max_extra
     except Exception:
         return 0, 0
+
+
+# --- Alternative Forms Catalog ---
+
+_ALTERNATIVE_FORMS_CACHE: Optional[Dict[str, object]] = None
+
+
+def load_alternative_forms_catalog() -> Dict[str, object]:
+    """Load alternative forms catalog with caching."""
+    global _ALTERNATIVE_FORMS_CACHE
+    if isinstance(_ALTERNATIVE_FORMS_CACHE, dict):
+        return _ALTERNATIVE_FORMS_CACHE
+
+    if not os.path.exists(DATA_ALTERNATIVE_FORMS_JSON):
+        _ALTERNATIVE_FORMS_CACHE = {}
+        return _ALTERNATIVE_FORMS_CACHE
+
+    try:
+        with open(DATA_ALTERNATIVE_FORMS_JSON, "r", encoding="utf-8") as f:
+            _ALTERNATIVE_FORMS_CACHE = json.load(f)
+    except Exception:
+        _ALTERNATIVE_FORMS_CACHE = {}
+
+    return _ALTERNATIVE_FORMS_CACHE
+
+
+def build_alternative_forms_catalog() -> None:
+    """Build alternative forms catalog from TmpServerFiles CSV."""
+    csv_path = repo_path("..", "TmpServerFiles", "GameData", "2", "alternate_forms_master_minimal_filled.csv")
+    if not os.path.exists(csv_path):
+        print(f"Alternative forms CSV not found: {csv_path}")
+        return
+
+    forms_data = {
+        "by_dex": {},          # dex_id -> {base_species, forms: [form_data]}
+        "by_form_id": {},      # form_id -> form_data
+        "form_change_items": {}  # item_type_id -> [possible_forms]
+    }
+
+    # Form change item mappings (based on common Pokérogue items)
+    form_item_mappings = {
+        # Mega Evolution items
+        22: "mega",              # Gyaradosite
+        48: "mega",              # Venusaurite
+        56: "mega",              # Blastoisinite
+        # Gigantamax
+        "gigantamax": "gigantamax",
+        # Primal Reversion
+        "primal": "primal",
+        # Regional forms are usually permanent, not item-based
+    }
+
+    try:
+        with open(csv_path, "r", encoding="utf-8-sig", newline="") as f:
+            reader = csv.DictReader(f)
+            for row in reader:
+                try:
+                    dex_num = int(row.get("Dex #", 0))
+                    if dex_num == 0:
+                        continue
+
+                    base_species = row.get("Base Pokémon", "").strip()
+                    alt_form_name = row.get("Alternative Form", "").strip()
+                    form_id = row.get("Form ID", "").strip()
+                    alt_form_type = row.get("Alternative Form Type", "").strip()
+                    ability = row.get("Ability", "").strip()
+                    type1 = row.get("Type 1", "").strip()
+                    type2 = row.get("Type 2", "").strip()
+
+                    # Parse stats
+                    stats = {
+                        "hp": int(row.get("HP", 0) or 0),
+                        "attack": int(row.get("Atk", 0) or 0),
+                        "defense": int(row.get("Def", 0) or 0),
+                        "sp_atk": int(row.get("Sp. Atk", 0) or 0),
+                        "sp_def": int(row.get("Sp. Def", 0) or 0),
+                        "speed": int(row.get("Spd", 0) or 0),
+                    }
+                    total_stats = int(row.get("Total", 0) or 0)
+
+                    if not alt_form_name:
+                        continue
+
+                    # Create form entry
+                    form_data = {
+                        "dex_number": dex_num,
+                        "base_species": base_species,
+                        "form_name": alt_form_name,
+                        "form_id": form_id,
+                        "form_type": alt_form_type,
+                        "ability": ability,
+                        "types": {
+                            "type1": type1,
+                            "type2": type2 if type2 else None
+                        },
+                        "stats": stats,
+                        "total": total_stats,
+                        "form_key": _normalize_form_key(alt_form_name),
+                        "triggers": _determine_form_triggers(alt_form_type, alt_form_name)
+                    }
+
+                    # Add to by_dex structure
+                    if dex_num not in forms_data["by_dex"]:
+                        forms_data["by_dex"][dex_num] = {
+                            "base_species": base_species,
+                            "forms": []
+                        }
+
+                    forms_data["by_dex"][dex_num]["forms"].append(form_data)
+
+                    # Add to by_form_id if we have an ID
+                    if form_id:
+                        forms_data["by_form_id"][form_id] = form_data
+
+                except Exception as e:
+                    print(f"Error processing form row: {e}")
+                    continue
+
+    except Exception as e:
+        print(f"Error reading alternative forms CSV: {e}")
+        return
+
+    # Build form change item mappings
+    for dex_num, entry in forms_data["by_dex"].items():
+        for form in entry["forms"]:
+            for trigger in form.get("triggers", []):
+                if trigger.get("type") == "item":
+                    item_id = trigger.get("item_id")
+                    if item_id:
+                        if item_id not in forms_data["form_change_items"]:
+                            forms_data["form_change_items"][item_id] = []
+                        forms_data["form_change_items"][item_id].append({
+                            "dex_number": dex_num,
+                            "form_key": form["form_key"],
+                            "form_name": form["form_name"]
+                        })
+
+    # Save the catalog
+    try:
+        os.makedirs(os.path.dirname(DATA_ALTERNATIVE_FORMS_JSON), exist_ok=True)
+        with open(DATA_ALTERNATIVE_FORMS_JSON, "w", encoding="utf-8") as f:
+            json.dump(forms_data, f, ensure_ascii=False, indent=2)
+        print(f"Alternative forms catalog saved to {DATA_ALTERNATIVE_FORMS_JSON}")
+    except Exception as e:
+        print(f"Error saving alternative forms catalog: {e}")
+
+
+def _normalize_form_key(form_name: str) -> str:
+    """Normalize form name to a consistent key."""
+    return form_name.lower().replace(" ", "_").replace("-", "_").replace("(", "").replace(")", "")
+
+
+def _determine_form_triggers(form_type: str, form_name: str) -> list:
+    """Determine what triggers this form change."""
+    triggers = []
+
+    form_type_lower = form_type.lower()
+    form_name_lower = form_name.lower()
+
+    if "mega" in form_type_lower:
+        # Mega evolution - typically requires mega stones
+        if "charizard x" in form_name_lower:
+            triggers.append({"type": "item", "item_id": 49, "item_name": "Charizardite X"})
+        elif "charizard y" in form_name_lower:
+            triggers.append({"type": "item", "item_id": 50, "item_name": "Charizardite Y"})
+        elif "venusaur" in form_name_lower:
+            triggers.append({"type": "item", "item_id": 48, "item_name": "Venusaurite"})
+        elif "blastoise" in form_name_lower:
+            triggers.append({"type": "item", "item_id": 56, "item_name": "Blastoisinite"})
+        elif "gyarados" in form_name_lower:
+            triggers.append({"type": "item", "item_id": 22, "item_name": "Gyaradosite"})
+        else:
+            # Generic mega stone
+            triggers.append({"type": "mechanic", "mechanic": "mega_evolution"})
+
+    elif "gigantamax" in form_type_lower:
+        triggers.append({"type": "mechanic", "mechanic": "gigantamax"})
+
+    elif "primal" in form_type_lower:
+        triggers.append({"type": "mechanic", "mechanic": "primal_reversion"})
+
+    elif "regional" in form_type_lower:
+        triggers.append({"type": "permanent", "region": form_type.split("(")[-1].rstrip(")")})
+
+    elif "partner" in form_type_lower:
+        triggers.append({"type": "permanent", "special": "partner"})
+
+    else:
+        # Form mechanics, legendary forms, etc.
+        triggers.append({"type": "mechanic", "mechanic": "form_change"})
+
+    return triggers
+
+
+def get_pokemon_alternative_forms(dex_number: int) -> Optional[Dict]:
+    """Get all alternative forms for a Pokemon by dex number."""
+    catalog = load_alternative_forms_catalog()
+    by_dex = catalog.get("by_dex", {})
+    return by_dex.get(str(dex_number))
+
+
+def get_form_for_pokemon_with_items(dex_number: int, modifiers: list, form_index: int = 0) -> Optional[Dict]:
+    """Determine the active form for a Pokemon based on items and form index."""
+    alt_forms = get_pokemon_alternative_forms(dex_number)
+    if not alt_forms:
+        return None
+
+    forms = alt_forms.get("forms", [])
+    if not forms:
+        return None
+
+    # Check for form change items in modifiers
+    catalog = load_alternative_forms_catalog()
+    form_items = catalog.get("form_change_items", {})
+
+    detected_forms = []
+
+    for modifier in modifiers:
+        if not isinstance(modifier, dict):
+            continue
+
+        if modifier.get("typeId") == "RARE_FORM_CHANGE_ITEM":
+            type_pregen_args = modifier.get("typePregenArgs", [])
+            if type_pregen_args:
+                item_id = type_pregen_args[0]
+                possible_forms = form_items.get(str(item_id), [])
+                for possible_form in possible_forms:
+                    if possible_form["dex_number"] == dex_number:
+                        detected_forms.append(possible_form["form_key"])
+
+        elif modifier.get("typeId") == "MEGA_BRACELET":
+            # Mega evolution access
+            mega_forms = [f for f in forms if "mega" in f.get("form_type", "").lower()]
+            detected_forms.extend([f["form_key"] for f in mega_forms])
+
+        elif modifier.get("typeId") == "DYNAMAX_BAND":
+            # Gigantamax access
+            gmax_forms = [f for f in forms if "gigantamax" in f.get("form_type", "").lower()]
+            detected_forms.extend([f["form_key"] for f in gmax_forms])
+
+    # If we have a form_index and it's within range, use that
+    if 0 <= form_index < len(forms):
+        return forms[form_index]
+
+    # If we detected specific forms, return the first one
+    if detected_forms:
+        for form in forms:
+            if form["form_key"] in detected_forms:
+                return form
+
+    return None
+
+
+def invalidate_alternative_forms_cache():
+    """Invalidate the alternative forms cache."""
+    global _ALTERNATIVE_FORMS_CACHE
+    _ALTERNATIVE_FORMS_CACHE = None

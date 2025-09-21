@@ -1,0 +1,4494 @@
+{
+  "by_dex": {
+    "3": {
+      "base_species": "Venusaur",
+      "forms": [
+        {
+          "dex_number": 3,
+          "base_species": "Venusaur",
+          "form_name": "Mega Venusaur",
+          "form_id": "",
+          "form_type": "Mega",
+          "ability": "Thick Fat",
+          "types": {
+            "type1": "Grass",
+            "type2": "Poison"
+          },
+          "stats": {
+            "hp": 80,
+            "attack": 100,
+            "defense": 123,
+            "sp_atk": 122,
+            "sp_def": 120,
+            "speed": 80
+          },
+          "total": 625,
+          "form_key": "mega_venusaur",
+          "triggers": [
+            {
+              "type": "item",
+              "item_id": 48,
+              "item_name": "Venusaurite"
+            }
+          ]
+        },
+        {
+          "dex_number": 3,
+          "base_species": "Venusaur",
+          "form_name": "Gigantamax Venusaur",
+          "form_id": "",
+          "form_type": "Gigantamax",
+          "ability": "Effect Spore",
+          "types": {
+            "type1": "Grass",
+            "type2": "Poison"
+          },
+          "stats": {
+            "hp": 120,
+            "attack": 122,
+            "defense": 90,
+            "sp_atk": 108,
+            "sp_def": 105,
+            "speed": 80
+          },
+          "total": 625,
+          "form_key": "gigantamax_venusaur",
+          "triggers": [
+            {
+              "type": "mechanic",
+              "mechanic": "gigantamax"
+            }
+          ]
+        }
+      ]
+    },
+    "6": {
+      "base_species": "Charizard",
+      "forms": [
+        {
+          "dex_number": 6,
+          "base_species": "Charizard",
+          "form_name": "Mega Charizard X",
+          "form_id": "",
+          "form_type": "Mega X",
+          "ability": "Tough Claws",
+          "types": {
+            "type1": "Fire",
+            "type2": "Dragon"
+          },
+          "stats": {
+            "hp": 78,
+            "attack": 130,
+            "defense": 111,
+            "sp_atk": 130,
+            "sp_def": 85,
+            "speed": 100
+          },
+          "total": 634,
+          "form_key": "mega_charizard_x",
+          "triggers": [
+            {
+              "type": "item",
+              "item_id": 49,
+              "item_name": "Charizardite X"
+            }
+          ]
+        },
+        {
+          "dex_number": 6,
+          "base_species": "Charizard",
+          "form_name": "Mega Charizard Y",
+          "form_id": "",
+          "form_type": "Mega Y",
+          "ability": "Drought",
+          "types": {
+            "type1": "Fire",
+            "type2": "Flying"
+          },
+          "stats": {
+            "hp": 78,
+            "attack": 104,
+            "defense": 78,
+            "sp_atk": 159,
+            "sp_def": 115,
+            "speed": 100
+          },
+          "total": 634,
+          "form_key": "mega_charizard_y",
+          "triggers": [
+            {
+              "type": "item",
+              "item_id": 50,
+              "item_name": "Charizardite Y"
+            }
+          ]
+        },
+        {
+          "dex_number": 6,
+          "base_species": "Charizard",
+          "form_name": "Gigantamax Charizard",
+          "form_id": "",
+          "form_type": "Gigantamax",
+          "ability": "Berserk",
+          "types": {
+            "type1": "Fire",
+            "type2": "Flying"
+          },
+          "stats": {
+            "hp": 118,
+            "attack": 99,
+            "defense": 88,
+            "sp_atk": 134,
+            "sp_def": 95,
+            "speed": 100
+          },
+          "total": 634,
+          "form_key": "gigantamax_charizard",
+          "triggers": [
+            {
+              "type": "mechanic",
+              "mechanic": "gigantamax"
+            }
+          ]
+        }
+      ]
+    },
+    "9": {
+      "base_species": "Blastoise",
+      "forms": [
+        {
+          "dex_number": 9,
+          "base_species": "Blastoise",
+          "form_name": "Mega Blastoise",
+          "form_id": "",
+          "form_type": "Mega",
+          "ability": "Mega Launcher",
+          "types": {
+            "type1": "Water",
+            "type2": null
+          },
+          "stats": {
+            "hp": 79,
+            "attack": 103,
+            "defense": 120,
+            "sp_atk": 135,
+            "sp_def": 115,
+            "speed": 78
+          },
+          "total": 630,
+          "form_key": "mega_blastoise",
+          "triggers": [
+            {
+              "type": "item",
+              "item_id": 56,
+              "item_name": "Blastoisinite"
+            }
+          ]
+        },
+        {
+          "dex_number": 9,
+          "base_species": "Blastoise",
+          "form_name": "Gigantamax Blastoise",
+          "form_id": "",
+          "form_type": "Gigantamax",
+          "ability": "Shell Armor",
+          "types": {
+            "type1": "Water",
+            "type2": "Steel"
+          },
+          "stats": {
+            "hp": 119,
+            "attack": 108,
+            "defense": 125,
+            "sp_atk": 105,
+            "sp_def": 110,
+            "speed": 63
+          },
+          "total": 630,
+          "form_key": "gigantamax_blastoise",
+          "triggers": [
+            {
+              "type": "mechanic",
+              "mechanic": "gigantamax"
+            }
+          ]
+        }
+      ]
+    },
+    "15": {
+      "base_species": "Beedrill",
+      "forms": [
+        {
+          "dex_number": 15,
+          "base_species": "Beedrill",
+          "form_name": "Mega Beedrill",
+          "form_id": "",
+          "form_type": "Mega",
+          "ability": "Adaptability",
+          "types": {
+            "type1": "Bug",
+            "type2": "Poison"
+          },
+          "stats": {
+            "hp": 65,
+            "attack": 150,
+            "defense": 40,
+            "sp_atk": 15,
+            "sp_def": 80,
+            "speed": 145
+          },
+          "total": 495,
+          "form_key": "mega_beedrill",
+          "triggers": [
+            {
+              "type": "mechanic",
+              "mechanic": "mega_evolution"
+            }
+          ]
+        }
+      ]
+    },
+    "18": {
+      "base_species": "Pidgeot",
+      "forms": [
+        {
+          "dex_number": 18,
+          "base_species": "Pidgeot",
+          "form_name": "Mega Pidgeot",
+          "form_id": "",
+          "form_type": "Mega",
+          "ability": "No Guard",
+          "types": {
+            "type1": "Flying",
+            "type2": null
+          },
+          "stats": {
+            "hp": 83,
+            "attack": 80,
+            "defense": 80,
+            "sp_atk": 135,
+            "sp_def": 80,
+            "speed": 121
+          },
+          "total": 579,
+          "form_key": "mega_pidgeot",
+          "triggers": [
+            {
+              "type": "mechanic",
+              "mechanic": "mega_evolution"
+            }
+          ]
+        }
+      ]
+    },
+    "65": {
+      "base_species": "Alakazam",
+      "forms": [
+        {
+          "dex_number": 65,
+          "base_species": "Alakazam",
+          "form_name": "Mega Alakazam",
+          "form_id": "",
+          "form_type": "Mega",
+          "ability": "Trace",
+          "types": {
+            "type1": "Psychic",
+            "type2": null
+          },
+          "stats": {
+            "hp": 55,
+            "attack": 50,
+            "defense": 65,
+            "sp_atk": 175,
+            "sp_def": 105,
+            "speed": 150
+          },
+          "total": 600,
+          "form_key": "mega_alakazam",
+          "triggers": [
+            {
+              "type": "mechanic",
+              "mechanic": "mega_evolution"
+            }
+          ]
+        }
+      ]
+    },
+    "80": {
+      "base_species": "Slowbro",
+      "forms": [
+        {
+          "dex_number": 80,
+          "base_species": "Slowbro",
+          "form_name": "Mega Slowbro",
+          "form_id": "",
+          "form_type": "Mega",
+          "ability": "Shell Armor",
+          "types": {
+            "type1": "Water",
+            "type2": "Psychic"
+          },
+          "stats": {
+            "hp": 95,
+            "attack": 75,
+            "defense": 180,
+            "sp_atk": 130,
+            "sp_def": 80,
+            "speed": 30
+          },
+          "total": 590,
+          "form_key": "mega_slowbro",
+          "triggers": [
+            {
+              "type": "mechanic",
+              "mechanic": "mega_evolution"
+            }
+          ]
+        }
+      ]
+    },
+    "94": {
+      "base_species": "Gengar",
+      "forms": [
+        {
+          "dex_number": 94,
+          "base_species": "Gengar",
+          "form_name": "Mega Gengar",
+          "form_id": "",
+          "form_type": "Mega",
+          "ability": "Shadow Tag",
+          "types": {
+            "type1": "Ghost",
+            "type2": "Poison"
+          },
+          "stats": {
+            "hp": 60,
+            "attack": 65,
+            "defense": 80,
+            "sp_atk": 170,
+            "sp_def": 95,
+            "speed": 130
+          },
+          "total": 600,
+          "form_key": "mega_gengar",
+          "triggers": [
+            {
+              "type": "mechanic",
+              "mechanic": "mega_evolution"
+            }
+          ]
+        },
+        {
+          "dex_number": 94,
+          "base_species": "Gengar",
+          "form_name": "Gigantamax Gengar",
+          "form_id": "",
+          "form_type": "Gigantamax",
+          "ability": "Cursed Body",
+          "types": {
+            "type1": "Ghost",
+            "type2": "Poison"
+          },
+          "stats": {
+            "hp": 140,
+            "attack": 65,
+            "defense": 70,
+            "sp_atk": 140,
+            "sp_def": 85,
+            "speed": 100
+          },
+          "total": 600,
+          "form_key": "gigantamax_gengar",
+          "triggers": [
+            {
+              "type": "mechanic",
+              "mechanic": "gigantamax"
+            }
+          ]
+        }
+      ]
+    },
+    "115": {
+      "base_species": "Kangaskhan",
+      "forms": [
+        {
+          "dex_number": 115,
+          "base_species": "Kangaskhan",
+          "form_name": "Mega Kangaskhan",
+          "form_id": "",
+          "form_type": "Mega",
+          "ability": "Parental Bond",
+          "types": {
+            "type1": "Normal",
+            "type2": null
+          },
+          "stats": {
+            "hp": 105,
+            "attack": 125,
+            "defense": 100,
+            "sp_atk": 60,
+            "sp_def": 100,
+            "speed": 100
+          },
+          "total": 590,
+          "form_key": "mega_kangaskhan",
+          "triggers": [
+            {
+              "type": "mechanic",
+              "mechanic": "mega_evolution"
+            }
+          ]
+        }
+      ]
+    },
+    "127": {
+      "base_species": "Pinsir",
+      "forms": [
+        {
+          "dex_number": 127,
+          "base_species": "Pinsir",
+          "form_name": "Mega Pinsir",
+          "form_id": "",
+          "form_type": "Mega",
+          "ability": "Aerilate",
+          "types": {
+            "type1": "Bug",
+            "type2": "Flying"
+          },
+          "stats": {
+            "hp": 65,
+            "attack": 155,
+            "defense": 120,
+            "sp_atk": 65,
+            "sp_def": 90,
+            "speed": 105
+          },
+          "total": 600,
+          "form_key": "mega_pinsir",
+          "triggers": [
+            {
+              "type": "mechanic",
+              "mechanic": "mega_evolution"
+            }
+          ]
+        }
+      ]
+    },
+    "130": {
+      "base_species": "Gyarados",
+      "forms": [
+        {
+          "dex_number": 130,
+          "base_species": "Gyarados",
+          "form_name": "Mega Gyarados",
+          "form_id": "",
+          "form_type": "Mega",
+          "ability": "Mold Breaker",
+          "types": {
+            "type1": "Water",
+            "type2": "Dark"
+          },
+          "stats": {
+            "hp": 95,
+            "attack": 155,
+            "defense": 109,
+            "sp_atk": 70,
+            "sp_def": 130,
+            "speed": 81
+          },
+          "total": 640,
+          "form_key": "mega_gyarados",
+          "triggers": [
+            {
+              "type": "item",
+              "item_id": 22,
+              "item_name": "Gyaradosite"
+            }
+          ]
+        }
+      ]
+    },
+    "142": {
+      "base_species": "Aerodactyl",
+      "forms": [
+        {
+          "dex_number": 142,
+          "base_species": "Aerodactyl",
+          "form_name": "Mega Aerodactyl",
+          "form_id": "",
+          "form_type": "Mega",
+          "ability": "Tough Claws",
+          "types": {
+            "type1": "Rock",
+            "type2": "Flying"
+          },
+          "stats": {
+            "hp": 80,
+            "attack": 135,
+            "defense": 85,
+            "sp_atk": 70,
+            "sp_def": 95,
+            "speed": 150
+          },
+          "total": 615,
+          "form_key": "mega_aerodactyl",
+          "triggers": [
+            {
+              "type": "mechanic",
+              "mechanic": "mega_evolution"
+            }
+          ]
+        }
+      ]
+    },
+    "150": {
+      "base_species": "Mewtwo",
+      "forms": [
+        {
+          "dex_number": 150,
+          "base_species": "Mewtwo",
+          "form_name": "Mega Mewtwo X",
+          "form_id": "",
+          "form_type": "Mega X",
+          "ability": "Steadfast",
+          "types": {
+            "type1": "Psychic",
+            "type2": "Fighting"
+          },
+          "stats": {
+            "hp": 106,
+            "attack": 190,
+            "defense": 100,
+            "sp_atk": 154,
+            "sp_def": 100,
+            "speed": 130
+          },
+          "total": 780,
+          "form_key": "mega_mewtwo_x",
+          "triggers": [
+            {
+              "type": "mechanic",
+              "mechanic": "mega_evolution"
+            }
+          ]
+        },
+        {
+          "dex_number": 150,
+          "base_species": "Mewtwo",
+          "form_name": "Mega Mewtwo Y",
+          "form_id": "",
+          "form_type": "Mega Y",
+          "ability": "Insomnia",
+          "types": {
+            "type1": "Psychic",
+            "type2": null
+          },
+          "stats": {
+            "hp": 106,
+            "attack": 150,
+            "defense": 70,
+            "sp_atk": 194,
+            "sp_def": 120,
+            "speed": 140
+          },
+          "total": 780,
+          "form_key": "mega_mewtwo_y",
+          "triggers": [
+            {
+              "type": "mechanic",
+              "mechanic": "mega_evolution"
+            }
+          ]
+        }
+      ]
+    },
+    "181": {
+      "base_species": "Ampharos",
+      "forms": [
+        {
+          "dex_number": 181,
+          "base_species": "Ampharos",
+          "form_name": "Mega Ampharos",
+          "form_id": "",
+          "form_type": "Mega",
+          "ability": "Mold Breaker",
+          "types": {
+            "type1": "Electric",
+            "type2": "Dragon"
+          },
+          "stats": {
+            "hp": 90,
+            "attack": 95,
+            "defense": 105,
+            "sp_atk": 165,
+            "sp_def": 110,
+            "speed": 45
+          },
+          "total": 610,
+          "form_key": "mega_ampharos",
+          "triggers": [
+            {
+              "type": "mechanic",
+              "mechanic": "mega_evolution"
+            }
+          ]
+        }
+      ]
+    },
+    "208": {
+      "base_species": "Steelix",
+      "forms": [
+        {
+          "dex_number": 208,
+          "base_species": "Steelix",
+          "form_name": "Mega Steelix",
+          "form_id": "",
+          "form_type": "Mega",
+          "ability": "Sand Force",
+          "types": {
+            "type1": "Steel",
+            "type2": "Ground"
+          },
+          "stats": {
+            "hp": 75,
+            "attack": 125,
+            "defense": 230,
+            "sp_atk": 55,
+            "sp_def": 95,
+            "speed": 30
+          },
+          "total": 610,
+          "form_key": "mega_steelix",
+          "triggers": [
+            {
+              "type": "mechanic",
+              "mechanic": "mega_evolution"
+            }
+          ]
+        }
+      ]
+    },
+    "212": {
+      "base_species": "Scizor",
+      "forms": [
+        {
+          "dex_number": 212,
+          "base_species": "Scizor",
+          "form_name": "Mega Scizor",
+          "form_id": "",
+          "form_type": "Mega",
+          "ability": "Technician",
+          "types": {
+            "type1": "Bug",
+            "type2": "Steel"
+          },
+          "stats": {
+            "hp": 70,
+            "attack": 150,
+            "defense": 140,
+            "sp_atk": 65,
+            "sp_def": 100,
+            "speed": 75
+          },
+          "total": 600,
+          "form_key": "mega_scizor",
+          "triggers": [
+            {
+              "type": "mechanic",
+              "mechanic": "mega_evolution"
+            }
+          ]
+        }
+      ]
+    },
+    "214": {
+      "base_species": "Heracross",
+      "forms": [
+        {
+          "dex_number": 214,
+          "base_species": "Heracross",
+          "form_name": "Mega Heracross",
+          "form_id": "",
+          "form_type": "Mega",
+          "ability": "Skill Link",
+          "types": {
+            "type1": "Bug",
+            "type2": "Fighting"
+          },
+          "stats": {
+            "hp": 80,
+            "attack": 185,
+            "defense": 115,
+            "sp_atk": 40,
+            "sp_def": 105,
+            "speed": 75
+          },
+          "total": 600,
+          "form_key": "mega_heracross",
+          "triggers": [
+            {
+              "type": "mechanic",
+              "mechanic": "mega_evolution"
+            }
+          ]
+        }
+      ]
+    },
+    "229": {
+      "base_species": "Houndoom",
+      "forms": [
+        {
+          "dex_number": 229,
+          "base_species": "Houndoom",
+          "form_name": "Mega Houndoom",
+          "form_id": "",
+          "form_type": "Mega",
+          "ability": "Solar Power",
+          "types": {
+            "type1": "Dark",
+            "type2": "Fire"
+          },
+          "stats": {
+            "hp": 75,
+            "attack": 90,
+            "defense": 90,
+            "sp_atk": 140,
+            "sp_def": 90,
+            "speed": 115
+          },
+          "total": 600,
+          "form_key": "mega_houndoom",
+          "triggers": [
+            {
+              "type": "mechanic",
+              "mechanic": "mega_evolution"
+            }
+          ]
+        }
+      ]
+    },
+    "248": {
+      "base_species": "Tyranitar",
+      "forms": [
+        {
+          "dex_number": 248,
+          "base_species": "Tyranitar",
+          "form_name": "Mega Tyranitar",
+          "form_id": "",
+          "form_type": "Mega",
+          "ability": "Sand Stream",
+          "types": {
+            "type1": "Rock",
+            "type2": "Dark"
+          },
+          "stats": {
+            "hp": 100,
+            "attack": 164,
+            "defense": 150,
+            "sp_atk": 95,
+            "sp_def": 120,
+            "speed": 71
+          },
+          "total": 700,
+          "form_key": "mega_tyranitar",
+          "triggers": [
+            {
+              "type": "mechanic",
+              "mechanic": "mega_evolution"
+            }
+          ]
+        }
+      ]
+    },
+    "254": {
+      "base_species": "Sceptile",
+      "forms": [
+        {
+          "dex_number": 254,
+          "base_species": "Sceptile",
+          "form_name": "Mega Sceptile",
+          "form_id": "",
+          "form_type": "Mega",
+          "ability": "Lightning Rod",
+          "types": {
+            "type1": "Grass",
+            "type2": "Dragon"
+          },
+          "stats": {
+            "hp": 70,
+            "attack": 110,
+            "defense": 75,
+            "sp_atk": 145,
+            "sp_def": 85,
+            "speed": 145
+          },
+          "total": 630,
+          "form_key": "mega_sceptile",
+          "triggers": [
+            {
+              "type": "mechanic",
+              "mechanic": "mega_evolution"
+            }
+          ]
+        }
+      ]
+    },
+    "257": {
+      "base_species": "Blaziken",
+      "forms": [
+        {
+          "dex_number": 257,
+          "base_species": "Blaziken",
+          "form_name": "Mega Blaziken",
+          "form_id": "",
+          "form_type": "Mega",
+          "ability": "Speed Boost",
+          "types": {
+            "type1": "Fire",
+            "type2": "Fighting"
+          },
+          "stats": {
+            "hp": 80,
+            "attack": 160,
+            "defense": 80,
+            "sp_atk": 130,
+            "sp_def": 80,
+            "speed": 100
+          },
+          "total": 630,
+          "form_key": "mega_blaziken",
+          "triggers": [
+            {
+              "type": "mechanic",
+              "mechanic": "mega_evolution"
+            }
+          ]
+        }
+      ]
+    },
+    "260": {
+      "base_species": "Swampert",
+      "forms": [
+        {
+          "dex_number": 260,
+          "base_species": "Swampert",
+          "form_name": "Mega Swampert",
+          "form_id": "",
+          "form_type": "Mega",
+          "ability": "Swift Swim",
+          "types": {
+            "type1": "Water",
+            "type2": "Ground"
+          },
+          "stats": {
+            "hp": 100,
+            "attack": 150,
+            "defense": 110,
+            "sp_atk": 95,
+            "sp_def": 110,
+            "speed": 70
+          },
+          "total": 635,
+          "form_key": "mega_swampert",
+          "triggers": [
+            {
+              "type": "mechanic",
+              "mechanic": "mega_evolution"
+            }
+          ]
+        }
+      ]
+    },
+    "282": {
+      "base_species": "Gardevoir",
+      "forms": [
+        {
+          "dex_number": 282,
+          "base_species": "Gardevoir",
+          "form_name": "Mega Gardevoir",
+          "form_id": "",
+          "form_type": "Mega",
+          "ability": "Pixilate",
+          "types": {
+            "type1": "Psychic",
+            "type2": "Fairy"
+          },
+          "stats": {
+            "hp": 68,
+            "attack": 85,
+            "defense": 65,
+            "sp_atk": 165,
+            "sp_def": 135,
+            "speed": 100
+          },
+          "total": 618,
+          "form_key": "mega_gardevoir",
+          "triggers": [
+            {
+              "type": "mechanic",
+              "mechanic": "mega_evolution"
+            }
+          ]
+        }
+      ]
+    },
+    "302": {
+      "base_species": "Sableye",
+      "forms": [
+        {
+          "dex_number": 302,
+          "base_species": "Sableye",
+          "form_name": "Mega Sableye",
+          "form_id": "",
+          "form_type": "Mega",
+          "ability": "Magic Bounce",
+          "types": {
+            "type1": "Dark",
+            "type2": "Ghost"
+          },
+          "stats": {
+            "hp": 50,
+            "attack": 85,
+            "defense": 125,
+            "sp_atk": 85,
+            "sp_def": 115,
+            "speed": 20
+          },
+          "total": 480,
+          "form_key": "mega_sableye",
+          "triggers": [
+            {
+              "type": "mechanic",
+              "mechanic": "mega_evolution"
+            }
+          ]
+        }
+      ]
+    },
+    "303": {
+      "base_species": "Mawile",
+      "forms": [
+        {
+          "dex_number": 303,
+          "base_species": "Mawile",
+          "form_name": "Mega Mawile",
+          "form_id": "",
+          "form_type": "Mega",
+          "ability": "Huge Power",
+          "types": {
+            "type1": "Steel",
+            "type2": "Fairy"
+          },
+          "stats": {
+            "hp": 50,
+            "attack": 105,
+            "defense": 125,
+            "sp_atk": 55,
+            "sp_def": 95,
+            "speed": 50
+          },
+          "total": 480,
+          "form_key": "mega_mawile",
+          "triggers": [
+            {
+              "type": "mechanic",
+              "mechanic": "mega_evolution"
+            }
+          ]
+        }
+      ]
+    },
+    "306": {
+      "base_species": "Aggron",
+      "forms": [
+        {
+          "dex_number": 306,
+          "base_species": "Aggron",
+          "form_name": "Mega Aggron",
+          "form_id": "",
+          "form_type": "Mega",
+          "ability": "Filter",
+          "types": {
+            "type1": "Steel",
+            "type2": null
+          },
+          "stats": {
+            "hp": 70,
+            "attack": 140,
+            "defense": 230,
+            "sp_atk": 60,
+            "sp_def": 80,
+            "speed": 50
+          },
+          "total": 630,
+          "form_key": "mega_aggron",
+          "triggers": [
+            {
+              "type": "mechanic",
+              "mechanic": "mega_evolution"
+            }
+          ]
+        }
+      ]
+    },
+    "308": {
+      "base_species": "Medicham",
+      "forms": [
+        {
+          "dex_number": 308,
+          "base_species": "Medicham",
+          "form_name": "Mega Medicham",
+          "form_id": "",
+          "form_type": "Mega",
+          "ability": "Pure Power",
+          "types": {
+            "type1": "Fighting",
+            "type2": "Psychic"
+          },
+          "stats": {
+            "hp": 60,
+            "attack": 100,
+            "defense": 85,
+            "sp_atk": 80,
+            "sp_def": 85,
+            "speed": 100
+          },
+          "total": 510,
+          "form_key": "mega_medicham",
+          "triggers": [
+            {
+              "type": "mechanic",
+              "mechanic": "mega_evolution"
+            }
+          ]
+        }
+      ]
+    },
+    "310": {
+      "base_species": "Manectric",
+      "forms": [
+        {
+          "dex_number": 310,
+          "base_species": "Manectric",
+          "form_name": "Mega Manectric",
+          "form_id": "",
+          "form_type": "Mega",
+          "ability": "Intimidate",
+          "types": {
+            "type1": "Electric",
+            "type2": null
+          },
+          "stats": {
+            "hp": 70,
+            "attack": 75,
+            "defense": 80,
+            "sp_atk": 135,
+            "sp_def": 80,
+            "speed": 135
+          },
+          "total": 575,
+          "form_key": "mega_manectric",
+          "triggers": [
+            {
+              "type": "mechanic",
+              "mechanic": "mega_evolution"
+            }
+          ]
+        }
+      ]
+    },
+    "319": {
+      "base_species": "Sharpedo",
+      "forms": [
+        {
+          "dex_number": 319,
+          "base_species": "Sharpedo",
+          "form_name": "Mega Sharpedo",
+          "form_id": "",
+          "form_type": "Mega",
+          "ability": "Strong Jaw",
+          "types": {
+            "type1": "Water",
+            "type2": "Dark"
+          },
+          "stats": {
+            "hp": 70,
+            "attack": 140,
+            "defense": 70,
+            "sp_atk": 110,
+            "sp_def": 65,
+            "speed": 105
+          },
+          "total": 560,
+          "form_key": "mega_sharpedo",
+          "triggers": [
+            {
+              "type": "mechanic",
+              "mechanic": "mega_evolution"
+            }
+          ]
+        }
+      ]
+    },
+    "323": {
+      "base_species": "Camerupt",
+      "forms": [
+        {
+          "dex_number": 323,
+          "base_species": "Camerupt",
+          "form_name": "Mega Camerupt",
+          "form_id": "",
+          "form_type": "Mega",
+          "ability": "Sheer Force",
+          "types": {
+            "type1": "Fire",
+            "type2": "Ground"
+          },
+          "stats": {
+            "hp": 70,
+            "attack": 120,
+            "defense": 100,
+            "sp_atk": 145,
+            "sp_def": 105,
+            "speed": 20
+          },
+          "total": 560,
+          "form_key": "mega_camerupt",
+          "triggers": [
+            {
+              "type": "mechanic",
+              "mechanic": "mega_evolution"
+            }
+          ]
+        }
+      ]
+    },
+    "334": {
+      "base_species": "Altaria",
+      "forms": [
+        {
+          "dex_number": 334,
+          "base_species": "Altaria",
+          "form_name": "Mega Altaria",
+          "form_id": "",
+          "form_type": "Mega",
+          "ability": "Pixilate",
+          "types": {
+            "type1": "Dragon",
+            "type2": "Fairy"
+          },
+          "stats": {
+            "hp": 75,
+            "attack": 110,
+            "defense": 110,
+            "sp_atk": 110,
+            "sp_def": 105,
+            "speed": 80
+          },
+          "total": 590,
+          "form_key": "mega_altaria",
+          "triggers": [
+            {
+              "type": "mechanic",
+              "mechanic": "mega_evolution"
+            }
+          ]
+        }
+      ]
+    },
+    "354": {
+      "base_species": "Banette",
+      "forms": [
+        {
+          "dex_number": 354,
+          "base_species": "Banette",
+          "form_name": "Mega Banette",
+          "form_id": "",
+          "form_type": "Mega",
+          "ability": "Prankster",
+          "types": {
+            "type1": "Ghost",
+            "type2": null
+          },
+          "stats": {
+            "hp": 64,
+            "attack": 165,
+            "defense": 75,
+            "sp_atk": 93,
+            "sp_def": 83,
+            "speed": 75
+          },
+          "total": 555,
+          "form_key": "mega_banette",
+          "triggers": [
+            {
+              "type": "mechanic",
+              "mechanic": "mega_evolution"
+            }
+          ]
+        }
+      ]
+    },
+    "359": {
+      "base_species": "Absol",
+      "forms": [
+        {
+          "dex_number": 359,
+          "base_species": "Absol",
+          "form_name": "Mega Absol",
+          "form_id": "",
+          "form_type": "Mega",
+          "ability": "Magic Bounce",
+          "types": {
+            "type1": "Dark",
+            "type2": null
+          },
+          "stats": {
+            "hp": 65,
+            "attack": 150,
+            "defense": 60,
+            "sp_atk": 115,
+            "sp_def": 60,
+            "speed": 115
+          },
+          "total": 565,
+          "form_key": "mega_absol",
+          "triggers": [
+            {
+              "type": "mechanic",
+              "mechanic": "mega_evolution"
+            }
+          ]
+        }
+      ]
+    },
+    "362": {
+      "base_species": "Glalie",
+      "forms": [
+        {
+          "dex_number": 362,
+          "base_species": "Glalie",
+          "form_name": "Mega Glalie",
+          "form_id": "",
+          "form_type": "Mega",
+          "ability": "Refrigerate",
+          "types": {
+            "type1": "Ice",
+            "type2": null
+          },
+          "stats": {
+            "hp": 80,
+            "attack": 120,
+            "defense": 80,
+            "sp_atk": 120,
+            "sp_def": 80,
+            "speed": 100
+          },
+          "total": 580,
+          "form_key": "mega_glalie",
+          "triggers": [
+            {
+              "type": "mechanic",
+              "mechanic": "mega_evolution"
+            }
+          ]
+        }
+      ]
+    },
+    "373": {
+      "base_species": "Salamence",
+      "forms": [
+        {
+          "dex_number": 373,
+          "base_species": "Salamence",
+          "form_name": "Mega Salamence",
+          "form_id": "",
+          "form_type": "Mega",
+          "ability": "Aerilate",
+          "types": {
+            "type1": "Dragon",
+            "type2": "Flying"
+          },
+          "stats": {
+            "hp": 95,
+            "attack": 145,
+            "defense": 130,
+            "sp_atk": 120,
+            "sp_def": 90,
+            "speed": 120
+          },
+          "total": 700,
+          "form_key": "mega_salamence",
+          "triggers": [
+            {
+              "type": "mechanic",
+              "mechanic": "mega_evolution"
+            }
+          ]
+        }
+      ]
+    },
+    "376": {
+      "base_species": "Metagross",
+      "forms": [
+        {
+          "dex_number": 376,
+          "base_species": "Metagross",
+          "form_name": "Mega Metagross",
+          "form_id": "",
+          "form_type": "Mega",
+          "ability": "Tough Claws",
+          "types": {
+            "type1": "Steel",
+            "type2": "Psychic"
+          },
+          "stats": {
+            "hp": 80,
+            "attack": 145,
+            "defense": 150,
+            "sp_atk": 105,
+            "sp_def": 110,
+            "speed": 110
+          },
+          "total": 700,
+          "form_key": "mega_metagross",
+          "triggers": [
+            {
+              "type": "mechanic",
+              "mechanic": "mega_evolution"
+            }
+          ]
+        }
+      ]
+    },
+    "380": {
+      "base_species": "Latias",
+      "forms": [
+        {
+          "dex_number": 380,
+          "base_species": "Latias",
+          "form_name": "Mega Latias",
+          "form_id": "",
+          "form_type": "Mega",
+          "ability": "Levitate",
+          "types": {
+            "type1": "Dragon",
+            "type2": "Psychic"
+          },
+          "stats": {
+            "hp": 80,
+            "attack": 100,
+            "defense": 120,
+            "sp_atk": 140,
+            "sp_def": 150,
+            "speed": 110
+          },
+          "total": 700,
+          "form_key": "mega_latias",
+          "triggers": [
+            {
+              "type": "mechanic",
+              "mechanic": "mega_evolution"
+            }
+          ]
+        }
+      ]
+    },
+    "381": {
+      "base_species": "Latios",
+      "forms": [
+        {
+          "dex_number": 381,
+          "base_species": "Latios",
+          "form_name": "Mega Latios",
+          "form_id": "",
+          "form_type": "Mega",
+          "ability": "Levitate",
+          "types": {
+            "type1": "Dragon",
+            "type2": "Psychic"
+          },
+          "stats": {
+            "hp": 80,
+            "attack": 130,
+            "defense": 100,
+            "sp_atk": 160,
+            "sp_def": 120,
+            "speed": 110
+          },
+          "total": 700,
+          "form_key": "mega_latios",
+          "triggers": [
+            {
+              "type": "mechanic",
+              "mechanic": "mega_evolution"
+            }
+          ]
+        }
+      ]
+    },
+    "384": {
+      "base_species": "Rayquaza",
+      "forms": [
+        {
+          "dex_number": 384,
+          "base_species": "Rayquaza",
+          "form_name": "Mega Rayquaza",
+          "form_id": "",
+          "form_type": "Mega",
+          "ability": "Delta Stream",
+          "types": {
+            "type1": "Dragon",
+            "type2": "Flying"
+          },
+          "stats": {
+            "hp": 105,
+            "attack": 180,
+            "defense": 100,
+            "sp_atk": 180,
+            "sp_def": 100,
+            "speed": 115
+          },
+          "total": 780,
+          "form_key": "mega_rayquaza",
+          "triggers": [
+            {
+              "type": "mechanic",
+              "mechanic": "mega_evolution"
+            }
+          ]
+        }
+      ]
+    },
+    "428": {
+      "base_species": "Lopunny",
+      "forms": [
+        {
+          "dex_number": 428,
+          "base_species": "Lopunny",
+          "form_name": "Mega Lopunny",
+          "form_id": "",
+          "form_type": "Mega",
+          "ability": "Scrappy",
+          "types": {
+            "type1": "Normal",
+            "type2": "Fighting"
+          },
+          "stats": {
+            "hp": 65,
+            "attack": 136,
+            "defense": 94,
+            "sp_atk": 54,
+            "sp_def": 96,
+            "speed": 135
+          },
+          "total": 580,
+          "form_key": "mega_lopunny",
+          "triggers": [
+            {
+              "type": "mechanic",
+              "mechanic": "mega_evolution"
+            }
+          ]
+        }
+      ]
+    },
+    "445": {
+      "base_species": "Garchomp",
+      "forms": [
+        {
+          "dex_number": 445,
+          "base_species": "Garchomp",
+          "form_name": "Mega Garchomp",
+          "form_id": "",
+          "form_type": "Mega",
+          "ability": "Sand Force",
+          "types": {
+            "type1": "Dragon",
+            "type2": "Ground"
+          },
+          "stats": {
+            "hp": 108,
+            "attack": 170,
+            "defense": 115,
+            "sp_atk": 120,
+            "sp_def": 95,
+            "speed": 92
+          },
+          "total": 700,
+          "form_key": "mega_garchomp",
+          "triggers": [
+            {
+              "type": "mechanic",
+              "mechanic": "mega_evolution"
+            }
+          ]
+        }
+      ]
+    },
+    "448": {
+      "base_species": "Lucario",
+      "forms": [
+        {
+          "dex_number": 448,
+          "base_species": "Lucario",
+          "form_name": "Mega Lucario",
+          "form_id": "",
+          "form_type": "Mega",
+          "ability": "Adaptability",
+          "types": {
+            "type1": "Fighting",
+            "type2": "Steel"
+          },
+          "stats": {
+            "hp": 70,
+            "attack": 145,
+            "defense": 88,
+            "sp_atk": 140,
+            "sp_def": 70,
+            "speed": 112
+          },
+          "total": 625,
+          "form_key": "mega_lucario",
+          "triggers": [
+            {
+              "type": "mechanic",
+              "mechanic": "mega_evolution"
+            }
+          ]
+        }
+      ]
+    },
+    "460": {
+      "base_species": "Abomasnow",
+      "forms": [
+        {
+          "dex_number": 460,
+          "base_species": "Abomasnow",
+          "form_name": "Mega Abomasnow",
+          "form_id": "",
+          "form_type": "Mega",
+          "ability": "Snow Warning",
+          "types": {
+            "type1": "Grass",
+            "type2": "Ice"
+          },
+          "stats": {
+            "hp": 90,
+            "attack": 132,
+            "defense": 105,
+            "sp_atk": 132,
+            "sp_def": 105,
+            "speed": 30
+          },
+          "total": 594,
+          "form_key": "mega_abomasnow",
+          "triggers": [
+            {
+              "type": "mechanic",
+              "mechanic": "mega_evolution"
+            }
+          ]
+        }
+      ]
+    },
+    "475": {
+      "base_species": "Gallade",
+      "forms": [
+        {
+          "dex_number": 475,
+          "base_species": "Gallade",
+          "form_name": "Mega Gallade",
+          "form_id": "",
+          "form_type": "Mega",
+          "ability": "Inner Focus",
+          "types": {
+            "type1": "Psychic",
+            "type2": "Fighting"
+          },
+          "stats": {
+            "hp": 68,
+            "attack": 165,
+            "defense": 95,
+            "sp_atk": 65,
+            "sp_def": 115,
+            "speed": 110
+          },
+          "total": 618,
+          "form_key": "mega_gallade",
+          "triggers": [
+            {
+              "type": "mechanic",
+              "mechanic": "mega_evolution"
+            }
+          ]
+        }
+      ]
+    },
+    "531": {
+      "base_species": "Audino",
+      "forms": [
+        {
+          "dex_number": 531,
+          "base_species": "Audino",
+          "form_name": "Mega Audino",
+          "form_id": "",
+          "form_type": "Mega",
+          "ability": "Healer",
+          "types": {
+            "type1": "Normal",
+            "type2": "Fairy"
+          },
+          "stats": {
+            "hp": 103,
+            "attack": 60,
+            "defense": 126,
+            "sp_atk": 80,
+            "sp_def": 126,
+            "speed": 50
+          },
+          "total": 545,
+          "form_key": "mega_audino",
+          "triggers": [
+            {
+              "type": "mechanic",
+              "mechanic": "mega_evolution"
+            }
+          ]
+        }
+      ]
+    },
+    "719": {
+      "base_species": "Diancie",
+      "forms": [
+        {
+          "dex_number": 719,
+          "base_species": "Diancie",
+          "form_name": "Mega Diancie",
+          "form_id": "",
+          "form_type": "Mega",
+          "ability": "Magic Bounce",
+          "types": {
+            "type1": "Rock",
+            "type2": "Fairy"
+          },
+          "stats": {
+            "hp": 50,
+            "attack": 160,
+            "defense": 110,
+            "sp_atk": 160,
+            "sp_def": 110,
+            "speed": 110
+          },
+          "total": 700,
+          "form_key": "mega_diancie",
+          "triggers": [
+            {
+              "type": "mechanic",
+              "mechanic": "mega_evolution"
+            }
+          ]
+        }
+      ]
+    },
+    "12": {
+      "base_species": "Butterfree",
+      "forms": [
+        {
+          "dex_number": 12,
+          "base_species": "Butterfree",
+          "form_name": "Gigantamax Butterfree",
+          "form_id": "",
+          "form_type": "Gigantamax",
+          "ability": "Compound Eyes",
+          "types": {
+            "type1": "Bug",
+            "type2": "Flying"
+          },
+          "stats": {
+            "hp": 80,
+            "attack": 40,
+            "defense": 75,
+            "sp_atk": 120,
+            "sp_def": 95,
+            "speed": 85
+          },
+          "total": 495,
+          "form_key": "gigantamax_butterfree",
+          "triggers": [
+            {
+              "type": "mechanic",
+              "mechanic": "gigantamax"
+            }
+          ]
+        }
+      ]
+    },
+    "52": {
+      "base_species": "Meowth",
+      "forms": [
+        {
+          "dex_number": 52,
+          "base_species": "Meowth",
+          "form_name": "Gigantamax Meowth",
+          "form_id": "",
+          "form_type": "Gigantamax",
+          "ability": "Technician",
+          "types": {
+            "type1": "Normal",
+            "type2": null
+          },
+          "stats": {
+            "hp": 115,
+            "attack": 110,
+            "defense": 65,
+            "sp_atk": 65,
+            "sp_def": 70,
+            "speed": 115
+          },
+          "total": 540,
+          "form_key": "gigantamax_meowth",
+          "triggers": [
+            {
+              "type": "mechanic",
+              "mechanic": "gigantamax"
+            }
+          ]
+        }
+      ]
+    },
+    "68": {
+      "base_species": "Machamp",
+      "forms": [
+        {
+          "dex_number": 68,
+          "base_species": "Machamp",
+          "form_name": "Gigantamax Machamp",
+          "form_id": "",
+          "form_type": "Gigantamax",
+          "ability": "Guts",
+          "types": {
+            "type1": "Fighting",
+            "type2": null
+          },
+          "stats": {
+            "hp": 120,
+            "attack": 170,
+            "defense": 85,
+            "sp_atk": 75,
+            "sp_def": 90,
+            "speed": 65
+          },
+          "total": 605,
+          "form_key": "gigantamax_machamp",
+          "triggers": [
+            {
+              "type": "mechanic",
+              "mechanic": "gigantamax"
+            }
+          ]
+        }
+      ]
+    },
+    "99": {
+      "base_species": "Kingler",
+      "forms": [
+        {
+          "dex_number": 99,
+          "base_species": "Kingler",
+          "form_name": "Gigantamax Kingler",
+          "form_id": "",
+          "form_type": "Gigantamax",
+          "ability": "Tough Claws",
+          "types": {
+            "type1": "Water",
+            "type2": null
+          },
+          "stats": {
+            "hp": 92,
+            "attack": 145,
+            "defense": 140,
+            "sp_atk": 60,
+            "sp_def": 65,
+            "speed": 73
+          },
+          "total": 575,
+          "form_key": "gigantamax_kingler",
+          "triggers": [
+            {
+              "type": "mechanic",
+              "mechanic": "gigantamax"
+            }
+          ]
+        }
+      ]
+    },
+    "131": {
+      "base_species": "Lapras",
+      "forms": [
+        {
+          "dex_number": 131,
+          "base_species": "Lapras",
+          "form_name": "Gigantamax Lapras",
+          "form_id": "",
+          "form_type": "Gigantamax",
+          "ability": "Shield Dust",
+          "types": {
+            "type1": "Water",
+            "type2": "Ice"
+          },
+          "stats": {
+            "hp": 170,
+            "attack": 97,
+            "defense": 85,
+            "sp_atk": 107,
+            "sp_def": 111,
+            "speed": 65
+          },
+          "total": 635,
+          "form_key": "gigantamax_lapras",
+          "triggers": [
+            {
+              "type": "mechanic",
+              "mechanic": "gigantamax"
+            }
+          ]
+        }
+      ]
+    },
+    "133": {
+      "base_species": "Eevee",
+      "forms": [
+        {
+          "dex_number": 133,
+          "base_species": "Eevee",
+          "form_name": "Gigantamax Eevee",
+          "form_id": "",
+          "form_type": "Gigantamax",
+          "ability": "Protean",
+          "types": {
+            "type1": "Normal",
+            "type2": null
+          },
+          "stats": {
+            "hp": 110,
+            "attack": 95,
+            "defense": 70,
+            "sp_atk": 90,
+            "sp_def": 85,
+            "speed": 85
+          },
+          "total": 535,
+          "form_key": "gigantamax_eevee",
+          "triggers": [
+            {
+              "type": "mechanic",
+              "mechanic": "gigantamax"
+            }
+          ]
+        },
+        {
+          "dex_number": 133,
+          "base_species": "Eevee",
+          "form_name": "Partner Eevee",
+          "form_id": "",
+          "form_type": "Partner",
+          "ability": "Adaptability",
+          "types": {
+            "type1": "Normal",
+            "type2": null
+          },
+          "stats": {
+            "hp": 65,
+            "attack": 75,
+            "defense": 70,
+            "sp_atk": 65,
+            "sp_def": 85,
+            "speed": 75
+          },
+          "total": 435,
+          "form_key": "partner_eevee",
+          "triggers": [
+            {
+              "type": "permanent",
+              "special": "partner"
+            }
+          ]
+        }
+      ]
+    },
+    "143": {
+      "base_species": "Snorlax",
+      "forms": [
+        {
+          "dex_number": 143,
+          "base_species": "Snorlax",
+          "form_name": "Gigantamax Snorlax",
+          "form_id": "",
+          "form_type": "Gigantamax",
+          "ability": "Harvest",
+          "types": {
+            "type1": "Normal",
+            "type2": null
+          },
+          "stats": {
+            "hp": 210,
+            "attack": 135,
+            "defense": 70,
+            "sp_atk": 90,
+            "sp_def": 115,
+            "speed": 20
+          },
+          "total": 640,
+          "form_key": "gigantamax_snorlax",
+          "triggers": [
+            {
+              "type": "mechanic",
+              "mechanic": "gigantamax"
+            }
+          ]
+        }
+      ]
+    },
+    "569": {
+      "base_species": "Garbodor",
+      "forms": [
+        {
+          "dex_number": 569,
+          "base_species": "Garbodor",
+          "form_name": "Gigantamax Garbodor",
+          "form_id": "",
+          "form_type": "Gigantamax",
+          "ability": "Toxic Debris",
+          "types": {
+            "type1": "Poison",
+            "type2": "Steel"
+          },
+          "stats": {
+            "hp": 115,
+            "attack": 121,
+            "defense": 102,
+            "sp_atk": 81,
+            "sp_def": 102,
+            "speed": 53
+          },
+          "total": 574,
+          "form_key": "gigantamax_garbodor",
+          "triggers": [
+            {
+              "type": "mechanic",
+              "mechanic": "gigantamax"
+            }
+          ]
+        }
+      ]
+    },
+    "809": {
+      "base_species": "Melmetal",
+      "forms": [
+        {
+          "dex_number": 809,
+          "base_species": "Melmetal",
+          "form_name": "Gigantamax Melmetal",
+          "form_id": "",
+          "form_type": "Gigantamax",
+          "ability": "Iron Fist",
+          "types": {
+            "type1": "Steel",
+            "type2": null
+          },
+          "stats": {
+            "hp": 170,
+            "attack": 158,
+            "defense": 158,
+            "sp_atk": 95,
+            "sp_def": 75,
+            "speed": 44
+          },
+          "total": 700,
+          "form_key": "gigantamax_melmetal",
+          "triggers": [
+            {
+              "type": "mechanic",
+              "mechanic": "gigantamax"
+            }
+          ]
+        }
+      ]
+    },
+    "812": {
+      "base_species": "Rillaboom",
+      "forms": [
+        {
+          "dex_number": 812,
+          "base_species": "Rillaboom",
+          "form_name": "Gigantamax Rillaboom",
+          "form_id": "",
+          "form_type": "Gigantamax",
+          "ability": "Grassy Surge",
+          "types": {
+            "type1": "Grass",
+            "type2": null
+          },
+          "stats": {
+            "hp": 125,
+            "attack": 140,
+            "defense": 105,
+            "sp_atk": 90,
+            "sp_def": 85,
+            "speed": 85
+          },
+          "total": 630,
+          "form_key": "gigantamax_rillaboom",
+          "triggers": [
+            {
+              "type": "mechanic",
+              "mechanic": "gigantamax"
+            }
+          ]
+        }
+      ]
+    },
+    "815": {
+      "base_species": "Cinderace",
+      "forms": [
+        {
+          "dex_number": 815,
+          "base_species": "Cinderace",
+          "form_name": "Gigantamax Cinderace",
+          "form_id": "",
+          "form_type": "Gigantamax",
+          "ability": "Libero",
+          "types": {
+            "type1": "Fire",
+            "type2": null
+          },
+          "stats": {
+            "hp": 100,
+            "attack": 141,
+            "defense": 80,
+            "sp_atk": 95,
+            "sp_def": 80,
+            "speed": 134
+          },
+          "total": 630,
+          "form_key": "gigantamax_cinderace",
+          "triggers": [
+            {
+              "type": "mechanic",
+              "mechanic": "gigantamax"
+            }
+          ]
+        }
+      ]
+    },
+    "818": {
+      "base_species": "Inteleon",
+      "forms": [
+        {
+          "dex_number": 818,
+          "base_species": "Inteleon",
+          "form_name": "Gigantamax Inteleon",
+          "form_id": "",
+          "form_type": "Gigantamax",
+          "ability": "Sniper",
+          "types": {
+            "type1": "Water",
+            "type2": null
+          },
+          "stats": {
+            "hp": 95,
+            "attack": 117,
+            "defense": 67,
+            "sp_atk": 147,
+            "sp_def": 67,
+            "speed": 137
+          },
+          "total": 630,
+          "form_key": "gigantamax_inteleon",
+          "triggers": [
+            {
+              "type": "mechanic",
+              "mechanic": "gigantamax"
+            }
+          ]
+        }
+      ]
+    },
+    "823": {
+      "base_species": "Corviknight",
+      "forms": [
+        {
+          "dex_number": 823,
+          "base_species": "Corviknight",
+          "form_name": "Gigantamax Corviknight",
+          "form_id": "",
+          "form_type": "Gigantamax",
+          "ability": "Mirror Armor",
+          "types": {
+            "type1": "Fire",
+            "type2": "Steel"
+          },
+          "stats": {
+            "hp": 118,
+            "attack": 112,
+            "defense": 135,
+            "sp_atk": 63,
+            "sp_def": 90,
+            "speed": 77
+          },
+          "total": 595,
+          "form_key": "gigantamax_corviknight",
+          "triggers": [
+            {
+              "type": "mechanic",
+              "mechanic": "gigantamax"
+            }
+          ]
+        }
+      ]
+    },
+    "826": {
+      "base_species": "Orbeetle",
+      "forms": [
+        {
+          "dex_number": 826,
+          "base_species": "Orbeetle",
+          "form_name": "Gigantamax Orbeetle",
+          "form_id": "",
+          "form_type": "Gigantamax",
+          "ability": "Trace",
+          "types": {
+            "type1": "Bug",
+            "type2": "Psychic"
+          },
+          "stats": {
+            "hp": 75,
+            "attack": 50,
+            "defense": 140,
+            "sp_atk": 100,
+            "sp_def": 150,
+            "speed": 90
+          },
+          "total": 605,
+          "form_key": "gigantamax_orbeetle",
+          "triggers": [
+            {
+              "type": "mechanic",
+              "mechanic": "gigantamax"
+            }
+          ]
+        }
+      ]
+    },
+    "834": {
+      "base_species": "Drednaw",
+      "forms": [
+        {
+          "dex_number": 834,
+          "base_species": "Drednaw",
+          "form_name": "Gigantamax Drednaw",
+          "form_id": "",
+          "form_type": "Gigantamax",
+          "ability": "Strong Jaw",
+          "types": {
+            "type1": "Water",
+            "type2": "Rock"
+          },
+          "stats": {
+            "hp": 115,
+            "attack": 137,
+            "defense": 115,
+            "sp_atk": 61,
+            "sp_def": 83,
+            "speed": 74
+          },
+          "total": 585,
+          "form_key": "gigantamax_drednaw",
+          "triggers": [
+            {
+              "type": "mechanic",
+              "mechanic": "gigantamax"
+            }
+          ]
+        }
+      ]
+    },
+    "839": {
+      "base_species": "Coalossal",
+      "forms": [
+        {
+          "dex_number": 839,
+          "base_species": "Coalossal",
+          "form_name": "Gigantamax Coalossal",
+          "form_id": "",
+          "form_type": "Gigantamax",
+          "ability": "Steam Engine",
+          "types": {
+            "type1": "Rock",
+            "type2": "Fire"
+          },
+          "stats": {
+            "hp": 140,
+            "attack": 100,
+            "defense": 132,
+            "sp_atk": 95,
+            "sp_def": 100,
+            "speed": 43
+          },
+          "total": 610,
+          "form_key": "gigantamax_coalossal",
+          "triggers": [
+            {
+              "type": "mechanic",
+              "mechanic": "gigantamax"
+            }
+          ]
+        }
+      ]
+    },
+    "841": {
+      "base_species": "Flapple",
+      "forms": [
+        {
+          "dex_number": 841,
+          "base_species": "Flapple",
+          "form_name": "Gigantamax Flapple",
+          "form_id": "",
+          "form_type": "Gigantamax",
+          "ability": "Hustle",
+          "types": {
+            "type1": "Grass",
+            "type2": "Dragon"
+          },
+          "stats": {
+            "hp": 100,
+            "attack": 125,
+            "defense": 90,
+            "sp_atk": 105,
+            "sp_def": 70,
+            "speed": 95
+          },
+          "total": 585,
+          "form_key": "gigantamax_flapple",
+          "triggers": [
+            {
+              "type": "mechanic",
+              "mechanic": "gigantamax"
+            }
+          ]
+        }
+      ]
+    },
+    "842": {
+      "base_species": "Appletun",
+      "forms": [
+        {
+          "dex_number": 842,
+          "base_species": "Appletun",
+          "form_name": "Gigantamax Appletun",
+          "form_id": "",
+          "form_type": "Gigantamax",
+          "ability": "Thick Fat",
+          "types": {
+            "type1": "Grass",
+            "type2": "Dragon"
+          },
+          "stats": {
+            "hp": 150,
+            "attack": 100,
+            "defense": 95,
+            "sp_atk": 115,
+            "sp_def": 95,
+            "speed": 30
+          },
+          "total": 585,
+          "form_key": "gigantamax_appletun",
+          "triggers": [
+            {
+              "type": "mechanic",
+              "mechanic": "gigantamax"
+            }
+          ]
+        }
+      ]
+    },
+    "844": {
+      "base_species": "Sandaconda",
+      "forms": [
+        {
+          "dex_number": 844,
+          "base_species": "Sandaconda",
+          "form_name": "Gigantamax Sandaconda",
+          "form_id": "",
+          "form_type": "Gigantamax",
+          "ability": "Sand Spit",
+          "types": {
+            "type1": "Ground",
+            "type2": null
+          },
+          "stats": {
+            "hp": 102,
+            "attack": 137,
+            "defense": 140,
+            "sp_atk": 70,
+            "sp_def": 80,
+            "speed": 81
+          },
+          "total": 610,
+          "form_key": "gigantamax_sandaconda",
+          "triggers": [
+            {
+              "type": "mechanic",
+              "mechanic": "gigantamax"
+            }
+          ]
+        }
+      ]
+    },
+    "849": {
+      "base_species": "Toxtricity",
+      "forms": [
+        {
+          "dex_number": 849,
+          "base_species": "Toxtricity",
+          "form_name": "Gigantamax Toxtricity",
+          "form_id": "",
+          "form_type": "Gigantamax",
+          "ability": "Punk Rock",
+          "types": {
+            "type1": "Electric",
+            "type2": "Poison"
+          },
+          "stats": {
+            "hp": 114,
+            "attack": 105,
+            "defense": 82,
+            "sp_atk": 137,
+            "sp_def": 82,
+            "speed": 82
+          },
+          "total": 602,
+          "form_key": "gigantamax_toxtricity",
+          "triggers": [
+            {
+              "type": "mechanic",
+              "mechanic": "gigantamax"
+            }
+          ]
+        }
+      ]
+    },
+    "851": {
+      "base_species": "Centiskorch",
+      "forms": [
+        {
+          "dex_number": 851,
+          "base_species": "Centiskorch",
+          "form_name": "Gigantamax Centiskorch",
+          "form_id": "",
+          "form_type": "Gigantamax",
+          "ability": "Flash Fire",
+          "types": {
+            "type1": "Fire",
+            "type2": "Bug"
+          },
+          "stats": {
+            "hp": 130,
+            "attack": 125,
+            "defense": 75,
+            "sp_atk": 94,
+            "sp_def": 100,
+            "speed": 101
+          },
+          "total": 625,
+          "form_key": "gigantamax_centiskorch",
+          "triggers": [
+            {
+              "type": "mechanic",
+              "mechanic": "gigantamax"
+            }
+          ]
+        }
+      ]
+    },
+    "858": {
+      "base_species": "Hatterene",
+      "forms": [
+        {
+          "dex_number": 858,
+          "base_species": "Hatterene",
+          "form_name": "Gigantamax Hatterene",
+          "form_id": "",
+          "form_type": "Gigantamax",
+          "ability": "Magic Bounce",
+          "types": {
+            "type1": "Psychic",
+            "type2": "Fairy"
+          },
+          "stats": {
+            "hp": 87,
+            "attack": 100,
+            "defense": 110,
+            "sp_atk": 146,
+            "sp_def": 118,
+            "speed": 49
+          },
+          "total": 610,
+          "form_key": "gigantamax_hatterene",
+          "triggers": [
+            {
+              "type": "mechanic",
+              "mechanic": "gigantamax"
+            }
+          ]
+        }
+      ]
+    },
+    "861": {
+      "base_species": "Grimmsnarl",
+      "forms": [
+        {
+          "dex_number": 861,
+          "base_species": "Grimmsnarl",
+          "form_name": "Gigantamax Grimmsnarl",
+          "form_id": "",
+          "form_type": "Gigantamax",
+          "ability": "Prankster",
+          "types": {
+            "type1": "Fairy",
+            "type2": "Dark"
+          },
+          "stats": {
+            "hp": 130,
+            "attack": 138,
+            "defense": 75,
+            "sp_atk": 110,
+            "sp_def": 92,
+            "speed": 65
+          },
+          "total": 610,
+          "form_key": "gigantamax_grimmsnarl",
+          "triggers": [
+            {
+              "type": "mechanic",
+              "mechanic": "gigantamax"
+            }
+          ]
+        }
+      ]
+    },
+    "869": {
+      "base_species": "Alcremie",
+      "forms": [
+        {
+          "dex_number": 869,
+          "base_species": "Alcremie",
+          "form_name": "Gigantamax Alcremie",
+          "form_id": "",
+          "form_type": "Gigantamax",
+          "ability": "Misty Surge",
+          "types": {
+            "type1": "Fairy",
+            "type2": null
+          },
+          "stats": {
+            "hp": 105,
+            "attack": 70,
+            "defense": 85,
+            "sp_atk": 130,
+            "sp_def": 141,
+            "speed": 64
+          },
+          "total": 595,
+          "form_key": "gigantamax_alcremie",
+          "triggers": [
+            {
+              "type": "mechanic",
+              "mechanic": "gigantamax"
+            }
+          ]
+        }
+      ]
+    },
+    "879": {
+      "base_species": "Copperajah",
+      "forms": [
+        {
+          "dex_number": 879,
+          "base_species": "Copperajah",
+          "form_name": "Gigantamax Copperajah",
+          "form_id": "",
+          "form_type": "Gigantamax",
+          "ability": "Mold Breaker",
+          "types": {
+            "type1": "Steel",
+            "type2": "Ground"
+          },
+          "stats": {
+            "hp": 177,
+            "attack": 155,
+            "defense": 79,
+            "sp_atk": 90,
+            "sp_def": 79,
+            "speed": 20
+          },
+          "total": 600,
+          "form_key": "gigantamax_copperajah",
+          "triggers": [
+            {
+              "type": "mechanic",
+              "mechanic": "gigantamax"
+            }
+          ]
+        }
+      ]
+    },
+    "884": {
+      "base_species": "Duraludon",
+      "forms": [
+        {
+          "dex_number": 884,
+          "base_species": "Duraludon",
+          "form_name": "Gigantamax Duraludon",
+          "form_id": "",
+          "form_type": "Gigantamax",
+          "ability": "Lightning Rod",
+          "types": {
+            "type1": "Steel",
+            "type2": "Dragon"
+          },
+          "stats": {
+            "hp": 105,
+            "attack": 105,
+            "defense": 120,
+            "sp_atk": 175,
+            "sp_def": 60,
+            "speed": 70
+          },
+          "total": 635,
+          "form_key": "gigantamax_duraludon",
+          "triggers": [
+            {
+              "type": "mechanic",
+              "mechanic": "gigantamax"
+            }
+          ]
+        }
+      ]
+    },
+    "892": {
+      "base_species": "Urshifu Single Strike",
+      "forms": [
+        {
+          "dex_number": 892,
+          "base_species": "Urshifu Single Strike",
+          "form_name": "Gigantamax Urshifu Single Strike",
+          "form_id": "",
+          "form_type": "Gigantamax",
+          "ability": "Unseen Fist",
+          "types": {
+            "type1": "Fighting",
+            "type2": "Dark"
+          },
+          "stats": {
+            "hp": 125,
+            "attack": 145,
+            "defense": 115,
+            "sp_atk": 83,
+            "sp_def": 70,
+            "speed": 112
+          },
+          "total": 650,
+          "form_key": "gigantamax_urshifu_single_strike",
+          "triggers": [
+            {
+              "type": "mechanic",
+              "mechanic": "gigantamax"
+            }
+          ]
+        },
+        {
+          "dex_number": 892,
+          "base_species": "Urshifu Rapid Strike",
+          "form_name": "Gigantamax Urshifu Rapid Strike",
+          "form_id": "",
+          "form_type": "Gigantamax",
+          "ability": "Unseen Fist",
+          "types": {
+            "type1": "Fighting",
+            "type2": "Water"
+          },
+          "stats": {
+            "hp": 125,
+            "attack": 145,
+            "defense": 115,
+            "sp_atk": 83,
+            "sp_def": 70,
+            "speed": 112
+          },
+          "total": 650,
+          "form_key": "gigantamax_urshifu_rapid_strike",
+          "triggers": [
+            {
+              "type": "mechanic",
+              "mechanic": "gigantamax"
+            }
+          ]
+        },
+        {
+          "dex_number": 892,
+          "base_species": "Urshifu",
+          "form_name": "Urshifu (Single Strike Style)",
+          "form_id": "",
+          "form_type": "Legendary/Mythical Formes",
+          "ability": "Unseen Fist",
+          "types": {
+            "type1": "Fighting",
+            "type2": "Dark"
+          },
+          "stats": {
+            "hp": 100,
+            "attack": 130,
+            "defense": 100,
+            "sp_atk": 63,
+            "sp_def": 60,
+            "speed": 97
+          },
+          "total": 550,
+          "form_key": "urshifu_single_strike_style",
+          "triggers": [
+            {
+              "type": "mechanic",
+              "mechanic": "form_change"
+            }
+          ]
+        },
+        {
+          "dex_number": 892,
+          "base_species": "Urshifu",
+          "form_name": "Urshifu (Rapid Strike Style)",
+          "form_id": "",
+          "form_type": "Legendary/Mythical Formes",
+          "ability": "Unseen Fist",
+          "types": {
+            "type1": "Fighting",
+            "type2": "Water"
+          },
+          "stats": {
+            "hp": 100,
+            "attack": 130,
+            "defense": 100,
+            "sp_atk": 63,
+            "sp_def": 60,
+            "speed": 97
+          },
+          "total": 550,
+          "form_key": "urshifu_rapid_strike_style",
+          "triggers": [
+            {
+              "type": "mechanic",
+              "mechanic": "form_change"
+            }
+          ]
+        }
+      ]
+    },
+    "890": {
+      "base_species": "Eternatus",
+      "forms": [
+        {
+          "dex_number": 890,
+          "base_species": "Eternatus",
+          "form_name": "Gigantamax Eternatus",
+          "form_id": "",
+          "form_type": "Gigantamax",
+          "ability": "Pressure",
+          "types": {
+            "type1": "Poison",
+            "type2": "Dragon"
+          },
+          "stats": {
+            "hp": 255,
+            "attack": 115,
+            "defense": 250,
+            "sp_atk": 125,
+            "sp_def": 250,
+            "speed": 130
+          },
+          "total": 1125,
+          "form_key": "gigantamax_eternatus",
+          "triggers": [
+            {
+              "type": "mechanic",
+              "mechanic": "gigantamax"
+            }
+          ]
+        },
+        {
+          "dex_number": 890,
+          "base_species": "Eternatus",
+          "form_name": "Eternatus (Eternamax)",
+          "form_id": "",
+          "form_type": "Legendary/Mythical Formes",
+          "ability": "Pressure",
+          "types": {
+            "type1": "Poison",
+            "type2": "Dragon"
+          },
+          "stats": {
+            "hp": 255,
+            "attack": 115,
+            "defense": 250,
+            "sp_atk": 125,
+            "sp_def": 250,
+            "speed": 130
+          },
+          "total": 1125,
+          "form_key": "eternatus_eternamax",
+          "triggers": [
+            {
+              "type": "mechanic",
+              "mechanic": "form_change"
+            }
+          ]
+        }
+      ]
+    },
+    "25": {
+      "base_species": "Pikachu",
+      "forms": [
+        {
+          "dex_number": 25,
+          "base_species": "Pikachu",
+          "form_name": "Partner Pikachu",
+          "form_id": "",
+          "form_type": "Partner",
+          "ability": "Static",
+          "types": {
+            "type1": "Electric",
+            "type2": null
+          },
+          "stats": {
+            "hp": 45,
+            "attack": 80,
+            "defense": 50,
+            "sp_atk": 75,
+            "sp_def": 60,
+            "speed": 120
+          },
+          "total": 430,
+          "form_key": "partner_pikachu",
+          "triggers": [
+            {
+              "type": "permanent",
+              "special": "partner"
+            }
+          ]
+        }
+      ]
+    },
+    "383": {
+      "base_species": "Groudon",
+      "forms": [
+        {
+          "dex_number": 383,
+          "base_species": "Groudon",
+          "form_name": "Primal Groudon",
+          "form_id": "",
+          "form_type": "Primal",
+          "ability": "Desolate Land",
+          "types": {
+            "type1": "Ground",
+            "type2": "Fire"
+          },
+          "stats": {
+            "hp": 100,
+            "attack": 180,
+            "defense": 160,
+            "sp_atk": 150,
+            "sp_def": 90,
+            "speed": 90
+          },
+          "total": 770,
+          "form_key": "primal_groudon",
+          "triggers": [
+            {
+              "type": "mechanic",
+              "mechanic": "primal_reversion"
+            }
+          ]
+        }
+      ]
+    },
+    "382": {
+      "base_species": "Kyogre",
+      "forms": [
+        {
+          "dex_number": 382,
+          "base_species": "Kyogre",
+          "form_name": "Primal Kyogre",
+          "form_id": "",
+          "form_type": "Primal",
+          "ability": "Primordial Sea",
+          "types": {
+            "type1": "Water",
+            "type2": null
+          },
+          "stats": {
+            "hp": 100,
+            "attack": 150,
+            "defense": 90,
+            "sp_atk": 180,
+            "sp_def": 160,
+            "speed": 90
+          },
+          "total": 770,
+          "form_key": "primal_kyogre",
+          "triggers": [
+            {
+              "type": "mechanic",
+              "mechanic": "primal_reversion"
+            }
+          ]
+        }
+      ]
+    },
+    "487": {
+      "base_species": "Giratina",
+      "forms": [
+        {
+          "dex_number": 487,
+          "base_species": "Giratina",
+          "form_name": "Giratina (Origin Forme)",
+          "form_id": "",
+          "form_type": "Legendary/Mythical Formes",
+          "ability": "Levitate",
+          "types": {
+            "type1": "Ghost",
+            "type2": "Dragon"
+          },
+          "stats": {
+            "hp": 150,
+            "attack": 120,
+            "defense": 100,
+            "sp_atk": 120,
+            "sp_def": 100,
+            "speed": 90
+          },
+          "total": 680,
+          "form_key": "giratina_origin_forme",
+          "triggers": [
+            {
+              "type": "mechanic",
+              "mechanic": "form_change"
+            }
+          ]
+        }
+      ]
+    },
+    "492": {
+      "base_species": "Shaymin",
+      "forms": [
+        {
+          "dex_number": 492,
+          "base_species": "Shaymin",
+          "form_name": "Shaymin (Sky Forme)",
+          "form_id": "",
+          "form_type": "Legendary/Mythical Formes",
+          "ability": "Serene Grace",
+          "types": {
+            "type1": "Grass",
+            "type2": "Flying"
+          },
+          "stats": {
+            "hp": 100,
+            "attack": 103,
+            "defense": 75,
+            "sp_atk": 120,
+            "sp_def": 75,
+            "speed": 127
+          },
+          "total": 600,
+          "form_key": "shaymin_sky_forme",
+          "triggers": [
+            {
+              "type": "mechanic",
+              "mechanic": "form_change"
+            }
+          ]
+        }
+      ]
+    },
+    "641": {
+      "base_species": "Tornadus",
+      "forms": [
+        {
+          "dex_number": 641,
+          "base_species": "Tornadus",
+          "form_name": "Tornadus (Therian Forme)",
+          "form_id": "",
+          "form_type": "Legendary/Mythical Formes",
+          "ability": "Regenerator",
+          "types": {
+            "type1": "Flying",
+            "type2": null
+          },
+          "stats": {
+            "hp": 79,
+            "attack": 100,
+            "defense": 80,
+            "sp_atk": 110,
+            "sp_def": 90,
+            "speed": 121
+          },
+          "total": 580,
+          "form_key": "tornadus_therian_forme",
+          "triggers": [
+            {
+              "type": "mechanic",
+              "mechanic": "form_change"
+            }
+          ]
+        }
+      ]
+    },
+    "642": {
+      "base_species": "Thundurus",
+      "forms": [
+        {
+          "dex_number": 642,
+          "base_species": "Thundurus",
+          "form_name": "Thundurus (Therian Forme)",
+          "form_id": "",
+          "form_type": "Legendary/Mythical Formes",
+          "ability": "Volt Absorb",
+          "types": {
+            "type1": "Electric",
+            "type2": "Flying"
+          },
+          "stats": {
+            "hp": 79,
+            "attack": 105,
+            "defense": 70,
+            "sp_atk": 145,
+            "sp_def": 80,
+            "speed": 101
+          },
+          "total": 580,
+          "form_key": "thundurus_therian_forme",
+          "triggers": [
+            {
+              "type": "mechanic",
+              "mechanic": "form_change"
+            }
+          ]
+        }
+      ]
+    },
+    "645": {
+      "base_species": "Landorus",
+      "forms": [
+        {
+          "dex_number": 645,
+          "base_species": "Landorus",
+          "form_name": "Landorus (Therian Forme)",
+          "form_id": "",
+          "form_type": "Legendary/Mythical Formes",
+          "ability": "Intimidate",
+          "types": {
+            "type1": "Ground",
+            "type2": "Flying"
+          },
+          "stats": {
+            "hp": 89,
+            "attack": 145,
+            "defense": 90,
+            "sp_atk": 105,
+            "sp_def": 80,
+            "speed": 91
+          },
+          "total": 600,
+          "form_key": "landorus_therian_forme",
+          "triggers": [
+            {
+              "type": "mechanic",
+              "mechanic": "form_change"
+            }
+          ]
+        }
+      ]
+    },
+    "905": {
+      "base_species": "Enamorus",
+      "forms": [
+        {
+          "dex_number": 905,
+          "base_species": "Enamorus",
+          "form_name": "Enamorus (Therian Forme)",
+          "form_id": "",
+          "form_type": "Legendary/Mythical Formes",
+          "ability": "Overcoat",
+          "types": {
+            "type1": "Fairy",
+            "type2": "Flying"
+          },
+          "stats": {
+            "hp": 74,
+            "attack": 115,
+            "defense": 110,
+            "sp_atk": 135,
+            "sp_def": 100,
+            "speed": 46
+          },
+          "total": 580,
+          "form_key": "enamorus_therian_forme",
+          "triggers": [
+            {
+              "type": "mechanic",
+              "mechanic": "form_change"
+            }
+          ]
+        }
+      ]
+    },
+    "483": {
+      "base_species": "Dialga",
+      "forms": [
+        {
+          "dex_number": 483,
+          "base_species": "Dialga",
+          "form_name": "Dialga (Origin Forme)",
+          "form_id": "",
+          "form_type": "Legendary/Mythical Formes",
+          "ability": "Pressure",
+          "types": {
+            "type1": "Steel",
+            "type2": "Dragon"
+          },
+          "stats": {
+            "hp": 100,
+            "attack": 100,
+            "defense": 120,
+            "sp_atk": 150,
+            "sp_def": 120,
+            "speed": 90
+          },
+          "total": 680,
+          "form_key": "dialga_origin_forme",
+          "triggers": [
+            {
+              "type": "mechanic",
+              "mechanic": "form_change"
+            }
+          ]
+        }
+      ]
+    },
+    "484": {
+      "base_species": "Palkia",
+      "forms": [
+        {
+          "dex_number": 484,
+          "base_species": "Palkia",
+          "form_name": "Palkia (Origin Forme)",
+          "form_id": "",
+          "form_type": "Legendary/Mythical Formes",
+          "ability": "Pressure",
+          "types": {
+            "type1": "Water",
+            "type2": "Dragon"
+          },
+          "stats": {
+            "hp": 90,
+            "attack": 100,
+            "defense": 100,
+            "sp_atk": 150,
+            "sp_def": 120,
+            "speed": 120
+          },
+          "total": 680,
+          "form_key": "palkia_origin_forme",
+          "triggers": [
+            {
+              "type": "mechanic",
+              "mechanic": "form_change"
+            }
+          ]
+        }
+      ]
+    },
+    "646": {
+      "base_species": "Kyurem",
+      "forms": [
+        {
+          "dex_number": 646,
+          "base_species": "Kyurem",
+          "form_name": "Kyurem (Black)",
+          "form_id": "",
+          "form_type": "Legendary/Mythical Formes",
+          "ability": "Teravolt",
+          "types": {
+            "type1": "Dragon",
+            "type2": "Ice"
+          },
+          "stats": {
+            "hp": 125,
+            "attack": 170,
+            "defense": 100,
+            "sp_atk": 120,
+            "sp_def": 90,
+            "speed": 95
+          },
+          "total": 700,
+          "form_key": "kyurem_black",
+          "triggers": [
+            {
+              "type": "mechanic",
+              "mechanic": "form_change"
+            }
+          ]
+        },
+        {
+          "dex_number": 646,
+          "base_species": "Kyurem",
+          "form_name": "Kyurem (White)",
+          "form_id": "",
+          "form_type": "Legendary/Mythical Formes",
+          "ability": "Turboblaze",
+          "types": {
+            "type1": "Dragon",
+            "type2": "Ice"
+          },
+          "stats": {
+            "hp": 125,
+            "attack": 120,
+            "defense": 90,
+            "sp_atk": 170,
+            "sp_def": 100,
+            "speed": 95
+          },
+          "total": 700,
+          "form_key": "kyurem_white",
+          "triggers": [
+            {
+              "type": "mechanic",
+              "mechanic": "form_change"
+            }
+          ]
+        }
+      ]
+    },
+    "800": {
+      "base_species": "Necrozma",
+      "forms": [
+        {
+          "dex_number": 800,
+          "base_species": "Necrozma",
+          "form_name": "Necrozma (Dusk Mane)",
+          "form_id": "",
+          "form_type": "Legendary/Mythical Formes",
+          "ability": "Prism Armor",
+          "types": {
+            "type1": "Psychic",
+            "type2": "Steel"
+          },
+          "stats": {
+            "hp": 97,
+            "attack": 157,
+            "defense": 127,
+            "sp_atk": 113,
+            "sp_def": 109,
+            "speed": 77
+          },
+          "total": 680,
+          "form_key": "necrozma_dusk_mane",
+          "triggers": [
+            {
+              "type": "mechanic",
+              "mechanic": "form_change"
+            }
+          ]
+        },
+        {
+          "dex_number": 800,
+          "base_species": "Necrozma",
+          "form_name": "Necrozma (Dawn Wings)",
+          "form_id": "",
+          "form_type": "Legendary/Mythical Formes",
+          "ability": "Prism Armor",
+          "types": {
+            "type1": "Psychic",
+            "type2": "Ghost"
+          },
+          "stats": {
+            "hp": 97,
+            "attack": 113,
+            "defense": 109,
+            "sp_atk": 157,
+            "sp_def": 127,
+            "speed": 77
+          },
+          "total": 680,
+          "form_key": "necrozma_dawn_wings",
+          "triggers": [
+            {
+              "type": "mechanic",
+              "mechanic": "form_change"
+            }
+          ]
+        },
+        {
+          "dex_number": 800,
+          "base_species": "Necrozma",
+          "form_name": "Ultra Necrozma",
+          "form_id": "",
+          "form_type": "Legendary/Mythical Formes",
+          "ability": "Neuroforce",
+          "types": {
+            "type1": "Psychic",
+            "type2": "Dragon"
+          },
+          "stats": {
+            "hp": 97,
+            "attack": 167,
+            "defense": 97,
+            "sp_atk": 167,
+            "sp_def": 97,
+            "speed": 129
+          },
+          "total": 754,
+          "form_key": "ultra_necrozma",
+          "triggers": [
+            {
+              "type": "mechanic",
+              "mechanic": "form_change"
+            }
+          ]
+        }
+      ]
+    },
+    "718": {
+      "base_species": "Zygarde",
+      "forms": [
+        {
+          "dex_number": 718,
+          "base_species": "Zygarde",
+          "form_name": "Zygarde (10% Forme)",
+          "form_id": "",
+          "form_type": "Legendary/Mythical Formes",
+          "ability": "Aura Break",
+          "types": {
+            "type1": "Dragon",
+            "type2": "Ground"
+          },
+          "stats": {
+            "hp": 54,
+            "attack": 100,
+            "defense": 71,
+            "sp_atk": 61,
+            "sp_def": 85,
+            "speed": 115
+          },
+          "total": 486,
+          "form_key": "zygarde_10%_forme",
+          "triggers": [
+            {
+              "type": "mechanic",
+              "mechanic": "form_change"
+            }
+          ]
+        },
+        {
+          "dex_number": 718,
+          "base_species": "Zygarde",
+          "form_name": "Zygarde (Complete Forme)",
+          "form_id": "",
+          "form_type": "Legendary/Mythical Formes",
+          "ability": "Power Construct",
+          "types": {
+            "type1": "Dragon",
+            "type2": "Ground"
+          },
+          "stats": {
+            "hp": 216,
+            "attack": 100,
+            "defense": 121,
+            "sp_atk": 91,
+            "sp_def": 95,
+            "speed": 85
+          },
+          "total": 708,
+          "form_key": "zygarde_complete_forme",
+          "triggers": [
+            {
+              "type": "mechanic",
+              "mechanic": "form_change"
+            }
+          ]
+        }
+      ]
+    },
+    "888": {
+      "base_species": "Zacian",
+      "forms": [
+        {
+          "dex_number": 888,
+          "base_species": "Zacian",
+          "form_name": "Zacian (Crowned Sword)",
+          "form_id": "",
+          "form_type": "Legendary/Mythical Formes",
+          "ability": "Intrepid Sword",
+          "types": {
+            "type1": "Fairy",
+            "type2": "Steel"
+          },
+          "stats": {
+            "hp": 92,
+            "attack": 170,
+            "defense": 115,
+            "sp_atk": 80,
+            "sp_def": 115,
+            "speed": 148
+          },
+          "total": 720,
+          "form_key": "zacian_crowned_sword",
+          "triggers": [
+            {
+              "type": "mechanic",
+              "mechanic": "form_change"
+            }
+          ]
+        }
+      ]
+    },
+    "889": {
+      "base_species": "Zamazenta",
+      "forms": [
+        {
+          "dex_number": 889,
+          "base_species": "Zamazenta",
+          "form_name": "Zamazenta (Crowned Shield)",
+          "form_id": "",
+          "form_type": "Legendary/Mythical Formes",
+          "ability": "Dauntless Shield",
+          "types": {
+            "type1": "Fighting",
+            "type2": "Steel"
+          },
+          "stats": {
+            "hp": 92,
+            "attack": 130,
+            "defense": 145,
+            "sp_atk": 80,
+            "sp_def": 145,
+            "speed": 128
+          },
+          "total": 720,
+          "form_key": "zamazenta_crowned_shield",
+          "triggers": [
+            {
+              "type": "mechanic",
+              "mechanic": "form_change"
+            }
+          ]
+        }
+      ]
+    },
+    "898": {
+      "base_species": "Calyrex",
+      "forms": [
+        {
+          "dex_number": 898,
+          "base_species": "Calyrex",
+          "form_name": "Calyrex (Ice Rider)",
+          "form_id": "",
+          "form_type": "Legendary/Mythical Formes",
+          "ability": "As One (Glastrier)",
+          "types": {
+            "type1": "Psychic",
+            "type2": "Ice"
+          },
+          "stats": {
+            "hp": 100,
+            "attack": 165,
+            "defense": 150,
+            "sp_atk": 85,
+            "sp_def": 130,
+            "speed": 50
+          },
+          "total": 680,
+          "form_key": "calyrex_ice_rider",
+          "triggers": [
+            {
+              "type": "mechanic",
+              "mechanic": "form_change"
+            }
+          ]
+        },
+        {
+          "dex_number": 898,
+          "base_species": "Calyrex",
+          "form_name": "Calyrex (Shadow Rider)",
+          "form_id": "",
+          "form_type": "Legendary/Mythical Formes",
+          "ability": "As One (Spectrier)",
+          "types": {
+            "type1": "Psychic",
+            "type2": "Ghost"
+          },
+          "stats": {
+            "hp": 100,
+            "attack": 85,
+            "defense": 80,
+            "sp_atk": 165,
+            "sp_def": 100,
+            "speed": 150
+          },
+          "total": 680,
+          "form_key": "calyrex_shadow_rider",
+          "triggers": [
+            {
+              "type": "mechanic",
+              "mechanic": "form_change"
+            }
+          ]
+        }
+      ]
+    },
+    "1017": {
+      "base_species": "Ogerpon",
+      "forms": [
+        {
+          "dex_number": 1017,
+          "base_species": "Ogerpon",
+          "form_name": "Ogerpon (Wellspring Mask)",
+          "form_id": "",
+          "form_type": "Legendary/Mythical Formes",
+          "ability": "Water Absorb",
+          "types": {
+            "type1": "Grass",
+            "type2": "Water"
+          },
+          "stats": {
+            "hp": 80,
+            "attack": 120,
+            "defense": 84,
+            "sp_atk": 60,
+            "sp_def": 96,
+            "speed": 110
+          },
+          "total": 550,
+          "form_key": "ogerpon_wellspring_mask",
+          "triggers": [
+            {
+              "type": "mechanic",
+              "mechanic": "form_change"
+            }
+          ]
+        },
+        {
+          "dex_number": 1017,
+          "base_species": "Ogerpon",
+          "form_name": "Ogerpon (Hearthflame Mask)",
+          "form_id": "",
+          "form_type": "Legendary/Mythical Formes",
+          "ability": "Mold Breaker",
+          "types": {
+            "type1": "Grass",
+            "type2": "Fire"
+          },
+          "stats": {
+            "hp": 80,
+            "attack": 120,
+            "defense": 84,
+            "sp_atk": 60,
+            "sp_def": 96,
+            "speed": 110
+          },
+          "total": 550,
+          "form_key": "ogerpon_hearthflame_mask",
+          "triggers": [
+            {
+              "type": "mechanic",
+              "mechanic": "form_change"
+            }
+          ]
+        },
+        {
+          "dex_number": 1017,
+          "base_species": "Ogerpon",
+          "form_name": "Ogerpon (Cornerstone Mask)",
+          "form_id": "",
+          "form_type": "Legendary/Mythical Formes",
+          "ability": "Sturdy",
+          "types": {
+            "type1": "Grass",
+            "type2": "Rock"
+          },
+          "stats": {
+            "hp": 80,
+            "attack": 120,
+            "defense": 84,
+            "sp_atk": 60,
+            "sp_def": 96,
+            "speed": 110
+          },
+          "total": 550,
+          "form_key": "ogerpon_cornerstone_mask",
+          "triggers": [
+            {
+              "type": "mechanic",
+              "mechanic": "form_change"
+            }
+          ]
+        }
+      ]
+    },
+    "1024": {
+      "base_species": "Terapagos",
+      "forms": [
+        {
+          "dex_number": 1024,
+          "base_species": "Terapagos",
+          "form_name": "Terapagos (Terastal Form)",
+          "form_id": "",
+          "form_type": "Legendary/Mythical Formes",
+          "ability": "Tera Shell",
+          "types": {
+            "type1": "Normal",
+            "type2": null
+          },
+          "stats": {
+            "hp": 160,
+            "attack": 105,
+            "defense": 110,
+            "sp_atk": 130,
+            "sp_def": 110,
+            "speed": 85
+          },
+          "total": 700,
+          "form_key": "terapagos_terastal_form",
+          "triggers": [
+            {
+              "type": "mechanic",
+              "mechanic": "form_change"
+            }
+          ]
+        },
+        {
+          "dex_number": 1024,
+          "base_species": "Terapagos",
+          "form_name": "Terapagos (Stellar Form)",
+          "form_id": "",
+          "form_type": "Legendary/Mythical Formes",
+          "ability": "Teraform Zero",
+          "types": {
+            "type1": "Normal",
+            "type2": null
+          },
+          "stats": {
+            "hp": 160,
+            "attack": 105,
+            "defense": 110,
+            "sp_atk": 130,
+            "sp_def": 110,
+            "speed": 85
+          },
+          "total": 700,
+          "form_key": "terapagos_stellar_form",
+          "triggers": [
+            {
+              "type": "mechanic",
+              "mechanic": "form_change"
+            }
+          ]
+        }
+      ]
+    },
+    "26": {
+      "base_species": "Raichu",
+      "forms": [
+        {
+          "dex_number": 26,
+          "base_species": "Raichu",
+          "form_name": "Alolan Raichu",
+          "form_id": "",
+          "form_type": "Regional (Alola)",
+          "ability": "Surge Surfer",
+          "types": {
+            "type1": "Electric",
+            "type2": "Psychic"
+          },
+          "stats": {
+            "hp": 60,
+            "attack": 85,
+            "defense": 50,
+            "sp_atk": 95,
+            "sp_def": 85,
+            "speed": 110
+          },
+          "total": 485,
+          "form_key": "alolan_raichu",
+          "triggers": [
+            {
+              "type": "permanent",
+              "region": "Alola"
+            }
+          ]
+        }
+      ]
+    },
+    "27": {
+      "base_species": "Sandshrew",
+      "forms": [
+        {
+          "dex_number": 27,
+          "base_species": "Sandshrew",
+          "form_name": "Alolan Sandshrew",
+          "form_id": "",
+          "form_type": "Regional (Alola)",
+          "ability": "Snow Cloak",
+          "types": {
+            "type1": "Ice",
+            "type2": "Steel"
+          },
+          "stats": {
+            "hp": 50,
+            "attack": 75,
+            "defense": 90,
+            "sp_atk": 10,
+            "sp_def": 35,
+            "speed": 40
+          },
+          "total": 300,
+          "form_key": "alolan_sandshrew",
+          "triggers": [
+            {
+              "type": "permanent",
+              "region": "Alola"
+            }
+          ]
+        }
+      ]
+    },
+    "110": {
+      "base_species": "Weezing",
+      "forms": [
+        {
+          "dex_number": 110,
+          "base_species": "Weezing",
+          "form_name": "Galarian Weezing",
+          "form_id": "",
+          "form_type": "Regional (Galar)",
+          "ability": "Neutralizing Gas",
+          "types": {
+            "type1": "Poison",
+            "type2": "Fairy"
+          },
+          "stats": {
+            "hp": 65,
+            "attack": 90,
+            "defense": 120,
+            "sp_atk": 85,
+            "sp_def": 70,
+            "speed": 60
+          },
+          "total": 490,
+          "form_key": "galarian_weezing",
+          "triggers": [
+            {
+              "type": "permanent",
+              "region": "Galar"
+            }
+          ]
+        }
+      ]
+    },
+    "555": {
+      "base_species": "Darmanitan",
+      "forms": [
+        {
+          "dex_number": 555,
+          "base_species": "Darmanitan",
+          "form_name": "Galarian Darmanitan",
+          "form_id": "",
+          "form_type": "Regional (Galar)",
+          "ability": "Gorilla Tactics",
+          "types": {
+            "type1": "Ice",
+            "type2": null
+          },
+          "stats": {
+            "hp": 105,
+            "attack": 140,
+            "defense": 55,
+            "sp_atk": 30,
+            "sp_def": 55,
+            "speed": 95
+          },
+          "total": 480,
+          "form_key": "galarian_darmanitan",
+          "triggers": [
+            {
+              "type": "permanent",
+              "region": "Galar"
+            }
+          ]
+        },
+        {
+          "dex_number": 555,
+          "base_species": "Darmanitan (Unova)",
+          "form_name": "Darmanitan (Zen Mode)",
+          "form_id": "",
+          "form_type": "Form mechanics",
+          "ability": "Zen Mode",
+          "types": {
+            "type1": "Fire",
+            "type2": "Psychic"
+          },
+          "stats": {
+            "hp": 105,
+            "attack": 30,
+            "defense": 105,
+            "sp_atk": 140,
+            "sp_def": 105,
+            "speed": 55
+          },
+          "total": 540,
+          "form_key": "darmanitan_zen_mode",
+          "triggers": [
+            {
+              "type": "mechanic",
+              "mechanic": "form_change"
+            }
+          ]
+        },
+        {
+          "dex_number": 555,
+          "base_species": "Darmanitan (Galarian)",
+          "form_name": "Darmanitan (Galarian Zen Mode)",
+          "form_id": "",
+          "form_type": "Form mechanics",
+          "ability": "Zen Mode",
+          "types": {
+            "type1": "Ice",
+            "type2": "Fire"
+          },
+          "stats": {
+            "hp": 105,
+            "attack": 160,
+            "defense": 55,
+            "sp_atk": 30,
+            "sp_def": 55,
+            "speed": 135
+          },
+          "total": 540,
+          "form_key": "darmanitan_galarian_zen_mode",
+          "triggers": [
+            {
+              "type": "mechanic",
+              "mechanic": "form_change"
+            }
+          ]
+        }
+      ]
+    },
+    "571": {
+      "base_species": "Zoroark",
+      "forms": [
+        {
+          "dex_number": 571,
+          "base_species": "Zoroark",
+          "form_name": "Hisuian Zoroark",
+          "form_id": "",
+          "form_type": "Regional (Hisui)",
+          "ability": "Illusion",
+          "types": {
+            "type1": "Normal",
+            "type2": "Ghost"
+          },
+          "stats": {
+            "hp": 55,
+            "attack": 100,
+            "defense": 60,
+            "sp_atk": 125,
+            "sp_def": 60,
+            "speed": 110
+          },
+          "total": 510,
+          "form_key": "hisuian_zoroark",
+          "triggers": [
+            {
+              "type": "permanent",
+              "region": "Hisui"
+            }
+          ]
+        }
+      ]
+    },
+    "157": {
+      "base_species": "Typhlosion",
+      "forms": [
+        {
+          "dex_number": 157,
+          "base_species": "Typhlosion",
+          "form_name": "Hisuian Typhlosion",
+          "form_id": "",
+          "form_type": "Regional (Hisui)",
+          "ability": "Blaze",
+          "types": {
+            "type1": "Fire",
+            "type2": "Ghost"
+          },
+          "stats": {
+            "hp": 73,
+            "attack": 84,
+            "defense": 78,
+            "sp_atk": 119,
+            "sp_def": 85,
+            "speed": 95
+          },
+          "total": 534,
+          "form_key": "hisuian_typhlosion",
+          "triggers": [
+            {
+              "type": "permanent",
+              "region": "Hisui"
+            }
+          ]
+        }
+      ]
+    },
+    "128": {
+      "base_species": "Tauros",
+      "forms": [
+        {
+          "dex_number": 128,
+          "base_species": "Tauros",
+          "form_name": "Paldean Tauros (Aqua Breed)",
+          "form_id": "",
+          "form_type": "Regional (Paldea)",
+          "ability": "Intimidate",
+          "types": {
+            "type1": "Fighting",
+            "type2": "Water"
+          },
+          "stats": {
+            "hp": 75,
+            "attack": 110,
+            "defense": 105,
+            "sp_atk": 30,
+            "sp_def": 70,
+            "speed": 100
+          },
+          "total": 490,
+          "form_key": "paldean_tauros_aqua_breed",
+          "triggers": [
+            {
+              "type": "permanent",
+              "region": "Paldea"
+            }
+          ]
+        }
+      ]
+    },
+    "194": {
+      "base_species": "Wooper",
+      "forms": [
+        {
+          "dex_number": 194,
+          "base_species": "Wooper",
+          "form_name": "Paldean Wooper",
+          "form_id": "",
+          "form_type": "Regional (Paldea)",
+          "ability": "Poison Point",
+          "types": {
+            "type1": "Poison",
+            "type2": "Ground"
+          },
+          "stats": {
+            "hp": 55,
+            "attack": 45,
+            "defense": 45,
+            "sp_atk": 25,
+            "sp_def": 25,
+            "speed": 15
+          },
+          "total": 210,
+          "form_key": "paldean_wooper",
+          "triggers": [
+            {
+              "type": "permanent",
+              "region": "Paldea"
+            }
+          ]
+        }
+      ]
+    },
+    "479": {
+      "base_species": "Rotom",
+      "forms": [
+        {
+          "dex_number": 479,
+          "base_species": "Rotom",
+          "form_name": "Rotom Wash",
+          "form_id": "",
+          "form_type": "Form mechanics",
+          "ability": "Levitate",
+          "types": {
+            "type1": "Electric",
+            "type2": "Water"
+          },
+          "stats": {
+            "hp": 50,
+            "attack": 65,
+            "defense": 107,
+            "sp_atk": 105,
+            "sp_def": 107,
+            "speed": 86
+          },
+          "total": 520,
+          "form_key": "rotom_wash",
+          "triggers": [
+            {
+              "type": "mechanic",
+              "mechanic": "form_change"
+            }
+          ]
+        },
+        {
+          "dex_number": 479,
+          "base_species": "Rotom",
+          "form_name": "Rotom Heat",
+          "form_id": "",
+          "form_type": "Form mechanics",
+          "ability": "Levitate",
+          "types": {
+            "type1": "Electric",
+            "type2": "Fire"
+          },
+          "stats": {
+            "hp": 50,
+            "attack": 65,
+            "defense": 107,
+            "sp_atk": 105,
+            "sp_def": 107,
+            "speed": 86
+          },
+          "total": 520,
+          "form_key": "rotom_heat",
+          "triggers": [
+            {
+              "type": "mechanic",
+              "mechanic": "form_change"
+            }
+          ]
+        },
+        {
+          "dex_number": 479,
+          "base_species": "Rotom",
+          "form_name": "Rotom Frost",
+          "form_id": "",
+          "form_type": "Form Mechanics",
+          "ability": "Levitate",
+          "types": {
+            "type1": "Electric",
+            "type2": "Ice"
+          },
+          "stats": {
+            "hp": 50,
+            "attack": 65,
+            "defense": 107,
+            "sp_atk": 105,
+            "sp_def": 107,
+            "speed": 86
+          },
+          "total": 520,
+          "form_key": "rotom_frost",
+          "triggers": [
+            {
+              "type": "mechanic",
+              "mechanic": "form_change"
+            }
+          ]
+        },
+        {
+          "dex_number": 479,
+          "base_species": "Rotom",
+          "form_name": "Rotom Fan",
+          "form_id": "",
+          "form_type": "Form Mechanics",
+          "ability": "Levitate",
+          "types": {
+            "type1": "Electric",
+            "type2": "Flying"
+          },
+          "stats": {
+            "hp": 50,
+            "attack": 65,
+            "defense": 107,
+            "sp_atk": 105,
+            "sp_def": 107,
+            "speed": 86
+          },
+          "total": 520,
+          "form_key": "rotom_fan",
+          "triggers": [
+            {
+              "type": "mechanic",
+              "mechanic": "form_change"
+            }
+          ]
+        },
+        {
+          "dex_number": 479,
+          "base_species": "Rotom",
+          "form_name": "Rotom Mow",
+          "form_id": "",
+          "form_type": "Form Mechanics",
+          "ability": "Levitate",
+          "types": {
+            "type1": "Electric",
+            "type2": "Grass"
+          },
+          "stats": {
+            "hp": 50,
+            "attack": 65,
+            "defense": 107,
+            "sp_atk": 105,
+            "sp_def": 107,
+            "speed": 86
+          },
+          "total": 520,
+          "form_key": "rotom_mow",
+          "triggers": [
+            {
+              "type": "mechanic",
+              "mechanic": "form_change"
+            }
+          ]
+        }
+      ]
+    },
+    "681": {
+      "base_species": "Aegislash",
+      "forms": [
+        {
+          "dex_number": 681,
+          "base_species": "Aegislash",
+          "form_name": "Aegislash (Blade Forme)",
+          "form_id": "",
+          "form_type": "Form mechanics",
+          "ability": "Stance Change",
+          "types": {
+            "type1": "Steel",
+            "type2": "Ghost"
+          },
+          "stats": {
+            "hp": 60,
+            "attack": 140,
+            "defense": 50,
+            "sp_atk": 140,
+            "sp_def": 50,
+            "speed": 60
+          },
+          "total": 500,
+          "form_key": "aegislash_blade_forme",
+          "triggers": [
+            {
+              "type": "mechanic",
+              "mechanic": "form_change"
+            }
+          ]
+        }
+      ]
+    },
+    "746": {
+      "base_species": "Wishiwashi",
+      "forms": [
+        {
+          "dex_number": 746,
+          "base_species": "Wishiwashi",
+          "form_name": "Wishiwashi (School Form)",
+          "form_id": "",
+          "form_type": "Form mechanics",
+          "ability": "Schooling",
+          "types": {
+            "type1": "Water",
+            "type2": null
+          },
+          "stats": {
+            "hp": 45,
+            "attack": 140,
+            "defense": 130,
+            "sp_atk": 140,
+            "sp_def": 135,
+            "speed": 30
+          },
+          "total": 620,
+          "form_key": "wishiwashi_school_form",
+          "triggers": [
+            {
+              "type": "mechanic",
+              "mechanic": "form_change"
+            }
+          ]
+        }
+      ]
+    },
+    "964": {
+      "base_species": "Palafin",
+      "forms": [
+        {
+          "dex_number": 964,
+          "base_species": "Palafin",
+          "form_name": "Palafin (Hero Form)",
+          "form_id": "",
+          "form_type": "Form mechanics",
+          "ability": "Zero to Hero",
+          "types": {
+            "type1": "Water",
+            "type2": null
+          },
+          "stats": {
+            "hp": 100,
+            "attack": 160,
+            "defense": 97,
+            "sp_atk": 106,
+            "sp_def": 87,
+            "speed": 100
+          },
+          "total": 650,
+          "form_key": "palafin_hero_form",
+          "triggers": [
+            {
+              "type": "mechanic",
+              "mechanic": "form_change"
+            }
+          ]
+        }
+      ]
+    },
+    "648": {
+      "base_species": "Meloetta",
+      "forms": [
+        {
+          "dex_number": 648,
+          "base_species": "Meloetta",
+          "form_name": "Meloetta (Pirouette Forme)",
+          "form_id": "",
+          "form_type": "Form mechanics",
+          "ability": "Serene Grace",
+          "types": {
+            "type1": "Normal",
+            "type2": "Fighting"
+          },
+          "stats": {
+            "hp": 100,
+            "attack": 128,
+            "defense": 90,
+            "sp_atk": 77,
+            "sp_def": 77,
+            "speed": 128
+          },
+          "total": 600,
+          "form_key": "meloetta_pirouette_forme",
+          "triggers": [
+            {
+              "type": "mechanic",
+              "mechanic": "form_change"
+            }
+          ]
+        }
+      ]
+    },
+    "413": {
+      "base_species": "Wormadam",
+      "forms": [
+        {
+          "dex_number": 413,
+          "base_species": "Wormadam",
+          "form_name": "Wormadam (Sandy Cloak)",
+          "form_id": "",
+          "form_type": "Form mechanics",
+          "ability": "Anticipation",
+          "types": {
+            "type1": "Bug",
+            "type2": "Ground"
+          },
+          "stats": {
+            "hp": 60,
+            "attack": 79,
+            "defense": 105,
+            "sp_atk": 59,
+            "sp_def": 85,
+            "speed": 36
+          },
+          "total": 424,
+          "form_key": "wormadam_sandy_cloak",
+          "triggers": [
+            {
+              "type": "mechanic",
+              "mechanic": "form_change"
+            }
+          ]
+        },
+        {
+          "dex_number": 413,
+          "base_species": "Wormadam",
+          "form_name": "Wormadam (Trash Cloak)",
+          "form_id": "",
+          "form_type": "Form mechanics",
+          "ability": "Anticipation",
+          "types": {
+            "type1": "Bug",
+            "type2": "Steel"
+          },
+          "stats": {
+            "hp": 60,
+            "attack": 69,
+            "defense": 95,
+            "sp_atk": 69,
+            "sp_def": 95,
+            "speed": 36
+          },
+          "total": 424,
+          "form_key": "wormadam_trash_cloak",
+          "triggers": [
+            {
+              "type": "mechanic",
+              "mechanic": "form_change"
+            }
+          ]
+        }
+      ]
+    },
+    "741": {
+      "base_species": "Oricorio",
+      "forms": [
+        {
+          "dex_number": 741,
+          "base_species": "Oricorio",
+          "form_name": "Oricorio (Sensu Style)",
+          "form_id": "",
+          "form_type": "Form mechanics",
+          "ability": "Dancer",
+          "types": {
+            "type1": "Ghost",
+            "type2": "Flying"
+          },
+          "stats": {
+            "hp": 75,
+            "attack": 70,
+            "defense": 70,
+            "sp_atk": 98,
+            "sp_def": 70,
+            "speed": 93
+          },
+          "total": 476,
+          "form_key": "oricorio_sensu_style",
+          "triggers": [
+            {
+              "type": "mechanic",
+              "mechanic": "form_change"
+            }
+          ]
+        }
+      ]
+    },
+    "649": {
+      "base_species": "Genesect",
+      "forms": [
+        {
+          "dex_number": 649,
+          "base_species": "Genesect",
+          "form_name": "Genesect (Drive: Douse)",
+          "form_id": "",
+          "form_type": "Edge (Move/Interaction)",
+          "ability": "Download",
+          "types": {
+            "type1": "Bug",
+            "type2": "Steel"
+          },
+          "stats": {
+            "hp": 71,
+            "attack": 120,
+            "defense": 95,
+            "sp_atk": 120,
+            "sp_def": 95,
+            "speed": 99
+          },
+          "total": 600,
+          "form_key": "genesect_drive:_douse",
+          "triggers": [
+            {
+              "type": "mechanic",
+              "mechanic": "form_change"
+            }
+          ]
+        }
+      ]
+    },
+    "978": {
+      "base_species": "Tatsugiri",
+      "forms": [
+        {
+          "dex_number": 978,
+          "base_species": "Tatsugiri",
+          "form_name": "Tatsugiri (Curly)",
+          "form_id": "",
+          "form_type": "Edge (Move/Interaction)",
+          "ability": "Commander",
+          "types": {
+            "type1": "Dragon",
+            "type2": "Water"
+          },
+          "stats": {
+            "hp": 68,
+            "attack": 50,
+            "defense": 60,
+            "sp_atk": 120,
+            "sp_def": 95,
+            "speed": 82
+          },
+          "total": 475,
+          "form_key": "tatsugiri_curly",
+          "triggers": [
+            {
+              "type": "mechanic",
+              "mechanic": "form_change"
+            }
+          ]
+        },
+        {
+          "dex_number": 978,
+          "base_species": "Tatsugiri",
+          "form_name": "Tatsugiri (Droopy)",
+          "form_id": "",
+          "form_type": "Edge (Move/Interaction)",
+          "ability": "Commander",
+          "types": {
+            "type1": "Dragon",
+            "type2": "Water"
+          },
+          "stats": {
+            "hp": 68,
+            "attack": 50,
+            "defense": 60,
+            "sp_atk": 120,
+            "sp_def": 95,
+            "speed": 82
+          },
+          "total": 475,
+          "form_key": "tatsugiri_droopy",
+          "triggers": [
+            {
+              "type": "mechanic",
+              "mechanic": "form_change"
+            }
+          ]
+        },
+        {
+          "dex_number": 978,
+          "base_species": "Tatsugiri",
+          "form_name": "Tatsugiri (Stretchy)",
+          "form_id": "",
+          "form_type": "Edge (Move/Interaction)",
+          "ability": "Commander",
+          "types": {
+            "type1": "Dragon",
+            "type2": "Water"
+          },
+          "stats": {
+            "hp": 68,
+            "attack": 50,
+            "defense": 60,
+            "sp_atk": 120,
+            "sp_def": 95,
+            "speed": 82
+          },
+          "total": 475,
+          "form_key": "tatsugiri_stretchy",
+          "triggers": [
+            {
+              "type": "mechanic",
+              "mechanic": "form_change"
+            }
+          ]
+        }
+      ]
+    },
+    "893": {
+      "base_species": "Zarude",
+      "forms": [
+        {
+          "dex_number": 893,
+          "base_species": "Zarude",
+          "form_name": "Zarude (Dada)",
+          "form_id": "",
+          "form_type": "Edge (Move/Interaction)",
+          "ability": "Leaf Guard",
+          "types": {
+            "type1": "Dark",
+            "type2": "Grass"
+          },
+          "stats": {
+            "hp": 105,
+            "attack": 120,
+            "defense": 105,
+            "sp_atk": 70,
+            "sp_def": 95,
+            "speed": 105
+          },
+          "total": 600,
+          "form_key": "zarude_dada",
+          "triggers": [
+            {
+              "type": "mechanic",
+              "mechanic": "form_change"
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "by_form_id": {},
+  "form_change_items": {
+    "48": [
+      {
+        "dex_number": 3,
+        "form_key": "mega_venusaur",
+        "form_name": "Mega Venusaur"
+      }
+    ],
+    "49": [
+      {
+        "dex_number": 6,
+        "form_key": "mega_charizard_x",
+        "form_name": "Mega Charizard X"
+      }
+    ],
+    "50": [
+      {
+        "dex_number": 6,
+        "form_key": "mega_charizard_y",
+        "form_name": "Mega Charizard Y"
+      }
+    ],
+    "56": [
+      {
+        "dex_number": 9,
+        "form_key": "mega_blastoise",
+        "form_name": "Mega Blastoise"
+      }
+    ],
+    "22": [
+      {
+        "dex_number": 130,
+        "form_key": "mega_gyarados",
+        "form_name": "Mega Gyarados"
+      }
+    ]
+  }
+}

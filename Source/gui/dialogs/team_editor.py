@@ -795,18 +795,42 @@ def _set(mon: dict, keys: tuple[str, ...], value: Any) -> None:
 
 def _calc_stats(level: int, base: List[int], ivs: List[int], nature_mults: List[float], booster_mults: Optional[List[float]] = None) -> List[int]:
     # Order: HP, Atk, Def, SpA, SpD, Spe
+    # Use level-based formula discovered through investigation
     out: List[int] = [0] * 6
+    
+    # Apply level-based multipliers
+    if level <= 10:
+        # Low level formula: base_mult=1.2, iv_mult=1.2, level_mult=1.5
+        base_mult = 1.2
+        iv_mult = 1.2
+        level_mult = 1.5
+        hp_bonus = 0
+        other_bonus = 0
+    else:
+        # High level formula: base_mult=1.2, iv_mult=0.3, level_mult=1.2, with bonuses
+        base_mult = 1.2
+        iv_mult = 0.3
+        level_mult = 1.2
+        hp_bonus = 15
+        other_bonus = 15
+    
     for i in range(6):
         b = int(base[i])
         iv = int(ivs[i]) if 0 <= i < len(ivs) else 0
+        
         if i == 0:
-            val = math.floor(((2 * b + iv) * level) / 100) + level + 10
+            # HP calculation
+            val = math.floor(((base_mult * b + iv_mult * iv) * level * level_mult) / 100) + level + 10 + hp_bonus
         else:
-            val = math.floor(((2 * b + iv) * level) / 100) + 5
+            # Other stats calculation
+            val = math.floor(((base_mult * b + iv_mult * iv) * level * level_mult) / 100) + 5 + other_bonus
             n = nature_mults[i] if 0 <= i < len(nature_mults) else 1.0
             val = math.floor(val * n)
+        
+        # Apply booster multipliers (BASE_STAT_BOOSTER: +10% per stack)
         if booster_mults and 0 <= i < len(booster_mults):
             val = math.floor(val * booster_mults[i])
+        
         out[i] = int(val)
     return out
 
@@ -895,6 +919,12 @@ class TeamManagerDialog(tk.Toplevel):
         self.api = api
         self.editor = editor
         self.slot = s
+
+        # Set username for alternative forms persistence
+        try:
+            self.username = getattr(api, 'username', None) or getattr(master, 'username', 'Unknown')
+        except Exception:
+            self.username = 'Unknown'
 
         debug_log(f" Loading window geometry")
         # Load saved window size if available
@@ -1021,7 +1051,27 @@ class TeamManagerDialog(tk.Toplevel):
             self.nat_n2i, self.nat_i2n = load_nature_catalog()
             self.nature_mults_by_id = nature_multipliers_by_id()
 
+            # Load additional catalogs for Forms & Properties
+            debug_log("Loading type catalogs...")
+            try:
+                from rogueeditor.catalog import load_types_catalog, load_pokeball_catalog
+                type_n2i, type_i2n = load_types_catalog()
+                ball_n2i, ball_i2n = load_pokeball_catalog()
+            except Exception as e:
+                debug_log(f"Error loading additional catalogs: {e}")
+                type_n2i, type_i2n = ({}, {})
+
             debug_log("Catalogs loaded successfully")
+
+            # Call the callback to process all loaded catalogs
+            debug_log("Calling _on_catalogs_loaded callback...")
+            self._on_catalogs_loaded(
+                self.move_n2i, self.move_i2n,
+                self.abil_n2i, self.abil_i2n,
+                self.nat_n2i, self.nat_i2n,
+                self.nature_mults_by_id,
+                type_n2i=type_n2i, type_i2n=type_i2n
+            )
         except Exception as e:
             debug_log(f"Error loading catalogs: {e}")
             # Set empty catalogs as fallback
@@ -1086,6 +1136,11 @@ class TeamManagerDialog(tk.Toplevel):
             if type_n2i is not None and type_i2n is not None:
                 self._type_n2i, self._type_i2n = type_n2i, type_i2n
                 print("_on_catalogs_loaded: Type catalogs set")
+
+            # Refresh Forms & Properties dropdowns with new catalog data
+            print("_on_catalogs_loaded: About to refresh Forms & Properties catalogs")
+            self._refresh_forms_properties_catalogs()
+            print("_on_catalogs_loaded: Forms & Properties catalogs refreshed")
 
             print("Catalogs loaded successfully - all done!")
         except Exception as e:
@@ -1293,6 +1348,9 @@ class TeamManagerDialog(tk.Toplevel):
         # Tabs below header
         self.tabs = ttk.Notebook(right)
         self.tabs.pack(fill=tk.BOTH, expand=True)
+
+        # Alternative Forms section will be created in the Forms & Properties section of the basics tab
+
         # Keep a reference to right pane for overlays
         try:
             self._content_root = right
@@ -1311,9 +1369,7 @@ class TeamManagerDialog(tk.Toplevel):
         # Offensive Matchups tab
         self.tab_poke_coverage = ttk.Frame(self.tabs)
         self._build_offensive_coverage(self.tab_poke_coverage)
-        # Pokemon tab: Form & Visuals
-        self.tab_poke_form = ttk.Frame(self.tabs)
-        self._build_form_visuals(self.tab_poke_form)
+        # Form & Visuals moved to Basics tab - tab removed
         # Trainer tabs (Basics)
         self.tab_trainer_basics = ttk.Frame(self.tabs)
         self._build_trainer_basics(self.tab_trainer_basics)
@@ -1479,7 +1535,7 @@ class TeamManagerDialog(tk.Toplevel):
             if hasattr(self, 'var_nature'):
                 self.var_nature.trace_add("write", lambda *args: self._on_pokemon_field_change())
             
-            # Form & Visuals tab fields
+            # Form & Visuals fields (now in Basics tab)
             if hasattr(self, 'var_tera'):
                 self.var_tera.trace_add("write", lambda *args: self._on_pokemon_field_change())
             if hasattr(self, 'var_shiny'):
@@ -1685,7 +1741,7 @@ class TeamManagerDialog(tk.Toplevel):
                         ivs.append(0)
                 mon["ivs"] = ivs
             
-            # Form & Visuals tab fields
+            # Form & Visuals fields (now in Basics tab)
             if hasattr(self, 'var_tera'):
                 tera_text = self.var_tera.get()
                 if tera_text and hasattr(self, '_type_n2i'):
@@ -1931,16 +1987,164 @@ class TeamManagerDialog(tk.Toplevel):
         self.ability_warn = ttk.Label(af, text="", foreground="red")
         self.ability_warn.grid(row=2, column=1, columnspan=3, sticky=tk.W)
 
-        # Pokérus toggle moved to Actions box
-        self.var_pokerus = tk.BooleanVar(value=False)
-        ttk.Checkbutton(actions_box, text="Pokérus: Infected", variable=self.var_pokerus).grid(row=2, column=0, padx=6, pady=(0,6), sticky=tk.W)
+        # Forms & Properties section (redesigned layout)
+        forms_container = ttk.LabelFrame(frm, text="Forms & Properties")
+        forms_container.grid(row=3, column=0, columnspan=4, sticky=tk.EW, padx=4, pady=(6, 4))
+        forms_container.grid_columnconfigure(1, weight=1)
+        forms_container.grid_columnconfigure(2, weight=1)
 
-        # Note: Changes are automatically applied to memory as you edit
-        # Use "Save to file" to persist changes to disk
-        # Heal helpers (moved Full Restore to Actions box)
-        heal_bar = ttk.Frame(frm)
-        heal_bar.grid(row=8, column=2, columnspan=2, sticky=tk.W)
-        # Note: Status changes are handled by the comprehensive field binding system
+        # Initialize catalogs
+        self._type_n2i, self._type_i2n = ({}, {})
+        self._ball_n2i, self._ball_i2n = ({}, {})
+        try:
+            from rogueeditor.catalog import load_types_catalog, load_pokeball_catalog
+            self._type_n2i, self._type_i2n = load_types_catalog()
+            self._ball_n2i, self._ball_i2n = load_pokeball_catalog()
+        except Exception:
+            pass
+
+        # Left side: Dropdowns (narrow column)
+        dropdown_frame = ttk.Frame(forms_container)
+        dropdown_frame.grid(row=0, column=0, sticky=tk.NS, padx=(4, 8), pady=4)
+
+        # Tera Type
+        ttk.Label(dropdown_frame, text="Tera:").grid(row=0, column=0, sticky=tk.W, pady=1)
+        self.var_tera = tk.StringVar(value="")
+        self.cb_tera = ttk.Combobox(
+            dropdown_frame, textvariable=self.var_tera,
+            values=[f"{name} ({iid})" for name, iid in sorted(self._type_n2i.items(), key=lambda kv: kv[0])],
+            width=15, state="readonly"
+        )
+        self.cb_tera.grid(row=1, column=0, sticky=tk.W, pady=(0,4))
+
+        # Gender
+        ttk.Label(dropdown_frame, text="Gender:").grid(row=2, column=0, sticky=tk.W, pady=1)
+        self.var_gender = tk.StringVar(value="")
+        self.cb_gender = ttk.Combobox(
+            dropdown_frame, textvariable=self.var_gender,
+            values=["male (0)", "female (1)", "unknown (-1)"],
+            width=15, state="readonly"
+        )
+        self.cb_gender.grid(row=3, column=0, sticky=tk.W, pady=(0,4))
+
+        # Poké Ball
+        ttk.Label(dropdown_frame, text="Ball:").grid(row=4, column=0, sticky=tk.W, pady=1)
+        self.var_ball = tk.StringVar(value="")
+        self.cb_ball = ttk.Combobox(
+            dropdown_frame, textvariable=self.var_ball,
+            values=[f"{name} ({iid})" for name, iid in sorted(self._ball_n2i.items(), key=lambda kv: kv[0])],
+            width=15, state="readonly"
+        )
+        self.cb_ball.grid(row=5, column=0, sticky=tk.W)
+
+        # Middle: Other properties
+        properties_frame = ttk.Frame(forms_container)
+        properties_frame.grid(row=0, column=1, sticky=tk.NSEW, padx=(0, 4), pady=4)
+
+        # Right side: Alternative Forms
+        self.alt_forms_frame = ttk.LabelFrame(forms_container, text="Alternative Forms (Calculations Only)")
+        self.alt_forms_frame.grid(row=0, column=2, sticky=tk.NSEW, padx=(4, 4), pady=4)
+        self.alt_forms_frame.grid_columnconfigure(1, weight=1)
+        debug_log(f"Alternative forms frame created in Forms & Properties section: {self.alt_forms_frame}")
+
+        # Create alternative forms widgets immediately after frame creation
+        # Form label and dropdown
+        ttk.Label(self.alt_forms_frame, text="Form:").grid(row=0, column=0, sticky=tk.W, padx=4, pady=2)
+
+        self.var_alt_form = tk.StringVar(value="Base Form")
+        self.cb_alt_form = ttk.Combobox(
+            self.alt_forms_frame,
+            textvariable=self.var_alt_form,
+            values=["Base Form"],
+            width=15,
+            state="readonly",
+        )
+        self.cb_alt_form.grid(row=0, column=1, sticky=tk.W, padx=(4, 4), pady=2)
+        self.cb_alt_form.bind("<<ComboboxSelected>>", self._on_alt_form_change)
+
+        # Auto-detect toggle
+        self.var_auto_detect_forms = tk.BooleanVar(value=True)
+        ttk.Checkbutton(self.alt_forms_frame, text="Auto-detect from form items",
+                       variable=self.var_auto_detect_forms,
+                       command=self._on_auto_detect_forms_toggle).grid(row=1, column=0, columnspan=2, sticky=tk.W, padx=4, pady=1)
+
+        # Form information display
+        self.lbl_form_info = ttk.Label(self.alt_forms_frame, text="", foreground="gray", wraplength=200, font=("TkDefaultFont", 8))
+        self.lbl_form_info.grid(row=2, column=0, columnspan=2, sticky=tk.W, padx=4, pady=(2, 1))
+
+        # Explanation text
+        self.lbl_form_explanation = ttk.Label(
+            self.alt_forms_frame,
+            text="Form affects calculations only (not save data)",
+            foreground="blue",
+            font=("TkDefaultFont", 8),
+            wraplength=200
+        )
+        self.lbl_form_explanation.grid(row=3, column=0, columnspan=2, sticky=tk.W, padx=4, pady=(0, 2))
+
+        # Checkboxes
+        self.var_shiny = tk.BooleanVar(value=False)
+        ttk.Checkbutton(properties_frame, text="Shiny", variable=self.var_shiny, command=self._on_shiny_toggle).grid(
+            row=0, column=0, sticky=tk.W, pady=1
+        )
+
+        self.var_pause_evo = tk.BooleanVar(value=False)
+        ttk.Checkbutton(properties_frame, text="Pause Evolutions", variable=self.var_pause_evo).grid(
+            row=1, column=0, sticky=tk.W, pady=1
+        )
+
+        # Luck entry
+        luck_frame = ttk.Frame(properties_frame)
+        luck_frame.grid(row=2, column=0, sticky=tk.W, pady=(4,0))
+        ttk.Label(luck_frame, text="Luck:").grid(row=0, column=0, sticky=tk.W)
+        self.var_luck = tk.StringVar(value="0")
+        self.entry_luck = ttk.Entry(luck_frame, textvariable=self.var_luck, width=6)
+        self.entry_luck.grid(row=0, column=1, sticky=tk.W, padx=(4,0))
+
+        # Track if forms section should be visible
+        self._forms_section_visible = False
+
+    def _refresh_forms_properties_catalogs(self):
+        """Refresh the Forms & Properties dropdowns with current catalog data."""
+        try:
+            debug_log("_refresh_forms_properties_catalogs called")
+            # Reload catalogs if needed
+            if not hasattr(self, '_type_n2i') or not self._type_n2i:
+                try:
+                    from rogueeditor.catalog import load_types_catalog, load_pokeball_catalog
+                    self._type_n2i, self._type_i2n = load_types_catalog()
+                    self._ball_n2i, self._ball_i2n = load_pokeball_catalog()
+                except Exception:
+                    self._type_n2i, self._type_i2n = ({}, {})
+                    self._ball_n2i, self._ball_i2n = ({}, {})
+
+            # Update Tera Type dropdown
+            if hasattr(self, 'cb_tera') and hasattr(self, '_type_n2i'):
+                debug_log(f"Updating Tera dropdown, has {len(self._type_n2i)} types")
+                try:
+                    current_tera = self.var_tera.get()
+                    tera_values = [f"{name} ({iid})" for name, iid in sorted(self._type_n2i.items(), key=lambda kv: kv[0])]
+                    self.cb_tera['values'] = tera_values
+                    debug_log(f"Tera dropdown updated with {len(tera_values)} values")
+                    # Restore selection if valid
+                    if current_tera and current_tera in tera_values:
+                        self.var_tera.set(current_tera)
+                except Exception as e:
+                    debug_log(f"Error updating Tera dropdown: {e}")
+            else:
+                debug_log(f"Cannot update Tera: has_cb_tera={hasattr(self, 'cb_tera')}, has_type_catalog={hasattr(self, '_type_n2i') and bool(self._type_n2i)}")
+
+            # Update Poké Ball dropdown
+            if hasattr(self, 'cb_ball') and hasattr(self, '_ball_n2i'):
+                current_ball = self.var_ball.get()
+                ball_values = [f"{name} ({iid})" for name, iid in sorted(self._ball_n2i.items(), key=lambda kv: kv[0])]
+                self.cb_ball['values'] = ball_values
+                # Restore selection if valid
+                if current_ball and current_ball in ball_values:
+                    self.var_ball.set(current_ball)
+
+        except Exception as e:
+            debug_log(f"Error refreshing forms properties catalogs: {e}")
 
     def _update_status_fields_visibility(self):
         st = (self.var_status.get() or 'none').strip().lower()
@@ -4051,12 +4255,22 @@ class TeamManagerDialog(tk.Toplevel):
                 by_dex = cat.get("by_dex") or {}
                 dex = _get_species_id(mon) or -1
                 entry = by_dex.get(str(dex)) or {}
-                # Form-aware: detect form slug from mon, prefer form typings
-                fslug = self._detect_form_slug(mon)
-                if fslug and (entry.get("forms") or {}).get(fslug):
-                    tp = (entry.get("forms") or {}).get(fslug, {}).get("types") or {}
+                # Form-aware: use effective form from persistence system
+                from rogueeditor.form_persistence import get_effective_pokemon_form
+                effective_form = get_effective_pokemon_form(mon, self.data, self.username, self.slot)
+
+                if effective_form and effective_form.get("types"):
+                    # Use form types from persistence system
+                    tp = effective_form["types"]
+                    debug_log(f"Using form types for matchups: {tp}")
                 else:
-                    tp = entry.get("types") or {}
+                    # Fallback to form slug detection
+                    fslug = self._detect_form_slug(mon)
+                    if fslug and (entry.get("forms") or {}).get(fslug):
+                        tp = (entry.get("forms") or {}).get(fslug, {}).get("types") or {}
+                    else:
+                        tp = entry.get("types") or {}
+                    debug_log(f"Using base types for matchups: {tp}")
                 t1 = tp.get("type1")
                 t2 = tp.get("type2")
                 t1k = str(t1 or "unknown").strip().lower()
@@ -4102,64 +4316,7 @@ class TeamManagerDialog(tk.Toplevel):
         except Exception:
             pass
 
-    def _build_form_visuals(self, parent: ttk.Frame):
-        frm = ttk.Frame(parent)
-        frm.pack(fill=tk.BOTH, expand=True)
-        # Initialize type catalogs (will be loaded asynchronously)
-        self._type_n2i, self._type_i2n = ({}, {})
-        try:
-            # Lazy-load types catalog safely
-            self._type_n2i, self._type_i2n = load_types_catalog()
-        except Exception:
-            self._type_n2i, self._type_i2n = ({}, {})
-        ttk.Label(frm, text="Tera Type:").grid(row=0, column=0, sticky=tk.E, padx=6, pady=6)
-        self.var_tera = tk.StringVar(value="")
-        self.cb_tera = ttk.Combobox(
-            frm,
-            textvariable=self.var_tera,
-            values=[f"{name} ({iid})" for name, iid in sorted(self._type_n2i.items(), key=lambda kv: kv[0])],
-            width=22,
-            state="readonly",
-        )
-        self.cb_tera.grid(row=0, column=1, sticky=tk.W)
-
-        self.var_shiny = tk.BooleanVar(value=False)
-        ttk.Checkbutton(frm, text="Shiny", variable=self.var_shiny, command=self._on_shiny_toggle).grid(row=0, column=2, sticky=tk.W, padx=6)
-        ttk.Label(frm, text="Luck:").grid(row=0, column=3, sticky=tk.E)
-        self.var_luck = tk.StringVar(value="0")
-        self.entry_luck = ttk.Entry(frm, textvariable=self.var_luck, width=5)
-        self.entry_luck.grid(row=0, column=4, sticky=tk.W)
-
-        self.var_pause_evo = tk.BooleanVar(value=False)
-        ttk.Checkbutton(frm, text="Pause Evolutions", variable=self.var_pause_evo).grid(row=1, column=1, sticky=tk.W, padx=6)
-
-        ttk.Label(frm, text="Gender:").grid(row=1, column=0, sticky=tk.E, padx=6, pady=6)
-        self.var_gender = tk.StringVar(value="")
-        self.cb_gender = ttk.Combobox(
-            frm,
-            textvariable=self.var_gender,
-            values=["male (0)", "female (1)", "unknown (-1)"],
-            width=22,
-            state="readonly",
-        )
-        self.cb_gender.grid(row=1, column=1, sticky=tk.W)
-
-        try:
-            self._ball_n2i, self._ball_i2n = load_pokeball_catalog()
-        except Exception:
-            self._ball_n2i, self._ball_i2n = ({}, {})
-        ttk.Label(frm, text="Poké Ball:").grid(row=2, column=0, sticky=tk.E, padx=6, pady=6)
-        self.var_ball = tk.StringVar(value="")
-        self.cb_ball = ttk.Combobox(
-            frm,
-            textvariable=self.var_ball,
-            values=[f"{name} ({iid})" for name, iid in sorted(self._ball_n2i.items(), key=lambda kv: kv[0])],
-            width=22,
-            state="readonly",
-        )
-        self.cb_ball.grid(row=2, column=1, sticky=tk.W)
-
-        # Note: Changes are automatically applied to memory as you edit
+    # _build_form_visuals method removed - functionality moved to Basics tab
 
     def _build_trainer_basics(self, parent: ttk.Frame):
         debug_log("_build_trainer_basics called - using safe approach")
@@ -5134,24 +5291,20 @@ class TeamManagerDialog(tk.Toplevel):
                     entry = by_dex.get(did) or {}
                     name = entry.get("name") or inv.get(did, did)
 
-                    # Simplified form detection (avoid complex processing)
+                    # Use new comprehensive form detection
                     try:
-                        fslug = self._detect_form_slug(mon)
-                        form_disp = None
-                        if fslug:
-                            forms = entry.get("forms") or {}
-                            form_info = forms.get(fslug) or {}
-                            fdn = form_info.get("display_name")
-                            if isinstance(fdn, str) and fdn.strip():
-                                form_disp = fdn
-                    except Exception:
-                        form_disp = None
+                        from rogueeditor.form_persistence import get_pokemon_display_name
+                        # Get the display name which includes form information
+                        display_name = get_pokemon_display_name(mon, self.data, self.username, self.slot)
+                        # If display name is different from base name, use it
+                        if display_name != name and display_name != f"Species#{did}":
+                            name = display_name
+                    except Exception as e:
+                        debug_log(f"Error getting Pokemon display name: {e}")
 
-                    # Build label: Name#0000 Level X (Form if applicable)
+                    # Build label: Name#0000 Level X
                     lvl = _get(mon, ("level", "lvl")) or "?"
                     base_name = name
-                    if form_disp:
-                        base_name = f"{name} ({form_disp})"
                     label = f"{base_name}#{int(did):04d} Level {lvl}"
                     self.party_list.insert(tk.END, label)
 
@@ -5248,6 +5401,7 @@ class TeamManagerDialog(tk.Toplevel):
                 pass
 
     def _current_mon(self) -> Optional[dict]:
+        """Get the current Pokemon with form data enrichment."""
         if not hasattr(self, 'party_list'):
             return None
         # Prefer last known selected index, then current listbox selection, else 0
@@ -5275,7 +5429,25 @@ class TeamManagerDialog(tk.Toplevel):
                 idx = 0
             if idx >= total:
                 idx = total - 1
-            return (self.party or [])[idx]
+
+            # Get the raw Pokemon data
+            raw_pokemon = (self.party or [])[idx]
+            if not raw_pokemon:
+                return None
+
+            # Enrich with form data before returning
+            from rogueeditor.form_persistence import enrich_pokemon_with_form_data
+            try:
+                enriched_pokemon = enrich_pokemon_with_form_data(
+                    raw_pokemon,
+                    self.data,
+                    self.username,
+                    self.slot
+                )
+                return enriched_pokemon
+            except Exception as e:
+                debug_log(f"Error enriching Pokemon with form data: {e}")
+                return raw_pokemon
         except Exception:
             return None
 
@@ -5344,7 +5516,7 @@ class TeamManagerDialog(tk.Toplevel):
                 self.tabs.add(self.tab_poke_basics, text="Basics")
                 self.tabs.add(self.tab_poke_stats, text="Stats")
                 self.tabs.add(self.tab_poke_moves, text="Moves")
-                self.tabs.add(self.tab_poke_form, text="Form & Visuals")
+                # Form & Visuals tab removed - moved to Basics
                 self.tabs.add(self.tab_poke_matchups, text="Defensive Matchups")
                 self.tabs.add(self.tab_poke_coverage, text="Offensive Matchups")
             except Exception:
@@ -6014,15 +6186,43 @@ class TeamManagerDialog(tk.Toplevel):
             self.var_hp.set(cached_data.get("hp", ""))
             self.var_name.set(cached_data.get("nickname", ""))
 
-            # Species and types (cached)
-            self.lbl_species_name.configure(text=cached_data.get("name", "Unknown"))
-            self._update_type_chips_safe(
-                cached_data.get("type1", ""), cached_data.get("type2", ""),
-                cached_data.get("type1_color"), cached_data.get("type2_color")
-            )
+            # Species and types (with form enrichment)
+            try:
+                from rogueeditor.form_persistence import get_pokemon_display_name, get_pokemon_effective_types
+                # Use form-aware display name
+                display_name = get_pokemon_display_name(mon, self.data, self.username, self.slot)
+                self.lbl_species_name.configure(text=display_name)
+
+                # Use form-aware types for type chips
+                form_types = get_pokemon_effective_types(mon, self.data, self.username, self.slot)
+                if form_types:
+                    # Get type colors for form types using correct method
+                    type1_color = self._color_for_type(form_types.get("type1", ""))
+                    type2_color = self._color_for_type(form_types.get("type2", ""))
+                    self._update_type_chips_safe(
+                        form_types.get("type1", ""), form_types.get("type2", ""),
+                        type1_color, type2_color
+                    )
+                else:
+                    # Fallback to cached data for types
+                    self._update_type_chips_safe(
+                        cached_data.get("type1", ""), cached_data.get("type2", ""),
+                        cached_data.get("type1_color"), cached_data.get("type2_color")
+                    )
+            except Exception as e:
+                debug_log(f"Error applying form data to species display: {e}")
+                # Fallback to cached data
+                self.lbl_species_name.configure(text=cached_data.get("name", "Unknown"))
+                self._update_type_chips_safe(
+                    cached_data.get("type1", ""), cached_data.get("type2", ""),
+                    cached_data.get("type1_color"), cached_data.get("type2_color")
+                )
 
             # Show ability immediately (important for basics tab)
             self._update_ability_display(mon)
+
+            # Refresh alternative forms immediately (important for basics tab)
+            self._refresh_alternative_forms()
 
             # Defer expensive operations to avoid blocking
             self.after_idle(lambda: self._apply_secondary_data(mon, cached_data))
@@ -6085,16 +6285,29 @@ class TeamManagerDialog(tk.Toplevel):
             debug_log(f"Error in _rebuild_destroyed_tabs: {e}")
 
     def _update_ability_display(self, mon: dict):
-        """Update ability display immediately for basics tab."""
+        """Update ability display immediately for basics tab, including alternative forms."""
         try:
             if hasattr(self, 'var_ability'):
-                abil = mon.get("abilityId") or mon.get("ability")
-                if isinstance(abil, int):
-                    # Convert ability ID to name using cached catalog
-                    ability_name = self.abil_i2n.get(int(abil), f"Ability #{abil}")
-                    self.var_ability.set(ability_name)
+                # Check for alternative form ability first
+                alt_ability = None
+                try:
+                    from rogueeditor.form_persistence import get_pokemon_effective_ability
+                    alt_ability = get_pokemon_effective_ability(mon, self.data, self.username, self.slot)
+                except Exception as e:
+                    debug_log(f"Error getting alternative form ability: {e}")
+
+                if alt_ability:
+                    # Use alternative form ability
+                    self.var_ability.set(alt_ability)
                 else:
-                    self.var_ability.set(str(abil or ""))
+                    # Fallback to original ability logic
+                    abil = mon.get("abilityId") or mon.get("ability")
+                    if isinstance(abil, int):
+                        # Convert ability ID to name using cached catalog
+                        ability_name = self.abil_i2n.get(int(abil), f"Ability #{abil}")
+                        self.var_ability.set(ability_name)
+                    else:
+                        self.var_ability.set(str(abil or ""))
 
             # Update ability slot radio buttons
             if hasattr(self, 'ability_slot_var'):
@@ -6210,61 +6423,31 @@ class TeamManagerDialog(tk.Toplevel):
             except Exception:
                 pass
 
-            # Populate Form & Visuals (tera, shiny/luck, pause evo, gender, poké ball)
+            # Populate Forms & Visuals (now in Basics tab)
             try:
-                # Tera Type
-                if hasattr(self, 'var_tera'):
-                    t_id = mon.get('teraType')
-                    if isinstance(t_id, int):
-                        try:
-                            name = self._type_i2n.get(int(t_id)) if hasattr(self, '_type_i2n') else None
-                            if isinstance(name, str) and name:
-                                self.var_tera.set(f"{name} ({int(t_id)})")
-                            else:
-                                self.var_tera.set(str(int(t_id)))
-                        except Exception:
-                            self.var_tera.set(str(int(t_id)))
-                    else:
-                        self.var_tera.set("")
+                # Ensure Forms & Properties catalogs are loaded
+                debug_log("Ensuring Forms & Properties catalogs are loaded...")
+                try:
+                    if not hasattr(self, '_type_i2n') or not self._type_i2n:
+                        from rogueeditor.catalog import load_types_catalog
+                        self._type_n2i, self._type_i2n = load_types_catalog()
+                        debug_log(f"Loaded type catalog with {len(self._type_i2n)} types")
 
-                # Shiny & Luck
-                if hasattr(self, 'var_shiny'):
-                    self.var_shiny.set(bool(mon.get('shiny') or False))
-                if hasattr(self, 'var_luck'):
+                    if not hasattr(self, '_ball_i2n') or not self._ball_i2n:
+                        from rogueeditor.catalog import load_pokeball_catalog
+                        self._ball_n2i, self._ball_i2n = load_pokeball_catalog()
+                        debug_log(f"Loaded ball catalog with {len(self._ball_i2n)} balls")
+                except Exception as e:
+                    debug_log(f"Error loading Forms & Properties catalogs: {e}")
+                    self._type_n2i, self._type_i2n = ({}, {})
+                    self._ball_n2i, self._ball_i2n = ({}, {})
+
+                # Alternative forms refresh
+                if hasattr(self, 'var_alt_form'):
                     try:
-                        self.var_luck.set(str(int(mon.get('luck') or 0)))
-                    except Exception:
-                        self.var_luck.set('0')
-
-                # Pause Evolutions
-                if hasattr(self, 'var_pause_evo'):
-                    self.var_pause_evo.set(bool(mon.get('pauseEvolutions') or False))
-
-                # Gender
-                if hasattr(self, 'var_gender'):
-                    g = mon.get('gender')
-                    if g in (0, 1, -1):
-                        gmap = {0: 'male', 1: 'female', -1: 'unknown'}
-                        self.var_gender.set(f"{gmap.get(g, 'unknown')} ({g})")
-                    else:
-                        self.var_gender.set("")
-
-                # Poké Ball
-                if hasattr(self, 'var_ball'):
-                    b = mon.get('pokeball')
-                    if isinstance(b, int):
-                        name = None
-                        try:
-                            if hasattr(self, '_ball_i2n'):
-                                name = self._ball_i2n.get(int(b))
-                        except Exception:
-                            name = None
-                        if isinstance(name, str) and name:
-                            self.var_ball.set(f"{name} ({int(b)})")
-                        else:
-                            self.var_ball.set(str(int(b)))
-                    else:
-                        self.var_ball.set("")
+                        self._check_and_update_alternative_forms()
+                    except Exception as e:
+                        debug_log(f"Error refreshing alternative forms: {e}")
             except Exception:
                 pass
 
@@ -6277,6 +6460,20 @@ class TeamManagerDialog(tk.Toplevel):
                         self._basics_skeleton,
                         lambda parent=self.tab_poke_basics: self._build_basics(parent)
                     )
+                    # Refresh form properties and alternative forms after basics tab is rebuilt
+                    try:
+                        self._refresh_form_properties()
+                        debug_log("Form properties refreshed after basics tab rebuild")
+                    except Exception as e:
+                        debug_log(f"Error refreshing form properties after basics rebuild: {e}")
+
+                    # Also refresh alternative forms since they're in the same section
+                    try:
+                        if hasattr(self, 'var_alt_form'):
+                            self._check_and_update_alternative_forms()
+                            debug_log("Alternative forms refreshed after basics tab rebuild")
+                    except Exception as e:
+                        debug_log(f"Error refreshing alternative forms after basics rebuild: {e}")
                 # Stats
                 if hasattr(self, '_stats_skeleton') and self._stats_skeleton.winfo_exists():
                     self._replace_skeleton_with_content(
@@ -6487,7 +6684,13 @@ class TeamManagerDialog(tk.Toplevel):
         try:
             if mon:
                 self.var_exp.set(str(int(mon.get('exp', 0))))
-                self.lbl_species_name.configure(text=str(mon.get("species", "Unknown")))
+                # Use form-aware display name instead of basic species
+                try:
+                    from rogueeditor.form_persistence import get_pokemon_display_name
+                    display_name = get_pokemon_display_name(mon, self.data, self.username, self.slot)
+                    self.lbl_species_name.configure(text=display_name)
+                except Exception:
+                    self.lbl_species_name.configure(text=str(mon.get("species", "Unknown")))
                 self.var_friend.set(str(mon.get("friendship", "")))
                 self.var_hp.set(str(mon.get("currentHp", "")))
         except Exception:
@@ -6541,12 +6744,34 @@ class TeamManagerDialog(tk.Toplevel):
             self.var_hp.set(str(mon.get("currentHp") or mon.get("hp") or ""))
             self.var_name.set(str(mon.get("nickname") or mon.get("name") or ""))
 
-            # Species name
-            self.lbl_species_name.configure(text=cached_data["name"])
+            # Species name - use form-aware display name
+            try:
+                from rogueeditor.form_persistence import get_pokemon_display_name
+                display_name = get_pokemon_display_name(mon, self.data, self.username, self.slot)
+                self.lbl_species_name.configure(text=display_name)
+            except Exception:
+                self.lbl_species_name.configure(text=cached_data["name"])
 
-            # Type chips (safe implementation)
-            self._update_type_chips_safe(cached_data["type1"], cached_data["type2"],
-                                       cached_data["type1_color"], cached_data["type2_color"])
+            # Type chips (safe implementation) - use form-aware types
+            try:
+                from rogueeditor.form_persistence import get_pokemon_effective_types
+                form_types = get_pokemon_effective_types(mon, self.data, self.username, self.slot)
+                if form_types:
+                    # Use form types
+                    type1 = form_types.get('type1', cached_data["type1"])
+                    type2 = form_types.get('type2', cached_data["type2"])
+                    # Get colors for the form types using robust color lookup
+                    type1_color = self._color_for_type(type1) if type1 else None
+                    type2_color = self._color_for_type(type2) if type2 else None
+                    self._update_type_chips_safe(type1, type2, type1_color, type2_color)
+                else:
+                    # Fallback to cached types
+                    self._update_type_chips_safe(cached_data["type1"], cached_data["type2"],
+                                               cached_data["type1_color"], cached_data["type2_color"])
+            except Exception:
+                # Ultimate fallback
+                self._update_type_chips_safe(cached_data["type1"], cached_data["type2"],
+                                           cached_data["type1_color"], cached_data["type2_color"])
 
             # Level calculation
             try:
@@ -7029,6 +7254,1206 @@ class TeamManagerDialog(tk.Toplevel):
         except Exception:
             pass
 
+    def _on_alt_form_change(self, event=None):
+        """Handle alternative form selection change."""
+        mon = self._current_mon()
+        if not mon:
+            return
+
+        try:
+            from rogueeditor.form_persistence import SlotFormPersistence
+            from rogueeditor.catalog import get_pokemon_alternative_forms
+
+            selected_form = self.var_alt_form.get()
+            species_id = mon.get("species")
+            pokemon_id = mon.get("id")
+
+            if not species_id or not pokemon_id:
+                return
+
+            persistence = SlotFormPersistence(self.username, self.slot)
+
+            if selected_form == "Base Form":
+                # Clear user-specified form preference
+                persistence.clear_pokemon_form(pokemon_id)
+            else:
+                # Find the selected form data
+                alt_forms = get_pokemon_alternative_forms(species_id)
+                if alt_forms:
+                    for form in alt_forms.get("forms", []):
+                        if form.get("form_name") == selected_form:
+                            persistence.set_pokemon_form(
+                                pokemon_id,
+                                form.get("form_key", ""),
+                                form.get("form_name", "")
+                            )
+                            break
+
+            # Update form info display
+            self._update_form_info_display()
+
+            # Update Pokemon name to include form
+            self._update_pokemon_name_with_form()
+
+            # Update type chips to show new types
+            self._update_type_chips()
+
+            # Clear caches to force recalculation with new form
+            self._invalidate_form_caches()
+
+            # Recalculate stats to reflect form changes
+            self._recalc_stats_safe()
+
+            # Update defensive matchups with new types
+            self._update_deferred_matchups(mon)
+
+        except Exception as e:
+            debug_log(f"Error changing alternative form: {e}")
+
+    def _on_auto_detect_forms_toggle(self):
+        """Handle auto-detection toggle change."""
+        try:
+            from rogueeditor.form_persistence import SlotFormPersistence
+
+            persistence = SlotFormPersistence(self.username, self.slot)
+            mon = self._current_mon()
+            if mon and mon.get("id"):
+                # Set per-Pokemon auto-detect preference
+                pokemon_id = mon.get("id")
+                persistence.set_pokemon_auto_detect(pokemon_id, self.var_auto_detect_forms.get())
+                debug_log(f"Set auto-detect for Pokemon ID {pokemon_id}: {self.var_auto_detect_forms.get()}")
+            else:
+                # Fall back to global setting if no Pokemon ID available
+                persistence.set_auto_detect(self.var_auto_detect_forms.get())
+                debug_log(f"Set global auto-detect: {self.var_auto_detect_forms.get()}")
+
+            # Update form detection and refresh display
+            self._refresh_alternative_forms()
+            self._update_form_info_display()
+
+            # Update Pokemon name to include form
+            self._update_pokemon_name_with_form()
+
+            # Update type chips to show new types
+            self._update_type_chips()
+
+            # Clear caches to force recalculation with new form
+            self._invalidate_form_caches()
+
+            # Recalculate stats in case form changed
+            self._recalc_stats_safe()
+
+            # Update defensive matchups with new types
+            mon = self._current_mon()
+            if mon:
+                self._update_deferred_matchups(mon)
+
+        except Exception as e:
+            debug_log(f"Error toggling auto-detect forms: {e}")
+
+    def _refresh_alternative_forms(self):
+        """Refresh the alternative forms dropdown for the current Pokemon."""
+        try:
+            mon = self._current_mon()
+            if not mon:
+                self._hide_alternative_forms()
+                return
+
+            from rogueeditor.catalog import get_pokemon_alternative_forms
+            from rogueeditor.form_persistence import determine_default_form_selection
+
+            species_id = mon.get("species")
+            pokemon_id = mon.get("id")
+
+            if not species_id:
+                self._hide_alternative_forms()
+                return
+
+            # Get available forms
+            alt_forms = get_pokemon_alternative_forms(species_id)
+            form_names = ["Base Form"]
+
+            if alt_forms:
+                for form in alt_forms.get("forms", []):
+                    form_name = form.get("form_name")
+                    if form_name:
+                        form_names.append(form_name)
+
+            # Check if we have alternative forms OR detected form changes
+            from rogueeditor.form_persistence import get_effective_pokemon_form
+            effective_form = get_effective_pokemon_form(mon, self.data, self.username, self.slot)
+            has_detected_form = effective_form is not None
+
+            # Show forms UI if we have multiple forms OR detected form
+            if len(form_names) <= 1 and not has_detected_form:
+                debug_log(f"No alternative forms found for species {species_id} and no detected form")
+                self._hide_alternative_forms()
+                return
+
+            # Forms UI is always visible since it's created in _build_basics
+            debug_log("Alternative forms UI is already available")
+
+            # Update combobox values directly using the already-created widgets
+            try:
+                # Enhanced widget accessibility check with debugging
+                cb_exists = hasattr(self, 'cb_alt_form')
+                cb_valid = cb_exists and self.cb_alt_form.winfo_exists() if cb_exists else False
+                debug_log(f"Widget check: cb_alt_form hasattr={cb_exists}, winfo_exists={cb_valid}")
+
+                if cb_valid:
+                    self.cb_alt_form["values"] = form_names
+                    self.cb_alt_form.configure(state="readonly")
+                    debug_log(f"Updated form combobox with values: {form_names}")
+
+                    # Load and set auto-detect mode from persistence (per-Pokemon with global fallback)
+                    from rogueeditor.form_persistence import SlotFormPersistence
+                    persistence = SlotFormPersistence(self.username, self.slot)
+                    pokemon_id = mon.get("id")
+                    if pokemon_id:
+                        auto_detect_enabled = persistence.get_effective_auto_detect(pokemon_id)
+                        debug_log(f"Using effective auto-detect for Pokemon ID {pokemon_id}: {auto_detect_enabled}")
+                    else:
+                        auto_detect_enabled = persistence.get_auto_detect()
+                        debug_log(f"Using global auto-detect (no Pokemon ID): {auto_detect_enabled}")
+
+                    if hasattr(self, 'var_auto_detect_forms'):
+                        self.var_auto_detect_forms.set(auto_detect_enabled)
+                        debug_log(f"Set auto-detect checkbox to: {auto_detect_enabled}")
+                else:
+                    debug_log("Alternative forms combobox not available - attempting to recreate widgets")
+                    # Try to ensure widgets are available
+                    if self._ensure_alternative_forms_widgets():
+                        debug_log("Widgets recreated successfully, retrying form refresh")
+                        # Retry the operation with recreated widgets
+                        if hasattr(self, 'cb_alt_form') and self.cb_alt_form.winfo_exists():
+                            self.cb_alt_form["values"] = form_names
+                            self.cb_alt_form.configure(state="readonly")
+                            debug_log(f"Updated form combobox after recreation with values: {form_names}")
+                        else:
+                            debug_log("Widget recreation failed")
+                            self._hide_alternative_forms()
+                            return
+                    else:
+                        debug_log("Could not recreate alternative forms widgets")
+                        self._hide_alternative_forms()
+                        return
+            except Exception as e:
+                debug_log(f"Error updating alternative forms UI: {e}")
+                self._hide_alternative_forms()
+                return
+
+            # Determine the current effective form to set dropdown selection
+            if effective_form and effective_form.get("form_name"):
+                # Use the currently effective form name
+                selected_form_name = effective_form.get("form_name")
+                debug_log(f"Using effective form for dropdown: {selected_form_name}")
+            else:
+                # Check if enriched data already has form information
+                form_data = mon.get("_form_data", {})
+                if form_data and form_data.get("form_name"):
+                    selected_form_name = form_data.get("form_name")
+                    debug_log(f"Using form from enriched data: {selected_form_name}")
+                else:
+                    # Fall back to intelligent defaulting as last resort
+                    default_form = determine_default_form_selection(mon, self.data, self.username, self.slot)
+                    selected_form_name = default_form
+                    debug_log(f"Using intelligent default form: {selected_form_name}")
+
+            # Set the selected form in the UI
+            if hasattr(self, 'var_alt_form'):
+                try:
+                    self.var_alt_form.set(selected_form_name)
+                    debug_log(f"Successfully set form selection to: {selected_form_name}")
+
+                    # IMMEDIATELY update visual elements to reflect the form
+                    self._apply_form_to_ui(selected_form_name, species_id)
+
+                    # Show hint if multiple forms exist
+                    if len(form_names) > 2:  # Base + multiple alternatives
+                        self._show_form_selection_hint()
+
+                except Exception as e:
+                    debug_log(f"Error setting form selection: {e}")
+
+        except Exception as e:
+            debug_log(f"Error refreshing alternative forms: {e}")
+
+    def _apply_form_to_ui(self, form_name, species_id):
+        """Apply the selected form to all UI elements immediately."""
+        try:
+            debug_log(f"Applying form '{form_name}' to UI for species {species_id}")
+
+            # Update Pokemon name with form
+            self._update_pokemon_name_with_form()
+
+            # Update form info display
+            self._update_form_info_display()
+
+            # Update type chips and other visual elements
+            self._update_type_display_with_form(form_name, species_id)
+
+            # Update stats if form provides them
+            self._update_stats_with_form(form_name, species_id)
+
+            # Update defensive matchups
+            self._update_matchups_with_form(form_name, species_id)
+
+            # Refresh form properties (tera, gender, ball, shiny, etc.)
+            self._refresh_form_properties()
+
+            debug_log(f"Successfully applied form '{form_name}' to UI")
+
+        except Exception as e:
+            debug_log(f"Error applying form to UI: {e}")
+
+    def _refresh_form_properties(self):
+        """Refresh Forms & Properties tab values from current Pokemon data."""
+        try:
+            mon = self._current_mon()
+            if not mon:
+                return
+
+            debug_log("Refreshing form properties (tera, gender, ball, shiny, luck, pause evolutions)")
+
+            # Check if widgets exist before trying to set values
+            widgets_available = all([
+                hasattr(self, 'var_tera'),
+                hasattr(self, 'var_gender'),
+                hasattr(self, 'var_ball'),
+                hasattr(self, 'var_shiny'),
+                hasattr(self, 'var_luck'),
+                hasattr(self, 'var_pause_evo')
+            ])
+
+            if not widgets_available:
+                debug_log("Forms & Properties widgets not available yet, skipping refresh")
+                return
+
+            # Tera Type
+            if hasattr(self, 'var_tera'):
+                t_id = mon.get('teraType')
+                if isinstance(t_id, int):
+                    try:
+                        name = self._type_i2n.get(int(t_id)) if self._type_i2n else None
+                        if isinstance(name, str) and name:
+                            self.var_tera.set(f"{name} ({int(t_id)})")
+                            debug_log(f"Refreshed Tera type to: {name} ({int(t_id)})")
+                        else:
+                            self.var_tera.set(str(int(t_id)))
+                            debug_log(f"Refreshed Tera type to ID: {int(t_id)}")
+                    except Exception:
+                        self.var_tera.set(str(int(t_id)))
+                else:
+                    self.var_tera.set("")
+                    debug_log("Cleared Tera type (no valid teraType found)")
+
+            # Shiny & Luck
+            if hasattr(self, 'var_shiny'):
+                self.var_shiny.set(bool(mon.get('shiny') or False))
+                debug_log(f"Refreshed shiny to: {bool(mon.get('shiny') or False)}")
+            if hasattr(self, 'var_luck'):
+                try:
+                    luck_val = str(int(mon.get('luck') or 0))
+                    self.var_luck.set(luck_val)
+                    debug_log(f"Refreshed luck to: {luck_val}")
+                except Exception:
+                    self.var_luck.set('0')
+                    debug_log("Refreshed luck to: 0 (fallback)")
+
+            # Pause Evolutions
+            if hasattr(self, 'var_pause_evo'):
+                pause_val = bool(mon.get('pauseEvolutions') or False)
+                self.var_pause_evo.set(pause_val)
+                debug_log(f"Refreshed pause evolutions to: {pause_val}")
+
+            # Gender
+            if hasattr(self, 'var_gender'):
+                g = mon.get('gender')
+                if g in (0, 1, -1):
+                    gmap = {0: 'male', 1: 'female', -1: 'unknown'}
+                    gender_text = f"{gmap.get(g, 'unknown')} ({g})"
+                    self.var_gender.set(gender_text)
+                    debug_log(f"Refreshed gender to: {gender_text}")
+                else:
+                    self.var_gender.set("")
+                    debug_log("Cleared gender (invalid value)")
+
+            # Poké Ball
+            if hasattr(self, 'var_ball'):
+                b = mon.get('pokeball')
+                if isinstance(b, int):
+                    name = None
+                    try:
+                        if self._ball_i2n:
+                            name = self._ball_i2n.get(int(b))
+                    except Exception:
+                        name = None
+                    if isinstance(name, str) and name:
+                        ball_text = f"{name} ({int(b)})"
+                        self.var_ball.set(ball_text)
+                        debug_log(f"Refreshed Poké Ball to: {ball_text}")
+                    else:
+                        ball_text = str(int(b))
+                        self.var_ball.set(ball_text)
+                        debug_log(f"Refreshed Poké Ball to ID: {ball_text}")
+                else:
+                    self.var_ball.set("")
+                    debug_log("Cleared Poké Ball (no valid pokeball found)")
+
+        except Exception as e:
+            debug_log(f"Error refreshing form properties: {e}")
+
+    def _get_cached_pokemon_data(self, pokemon_id):
+        """Get cached enriched Pokemon data for the given ID."""
+        if not hasattr(self, '_pokemon_cache'):
+            self._pokemon_cache = {}
+
+        cache_key = f"{self.username}_{self.slot}_{pokemon_id}"
+        return self._pokemon_cache.get(cache_key)
+
+    def _cache_pokemon_data(self, pokemon_id, enriched_data):
+        """Cache enriched Pokemon data for the given ID."""
+        if not hasattr(self, '_pokemon_cache'):
+            self._pokemon_cache = {}
+
+        cache_key = f"{self.username}_{self.slot}_{pokemon_id}"
+        self._pokemon_cache[cache_key] = enriched_data
+        debug_log(f"Cached enriched Pokemon data for ID {pokemon_id}")
+
+    def _invalidate_pokemon_cache(self, pokemon_id=None):
+        """Invalidate Pokemon cache for specific ID or all if none provided."""
+        if not hasattr(self, '_pokemon_cache'):
+            return
+
+        if pokemon_id is None:
+            # Clear entire cache
+            self._pokemon_cache.clear()
+            debug_log("Cleared entire Pokemon cache")
+        else:
+            # Clear specific Pokemon cache
+            cache_key = f"{self.username}_{self.slot}_{pokemon_id}"
+            if cache_key in self._pokemon_cache:
+                del self._pokemon_cache[cache_key]
+                debug_log(f"Invalidated cache for Pokemon ID {pokemon_id}")
+
+    def _get_or_enrich_pokemon_data(self, pokemon_data):
+        """Get enriched Pokemon data from cache or enrich and cache it."""
+        if not isinstance(pokemon_data, dict):
+            return pokemon_data
+
+        pokemon_id = pokemon_data.get("id")
+        if not pokemon_id:
+            # No ID, can't cache - enrich directly
+            from rogueeditor.form_persistence import enrich_pokemon_with_form_data
+            return enrich_pokemon_with_form_data(pokemon_data, self.data, self.username, self.slot)
+
+        # Check cache first
+        cached_data = self._get_cached_pokemon_data(pokemon_id)
+        if cached_data is not None:
+            debug_log(f"Using cached enriched data for Pokemon ID {pokemon_id}")
+            return cached_data
+
+        # Not in cache - enrich and cache
+        from rogueeditor.form_persistence import enrich_pokemon_with_form_data
+        enriched_data = enrich_pokemon_with_form_data(pokemon_data, self.data, self.username, self.slot)
+        self._cache_pokemon_data(pokemon_id, enriched_data)
+        return enriched_data
+
+    def _update_pokemon_name_with_form(self):
+        """Update Pokemon name display to include form name."""
+        try:
+            mon = self._current_mon()
+            if not mon or not hasattr(self, 'lbl_species_name'):
+                debug_log("Cannot update Pokemon name - no current Pokemon or species label")
+                return
+
+            # Use the form persistence system to get the correct display name
+            from rogueeditor.form_persistence import get_pokemon_display_name
+            display_name = get_pokemon_display_name(mon, self.data, self.username, self.slot)
+
+            # Update the species name label
+            self.lbl_species_name.config(text=display_name)
+            debug_log(f"Updated Pokemon species name to: {display_name}")
+
+        except Exception as e:
+            debug_log(f"Error updating Pokemon name with form: {e}")
+
+    def _update_party_display_name(self, display_name):
+        """Update the party list display name for current Pokemon."""
+        try:
+            if hasattr(self, 'party_list') and hasattr(self, '_last_selected_index'):
+                idx = self._last_selected_index
+                if idx is not None and 0 <= idx < self.party_list.size():
+                    # Update the display name in the party list
+                    current_display = self.party_list.get(idx)
+                    # Keep the level part but update the name part
+                    if "Lv." in current_display:
+                        parts = current_display.split("Lv.")
+                        if len(parts) >= 2:
+                            new_display = f"{display_name} Lv.{parts[1]}"
+                            # Can't directly update listbox items, but store for future refreshes
+                            debug_log(f"Would update party display to: {new_display}")
+        except Exception as e:
+            debug_log(f"Error updating party display name: {e}")
+
+    def _update_type_display_with_form(self, form_name, species_id):
+        """Update type chips/display with form types."""
+        try:
+            from rogueeditor.catalog import get_pokemon_alternative_forms
+
+            if form_name == "Base Form":
+                debug_log("Using base form types")
+                return
+
+            # Get form data
+            alt_forms = get_pokemon_alternative_forms(species_id)
+            if not alt_forms:
+                return
+
+            form_data = None
+            for form in alt_forms.get("forms", []):
+                if form.get("form_name") == form_name:
+                    form_data = form
+                    break
+
+            if form_data and form_data.get("types"):
+                form_types = form_data.get("types")
+                debug_log(f"Found form types: {form_types}")
+                # The type display will be updated when stats are recalculated
+                # Force a stats recalculation to trigger type updates
+                self._recalc_stats_safe()
+
+        except Exception as e:
+            debug_log(f"Error updating type display with form: {e}")
+
+    def _update_stats_with_form(self, form_name, species_id):
+        """Update stats display with form stats."""
+        try:
+            # Force stats recalculation which will use form data
+            if hasattr(self, '_recalc_stats_optimized'):
+                self._recalc_stats_optimized()
+            else:
+                self._recalc_stats_safe()
+            debug_log(f"Updated stats for form: {form_name}")
+        except Exception as e:
+            debug_log(f"Error updating stats with form: {e}")
+
+    def _update_matchups_with_form(self, form_name, species_id):
+        """Update defensive matchups with form types."""
+        try:
+            # Force matchups recalculation which will use form types
+            if hasattr(self, '_update_coverage_walls_guarded'):
+                self._update_coverage_walls_guarded()
+            debug_log(f"Updated matchups for form: {form_name}")
+        except Exception as e:
+            debug_log(f"Error updating matchups with form: {e}")
+
+    def _trigger_form_based_ui_updates(self):
+        """Trigger updates to stats, types, and matchups when form changes."""
+        try:
+            # Force recalculation of stats with form data
+            if hasattr(self, '_recalc_stats_optimized'):
+                self._recalc_stats_optimized()
+
+            # Update defensive matchups with form types
+            if hasattr(self, '_update_coverage_walls_guarded'):
+                self._update_coverage_walls_guarded()
+
+            debug_log("Triggered form-based UI updates")
+        except Exception as e:
+            debug_log(f"Error triggering form-based UI updates: {e}")
+
+    def _show_form_selection_hint(self):
+        """Show hint when multiple forms exist to guide user selection."""
+        try:
+            if hasattr(self, 'lbl_form_info') and self.lbl_form_info.winfo_exists():
+                self.lbl_form_info.configure(
+                    text="Multiple forms detected. Please select the correct form for accurate calculations.",
+                    foreground="orange"
+                )
+        except Exception as e:
+            debug_log(f"Error showing form selection hint: {e}")
+
+    def _update_form_info_display(self):
+        """Update the form information display."""
+        try:
+            mon = self._current_mon()
+            if not mon:
+                self.lbl_form_info.config(text="")
+                return
+
+            from rogueeditor.form_persistence import get_effective_pokemon_form, SlotFormPersistence
+            from rogueeditor.catalog import get_pokemon_alternative_forms
+
+            species_id = mon.get("species")
+            pokemon_id = mon.get("id")
+
+            # Check how many forms are available
+            alt_forms = get_pokemon_alternative_forms(species_id)
+            num_alt_forms = len(alt_forms.get("forms", [])) if alt_forms else 0
+
+            effective_form = get_effective_pokemon_form(mon, self.data, self.username, self.slot)
+
+            if effective_form:
+                # Show form details
+                types = effective_form.get("types", {})
+                type1 = types.get("type1", "")
+                type2 = types.get("type2", "")
+                type_str = type1
+                if type2 and type2 != type1:
+                    type_str += f"/{type2}"
+
+                ability = effective_form.get("ability", "")
+                form_type = effective_form.get("form_type", "")
+
+                info_parts = []
+                if type_str:
+                    info_parts.append(f"Type: {type_str}")
+                if ability:
+                    info_parts.append(f"Ability: {ability}")
+                if form_type:
+                    info_parts.append(f"Form Type: {form_type}")
+
+                info_text = " | ".join(info_parts)
+
+                # Add guidance for multiple forms
+                if num_alt_forms > 1:
+                    persistence = SlotFormPersistence(self.username, self.slot)
+                    user_form = persistence.get_pokemon_form(pokemon_id)
+                    if not user_form or not user_form.get("user_specified"):
+                        info_text += f" | Note: {num_alt_forms} forms available - select manually for best accuracy"
+
+                self.lbl_form_info.config(text=info_text, foreground="black")
+            else:
+                if num_alt_forms > 1:
+                    self.lbl_form_info.config(text=f"Base form | Note: {num_alt_forms} alternative forms available - select manually for accuracy", foreground="orange")
+                else:
+                    self.lbl_form_info.config(text="Base form", foreground="gray")
+
+        except Exception as e:
+            debug_log(f"Error updating form info display: {e}")
+            self.lbl_form_info.config(text="")
+
+    def _invalidate_form_caches(self):
+        """Invalidate caches that depend on Pokemon forms."""
+        try:
+            # Clear species types cache to force re-lookup with new form
+            if hasattr(self, '_species_types_cache'):
+                self._species_types_cache.clear()
+
+            # Clear matchup cache to force recalculation with new types
+            if hasattr(self, '_matchup_cache'):
+                self._matchup_cache.clear()
+                debug_log("Cleared matchup cache for form change")
+
+            # Clear base stats cache to force re-lookup with new form
+            if hasattr(self, '_base_stats_cache'):
+                self._base_stats_cache.clear()
+                debug_log("Cleared base stats cache for form change")
+
+            # Clear any other form-dependent caches
+            if hasattr(self, '_pokemon_catalog_cache'):
+                # Don't clear the catalog itself, but we'll force re-lookup of specific entries
+                pass
+
+            # Clear enriched Pokemon data cache for current Pokemon
+            mon = self._current_mon()
+            if mon and mon.get("id"):
+                self._invalidate_pokemon_cache(mon.get("id"))
+            else:
+                # If no specific Pokemon, clear entire cache
+                self._invalidate_pokemon_cache()
+
+        except Exception as e:
+            debug_log(f"Error invalidating form caches: {e}")
+
+    def _check_and_update_alternative_forms(self):
+        """Check if Pokemon has form change items and show/hide alternative forms section accordingly."""
+        try:
+            mon = self._current_mon()
+            if not mon:
+                self._hide_alternative_forms()
+                return
+
+            species_id = mon.get("species")
+            pokemon_id = mon.get("id")
+
+            debug_log(f"Checking alternative forms for species {species_id}, pokemon {pokemon_id}")
+
+            if not species_id or not pokemon_id:
+                self._hide_alternative_forms()
+                return
+
+            # Check if Pokemon has rare form change items
+            has_form_items = self._pokemon_has_form_change_items(pokemon_id)
+
+            # Check if Pokemon has available alternative forms
+            from rogueeditor.catalog import get_pokemon_alternative_forms
+            alt_forms = get_pokemon_alternative_forms(species_id)
+            has_alt_forms = alt_forms and len(alt_forms.get("forms", [])) > 0
+
+            debug_log(f"Has form items: {has_form_items}, Has alt forms: {has_alt_forms}")
+
+            # Always show the forms section since it's always visible
+            if has_alt_forms:
+                # Alternative forms are available - always refresh to show them
+                self._refresh_alternative_forms()
+                self._update_form_info_display()
+                self._update_pokemon_name_with_form()
+                debug_log(f"Alternative forms section refreshed for {species_id}")
+            else:
+                # No alternative forms available - hide by setting dropdown to disabled
+                if hasattr(self, 'cb_alt_form'):
+                    try:
+                        self.cb_alt_form["values"] = ["Base Form"]
+                        self.cb_alt_form.configure(state="disabled")
+                        self.var_alt_form.set("Base Form")
+                        debug_log(f"No alternative forms available for {species_id}")
+                    except Exception:
+                        pass
+
+        except Exception as e:
+            debug_log(f"Error checking alternative forms: {e}")
+            self._hide_alternative_forms()
+
+    def _show_alternative_forms(self):
+        """Show the alternative forms widgets safely."""
+        try:
+            # Ensure frame and widgets exist before trying to show them
+            self._ensure_alternative_forms_widgets()
+
+            if hasattr(self, 'alt_forms_frame') and self.alt_forms_frame.winfo_exists():
+                # Show individual widgets within the frame (frame itself is always visible in grid)
+                for widget in self.alt_forms_frame.winfo_children():
+                    if widget.winfo_exists():
+                        try:
+                            widget.grid()
+                        except Exception:
+                            pass
+                self._forms_section_visible = True
+                debug_log("Alternative forms widgets shown")
+            else:
+                debug_log("Alternative forms frame does not exist or is destroyed")
+        except Exception as e:
+            debug_log(f"Error showing alternative forms widgets: {e}")
+
+    def _find_current_forms_container(self):
+        """Find the currently active forms container by searching the basics tab."""
+        try:
+            # Start from the basics tab and find the forms container
+            if not hasattr(self, 'tab_poke_basics') or not self.tab_poke_basics.winfo_exists():
+                debug_log("Basics tab does not exist")
+                return None
+
+            debug_log("Searching for Forms & Properties section in basics tab")
+
+            # Search for Forms & Properties section in the basics tab with enhanced debugging
+            def find_forms_container(widget, depth=0):
+                try:
+                    # Add depth limit to prevent infinite recursion
+                    if depth > 10:
+                        return None
+
+                    # Check if this widget has the right text
+                    if hasattr(widget, 'cget'):
+                        try:
+                            text = widget.cget('text')
+                            debug_log(f"Checking widget text at depth {depth}: '{text}' (type: {type(widget).__name__})")
+                            if text == 'Forms & Properties':
+                                debug_log(f"Found Forms & Properties section: {widget}")
+                                return widget
+                        except:
+                            pass
+
+                    # Recursively search children
+                    for child in widget.winfo_children():
+                        result = find_forms_container(child, depth + 1)
+                        if result:
+                            return result
+                except Exception as e:
+                    debug_log(f"Error in recursive search at depth {depth}: {e}")
+                return None
+
+            forms_section = find_forms_container(self.tab_poke_basics)
+            if not forms_section:
+                debug_log("Could not find Forms & Properties section - trying alternative search")
+
+                # Alternative search: look for any LabelFrame containing "Forms" or "Properties"
+                def find_any_forms_section(widget, depth=0):
+                    if depth > 10:
+                        return None
+                    try:
+                        if isinstance(widget, ttk.LabelFrame):
+                            text = widget.cget('text')
+                            debug_log(f"Found LabelFrame with text: '{text}'")
+                            if 'Forms' in text or 'Properties' in text:
+                                debug_log(f"Found potential forms section: {widget}")
+                                return widget
+
+                        for child in widget.winfo_children():
+                            result = find_any_forms_section(child, depth + 1)
+                            if result:
+                                return result
+                    except Exception as e:
+                        debug_log(f"Error in alternative search: {e}")
+                    return None
+
+                forms_section = find_any_forms_section(self.tab_poke_basics)
+                if not forms_section:
+                    debug_log("Alternative search also failed to find Forms & Properties section")
+                    return None
+
+            debug_log(f"Found forms section: {forms_section}")
+
+            # Find the alternative forms container within this section
+            debug_log("Searching for Alternative Forms container within forms section")
+            for i, child in enumerate(forms_section.winfo_children()):
+                try:
+                    if hasattr(child, 'cget'):
+                        child_text = child.cget('text')
+                        debug_log(f"Forms section child {i}: '{child_text}' (type: {type(child).__name__})")
+                        if 'Alternative Forms' in child_text:
+                            debug_log(f"Found current forms container: {child}")
+                            return child
+                except Exception as e:
+                    debug_log(f"Error checking forms section child {i}: {e}")
+
+            debug_log("Could not find alternative forms container in Forms & Properties section")
+            return None
+
+        except Exception as e:
+            debug_log(f"Error finding current forms container: {e}")
+            return None
+
+    def _ensure_alternative_forms_widgets(self):
+        """Ensure alternative forms widgets exist and are accessible, recreating if necessary."""
+        try:
+            # First, try to find the current active forms container
+            current_forms_container = self._find_current_forms_container()
+
+            if not current_forms_container:
+                debug_log("No current forms container found")
+                return False
+
+            # Update our frame reference to the current container
+            self.alt_forms_frame = current_forms_container
+
+            # Check if widgets exist in this container
+            widgets_exist = False
+            try:
+                for child in current_forms_container.winfo_children():
+                    if hasattr(child, 'cget') and child.cget('text') == 'Form:':
+                        # Found form widgets, check if combobox exists too
+                        for sibling in current_forms_container.winfo_children():
+                            if isinstance(sibling, ttk.Combobox):
+                                self.cb_alt_form = sibling
+                                widgets_exist = True
+                                break
+                        break
+            except:
+                pass
+
+            debug_log(f"Widgets exist in current container: {widgets_exist}")
+
+            if widgets_exist:
+                debug_log("Alternative forms widgets found in current container")
+                return True
+
+            # If widgets don't exist, create them
+            debug_log("Creating alternative forms widgets in current container")
+
+            # Clear existing widgets first
+            for widget in current_forms_container.winfo_children():
+                widget.destroy()
+
+            # Form label and dropdown
+            ttk.Label(current_forms_container, text="Form:").grid(row=0, column=0, sticky=tk.W, padx=4, pady=2)
+
+            self.var_alt_form = tk.StringVar(value="Base Form")
+            self.cb_alt_form = ttk.Combobox(
+                current_forms_container,
+                textvariable=self.var_alt_form,
+                values=["Base Form"],
+                width=15,
+                state="readonly",
+            )
+            self.cb_alt_form.grid(row=0, column=1, sticky=tk.W, padx=(4, 4), pady=2)
+            self.cb_alt_form.bind("<<ComboboxSelected>>", self._on_alt_form_change)
+
+            # Auto-detect toggle
+            self.var_auto_detect_forms = tk.BooleanVar(value=True)
+            ttk.Checkbutton(current_forms_container, text="Auto-detect from form items",
+                           variable=self.var_auto_detect_forms,
+                           command=self._on_auto_detect_forms_toggle).grid(row=1, column=0, columnspan=2, sticky=tk.W, padx=4, pady=1)
+
+            # Form information display
+            self.lbl_form_info = ttk.Label(current_forms_container, text="", foreground="gray", wraplength=200, font=("TkDefaultFont", 8))
+            self.lbl_form_info.grid(row=2, column=0, columnspan=2, sticky=tk.W, padx=4, pady=(2, 1))
+
+            # Explanation text
+            self.lbl_form_explanation = ttk.Label(
+                current_forms_container,
+                text="Form affects calculations only (not save data)",
+                foreground="blue",
+                font=("TkDefaultFont", 8),
+                wraplength=200
+            )
+            self.lbl_form_explanation.grid(row=3, column=0, columnspan=2, sticky=tk.W, padx=4, pady=(0, 2))
+
+            debug_log("Alternative forms widgets created successfully in current container")
+            return True
+
+        except Exception as e:
+            debug_log(f"Error ensuring alternative forms widgets: {e}")
+            return False
+
+    def _recreate_alternative_forms_in_container(self, forms_container):
+        """Recreate alternative forms frame in the given container."""
+        try:
+            # Create the alternative forms frame
+            self.alt_forms_frame = ttk.LabelFrame(forms_container, text="Alternative Forms (Calculations Only)")
+            self.alt_forms_frame.grid(row=0, column=2, sticky=tk.NSEW, padx=(4, 4), pady=4)
+            self.alt_forms_frame.grid_columnconfigure(1, weight=1)
+            debug_log(f"Recreated alternative forms frame: {self.alt_forms_frame}")
+
+            # Create the widgets
+            self._create_alternative_forms_widgets()
+
+        except Exception as e:
+            debug_log(f"Error recreating alternative forms frame: {e}")
+
+    def _create_alternative_forms_widgets(self):
+        """Create the alternative forms widgets in the frame."""
+        try:
+            if not hasattr(self, 'alt_forms_frame') or not self.alt_forms_frame.winfo_exists():
+                return
+
+            # Clear existing widgets
+            for widget in self.alt_forms_frame.winfo_children():
+                widget.destroy()
+
+            # Form label and dropdown
+            ttk.Label(self.alt_forms_frame, text="Form:").grid(row=0, column=0, sticky=tk.W, padx=4, pady=2)
+
+            self.var_alt_form = tk.StringVar(value="Base Form")
+            self.cb_alt_form = ttk.Combobox(
+                self.alt_forms_frame,
+                textvariable=self.var_alt_form,
+                values=["Base Form"],
+                width=15,
+                state="readonly",
+            )
+            self.cb_alt_form.grid(row=0, column=1, sticky=tk.W, padx=(4, 4), pady=2)
+            self.cb_alt_form.bind("<<ComboboxSelected>>", self._on_alt_form_change)
+
+            # Form info label
+            self.lbl_form_info = ttk.Label(self.alt_forms_frame, text="", font=('TkDefaultFont', 8))
+            self.lbl_form_info.grid(row=1, column=0, columnspan=2, sticky=tk.W, padx=4, pady=(0, 2))
+
+            # Auto-detect checkbox
+            self.var_auto_detect_forms = tk.BooleanVar(value=True)
+            self.chk_auto_detect_forms = ttk.Checkbutton(
+                self.alt_forms_frame,
+                text="Auto-detect from items",
+                variable=self.var_auto_detect_forms,
+                command=self._on_auto_detect_forms_toggle
+            )
+            self.chk_auto_detect_forms.grid(row=2, column=0, columnspan=2, sticky=tk.W, padx=4, pady=2)
+
+            debug_log("Created alternative forms widgets")
+
+        except Exception as e:
+            debug_log(f"Error creating alternative forms widgets: {e}")
+
+    def _hide_alternative_forms(self):
+        """Hide the alternative forms widgets safely."""
+        try:
+            if hasattr(self, 'alt_forms_frame') and self.alt_forms_frame.winfo_exists():
+                # Hide the entire frame
+                self.alt_forms_frame.grid_remove()
+                self._forms_section_visible = False
+                debug_log("Alternative forms frame hidden")
+
+                # Also update Pokemon name to remove form name
+                self._update_pokemon_name_with_form()
+            else:
+                debug_log("Alternative forms frame does not exist or is destroyed")
+        except Exception as e:
+            debug_log(f"Error hiding alternative forms widgets: {e}")
+
+    def _show_alternative_forms(self):
+        """Show the alternative forms widgets."""
+        try:
+            if hasattr(self, 'alt_forms_frame') and self.alt_forms_frame.winfo_exists():
+                # Show the entire frame
+                self.alt_forms_frame.grid()
+                # Ensure all widgets within the frame are visible
+                for widget in self.alt_forms_frame.winfo_children():
+                    if widget.winfo_exists():
+                        try:
+                            widget.grid()
+                        except Exception:
+                            pass
+                self._forms_section_visible = True
+                debug_log("Alternative forms widgets shown")
+            else:
+                debug_log("Alternative forms frame does not exist, creating...")
+                self._recreate_alternative_forms_widgets()
+        except Exception as e:
+            debug_log(f"Error showing alternative forms widgets: {e}")
+
+    def _recreate_alternative_forms_widgets(self):
+        """Recreate the alternative forms widgets from scratch."""
+        try:
+            # Wait for the alt_forms_frame to be created by the UI builder
+            # This is more reliable than searching for containers
+            if hasattr(self, 'alt_forms_frame') and self.alt_forms_frame.winfo_exists():
+                debug_log(f"Using existing alt_forms_frame: {self.alt_forms_frame}")
+                # Just create the widgets in the existing frame
+                self._create_alternative_forms_widgets()
+                return
+
+            # Fallback: try to find forms container and create new frame
+            forms_container = self._find_forms_container()
+            if not forms_container:
+                debug_log("Cannot find forms container to recreate alternative forms")
+                return
+
+            # Clean up existing frame if it exists
+            if hasattr(self, 'alt_forms_frame'):
+                try:
+                    if self.alt_forms_frame.winfo_exists():
+                        self.alt_forms_frame.destroy()
+                except Exception:
+                    pass
+
+            # Create new frame
+            self.alt_forms_frame = ttk.LabelFrame(forms_container, text="Alternative Forms")
+            self.alt_forms_frame.grid(row=0, column=2, sticky=tk.NSEW, padx=(4, 4), pady=4)
+            debug_log(f"Recreated alternative forms frame in: {forms_container}")
+
+            # Create the widgets
+            self._create_alternative_forms_widgets()
+
+        except Exception as e:
+            debug_log(f"Error recreating alternative forms widgets: {e}")
+
+    def _find_forms_container(self):
+        """Find the Forms & Properties container."""
+        try:
+            if not hasattr(self, 'tab_poke_basics'):
+                debug_log("No tab_poke_basics found")
+                return None
+
+            debug_log(f"Starting search for forms container in: {self.tab_poke_basics}")
+
+            # Debug: list all widgets in the basics tab
+            def debug_widget_tree(widget, prefix=""):
+                try:
+                    widget_info = f"{prefix}{widget.__class__.__name__}"
+                    if isinstance(widget, ttk.LabelFrame):
+                        try:
+                            text = widget.cget('text')
+                            widget_info += f" (text='{text}')"
+                        except:
+                            pass
+                    debug_log(widget_info)
+
+                    for child in widget.winfo_children():
+                        debug_widget_tree(child, prefix + "  ")
+                except Exception as e:
+                    debug_log(f"{prefix}Error inspecting widget: {e}")
+
+            debug_log("Widget tree in tab_poke_basics:")
+            debug_widget_tree(self.tab_poke_basics)
+
+            # Look for the Forms & Properties LabelFrame - use more flexible search
+            def search_for_forms_container(widget, depth=0, path=""):
+                if depth > 6:  # Prevent infinite recursion
+                    return None
+
+                try:
+                    for i, child in enumerate(widget.winfo_children()):
+                        child_path = f"{path}.child[{i}]"
+
+                        # Check if this is a LabelFrame with Forms in the text
+                        if isinstance(child, ttk.LabelFrame):
+                            try:
+                                text = child.cget('text')
+                                debug_log(f"Found LabelFrame at {child_path}: '{text}'")
+                                if text and ("Forms" in text or "Properties" in text):
+                                    debug_log(f"Found Forms/Properties LabelFrame: {text}")
+                                    # Look for the inner container frame
+                                    for j, forms_child in enumerate(child.winfo_children()):
+                                        if isinstance(forms_child, ttk.Frame):
+                                            debug_log(f"Found inner container frame at {child_path}.child[{j}]: {forms_child}")
+                                            return forms_child
+                            except Exception as e:
+                                debug_log(f"Error checking LabelFrame text at {child_path}: {e}")
+
+                        # Recursively search in child widgets
+                        result = search_for_forms_container(child, depth + 1, child_path)
+                        if result:
+                            return result
+                    return None
+                except Exception as e:
+                    debug_log(f"Error searching widget at {path}: {e}")
+                    return None
+
+            container = search_for_forms_container(self.tab_poke_basics, 0, "tab_poke_basics")
+            if container:
+                debug_log(f"Successfully found forms container: {container}")
+            else:
+                debug_log("Could not find forms container - will try alternative approach")
+                # Try to use the existing alt_forms_frame if it exists
+                if hasattr(self, 'alt_forms_frame') and self.alt_forms_frame.winfo_exists():
+                    parent = self.alt_forms_frame.master
+                    debug_log(f"Using existing alt_forms_frame parent: {parent}")
+                    return parent
+            return container
+
+        except Exception as e:
+            debug_log(f"Error in _find_forms_container: {e}")
+            return None
+
+    def _show_no_alternative_forms_message(self):
+        """Show message when no alternative forms are available."""
+        try:
+            if hasattr(self, 'cb_alt_form') and self.cb_alt_form.winfo_exists():
+                self.cb_alt_form["values"] = ["No alternative forms"]
+                self.cb_alt_form.set("No alternative forms")
+                self.cb_alt_form.configure(state="disabled")
+
+            if hasattr(self, 'lbl_form_info') and self.lbl_form_info.winfo_exists():
+                self.lbl_form_info.configure(text="No alternative form data available for this Pokémon", foreground="gray")
+
+            if hasattr(self, 'var_auto_detect_forms'):
+                self.var_auto_detect_forms.set(False)
+        except Exception as e:
+            debug_log(f"Error showing no alternative forms message: {e}")
+
+    def _show_no_form_items_message(self):
+        """Show message when alternative forms exist but no form items detected."""
+        try:
+            # Allow manual override - get available forms
+            from rogueeditor.catalog import get_pokemon_alternative_forms
+            mon = self._current_mon()
+            species_id = mon.get("species") if mon else None
+
+            form_names = ["Base Form"]
+            if species_id:
+                alt_forms = get_pokemon_alternative_forms(species_id)
+                if alt_forms:
+                    for form in alt_forms.get("forms", []):
+                        form_name = form.get("form_name")
+                        if form_name:
+                            form_names.append(form_name)
+
+            if hasattr(self, 'cb_alt_form') and self.cb_alt_form.winfo_exists():
+                self.cb_alt_form["values"] = form_names
+                self.cb_alt_form.set("Base Form")
+                self.cb_alt_form.configure(state="readonly")  # Enable for manual override
+
+            if hasattr(self, 'lbl_form_info') and self.lbl_form_info.winfo_exists():
+                self.lbl_form_info.configure(text="No form items detected. Manual selection available for exploration.", foreground="gray")
+
+            if hasattr(self, 'var_auto_detect_forms'):
+                self.var_auto_detect_forms.set(False)  # Disable auto-detect since no items
+        except Exception as e:
+            debug_log(f"Error showing no form items message: {e}")
+
+    def _pokemon_has_form_change_items(self, pokemon_id: int) -> bool:
+        """Check if a specific Pokemon has rare form change items."""
+        try:
+            modifiers = self.data.get("modifiers", [])
+            form_items_found = []
+
+            for modifier in modifiers:
+                if (modifier.get("className") == "PokemonFormChangeItemModifier" and
+                    modifier.get("typeId") == "RARE_FORM_CHANGE_ITEM"):
+                    args = modifier.get("args", [])
+                    if args and len(args) > 0:
+                        item_pokemon_id = args[0]
+                        item_type = args[1] if len(args) > 1 else None
+                        form_items_found.append(f"ID:{item_pokemon_id} Type:{item_type}")
+
+                        if item_pokemon_id == pokemon_id:
+                            debug_log(f"Found form change item for Pokemon {pokemon_id}: type {item_type}")
+                            return True
+
+            debug_log(f"Form change items in save: {form_items_found}")
+            debug_log(f"No form change item found for Pokemon {pokemon_id}")
+            return False
+        except Exception as e:
+            debug_log(f"Error checking form change items: {e}")
+            return False
+
+    def _update_pokemon_name_with_form(self):
+        """Update the Pokemon species name to include form information."""
+        try:
+            mon = self._current_mon()
+            if not mon or not hasattr(self, 'lbl_species_name'):
+                return
+
+            from rogueeditor.form_persistence import get_pokemon_display_name
+            display_name = get_pokemon_display_name(mon, self.data, self.username, self.slot)
+            self.lbl_species_name.config(text=display_name)
+
+        except Exception as e:
+            debug_log(f"Error updating Pokemon name with form: {e}")
+
+    def _update_type_chips(self):
+        """Update the type chips to show current effective types."""
+        try:
+            mon = self._current_mon()
+            if not mon or not hasattr(self, 'type_chip1') or not hasattr(self, 'type_chip2'):
+                return
+
+            species_id = mon.get("species")
+            if not species_id:
+                return
+
+            # Get effective types using form persistence system
+            from rogueeditor.form_persistence import get_effective_pokemon_form
+
+            # Get effective form (considers user selections and auto-detection)
+            effective_form = get_effective_pokemon_form(mon, self.data, self.username, self.slot)
+
+            if effective_form and effective_form.get("types"):
+                # Use form types
+                types = effective_form["types"]
+                t1 = types.get("type1", "").lower()
+                t2 = types.get("type2", "").lower()
+                debug_log(f"Using form types: {t1}, {t2}")
+            else:
+                # Fallback to base types
+                form_slug = self._detect_form_slug(mon)
+                t1, t2 = self._get_cached_species_types(species_id, form_slug)
+                debug_log(f"Using base types: {t1}, {t2}")
+
+            # Update type chip 1
+            if t1 and t1 != "unknown":
+                self.type_chip1.config(text=t1.title(), bg=self._color_for_type(t1))
+                self.type_chip1.pack(side=tk.LEFT, padx=3)
+                self._type_chip1_visible = True
+            else:
+                self.type_chip1.config(text="", bg="")
+                self.type_chip1.pack_forget()
+                self._type_chip1_visible = False
+
+            # Update type chip 2
+            if t2 and t2 != t1 and t2 != "unknown":
+                self.type_chip2.config(text=t2.title(), bg=self._color_for_type(t2))
+                self.type_chip2.pack(side=tk.LEFT, padx=3)
+                self._type_chip2_visible = True
+            else:
+                self.type_chip2.config(text="", bg="")
+                self.type_chip2.pack_forget()
+                self._type_chip2_visible = False
+
+        except Exception as e:
+            debug_log(f"Error updating type chips: {e}")
+
     def _growth_index_for_mon(self, mon: dict) -> int:
         # Resolve growth index using species id and CSV mapping; default to MEDIUM_FAST if unknown
         try:
@@ -7257,26 +8682,56 @@ class TeamManagerDialog(tk.Toplevel):
             mults = self.nature_mults_by_id.get(int(nat)) or [1.0] * 6
         else:
             mults = [1.0] * 6
-        # Base stats (prefer pokemon_catalog.json, then fallback)
+        # Base stats (check alternative forms first, then pokemon_catalog.json, then fallback)
         species_id = _get_species_id(mon)
         base_raw = None
+        stats_source = "fallback"
+
+        # Check for alternative form stats first
         try:
-            cat = self._get_cached_pokemon_catalog() or {}
-            by_dex = cat.get("by_dex") or {}
-            entry = by_dex.get(str(species_id or -1)) or {}
-            st = entry.get("stats")
-            if isinstance(st, dict):
+            from rogueeditor.form_persistence import get_pokemon_effective_stats
+
+            alt_stats = get_pokemon_effective_stats(mon, self.data, self.username, self.slot)
+            if alt_stats and isinstance(alt_stats, dict):
                 base_raw = [
-                    int(st.get("hp") or 0),
-                    int(st.get("attack") or 0),
-                    int(st.get("defense") or 0),
-                    int(st.get("sp_atk") or 0),
-                    int(st.get("sp_def") or 0),
-                    int(st.get("speed") or 0),
+                    int(alt_stats.get("hp") or 0),
+                    int(alt_stats.get("attack") or 0),
+                    int(alt_stats.get("defense") or 0),
+                    int(alt_stats.get("sp_atk") or 0),
+                    int(alt_stats.get("sp_def") or 0),
+                    int(alt_stats.get("speed") or 0),
                 ]
-                self.base_source_note.configure(text="Base stats: catalog (pokemon_catalog)")
-        except Exception:
-            base_raw = None
+                stats_source = "alternative form"
+        except Exception as e:
+            debug_log(f"Error getting alternative form stats: {e}")
+
+        # Fallback to pokemon_catalog.json if no alternative form stats
+        if base_raw is None:
+            try:
+                cat = self._get_cached_pokemon_catalog() or {}
+                by_dex = cat.get("by_dex") or {}
+                entry = by_dex.get(str(species_id or -1)) or {}
+                st = entry.get("stats")
+                if isinstance(st, dict):
+                    base_raw = [
+                        int(st.get("hp") or 0),
+                        int(st.get("attack") or 0),
+                        int(st.get("defense") or 0),
+                        int(st.get("sp_atk") or 0),
+                        int(st.get("sp_def") or 0),
+                        int(st.get("speed") or 0),
+                    ]
+                    stats_source = "pokemon_catalog"
+            except Exception:
+                base_raw = None
+
+        # Update source note
+        if stats_source == "alternative form":
+            self.base_source_note.configure(text="Base stats: alternative form")
+        elif stats_source == "pokemon_catalog":
+            self.base_source_note.configure(text="Base stats: catalog (pokemon_catalog)")
+        else:
+            self.base_source_note.configure(text="Base stats: fallback")
         if base_raw is None:
             base_raw = get_base_stats_by_species_id(species_id or -1)
         # Fallback by species name if dex lookup missing
@@ -7423,8 +8878,31 @@ class TeamManagerDialog(tk.Toplevel):
         if not species_id:
             return
 
-        # Use cached base stats
-        base_stats = self._get_cached_base_stats(species_id)
+        # Check for alternative form stats first
+        from rogueeditor.form_persistence import get_effective_pokemon_form
+        effective_form = get_effective_pokemon_form(mon, self.data, self.username, self.slot)
+
+        if effective_form and effective_form.get("stats"):
+            # Use form-specific stats - convert dict to list if needed
+            form_stats = effective_form["stats"]
+            if isinstance(form_stats, dict):
+                # Convert dict to list in standard order: hp, attack, defense, sp_atk, sp_def, speed
+                base_stats = [
+                    form_stats.get("hp", 0),
+                    form_stats.get("attack", 0),
+                    form_stats.get("defense", 0),
+                    form_stats.get("sp_atk", 0),
+                    form_stats.get("sp_def", 0),
+                    form_stats.get("speed", 0)
+                ]
+            else:
+                base_stats = form_stats
+            debug_log(f"Using form stats: {base_stats}")
+        else:
+            # Use cached base stats for species
+            base_stats = self._get_cached_base_stats(species_id)
+            debug_log(f"Using base species stats: {base_stats}")
+
         if not base_stats:
             return
 
@@ -9512,11 +10990,26 @@ class TeamManagerDialog(tk.Toplevel):
         return self._pokemon_catalog_cache
 
     def _get_cached_species_types(self, species_id: int, form_slug: str = None) -> tuple:
-        """Get cached Pokemon types with form support."""
+        """Get cached Pokemon types with form support, including alternative forms."""
         cache_key = f"{species_id}:{form_slug or 'base'}"
 
         if cache_key not in self._species_types_cache:
             try:
+                # First check alternative forms system for current Pokemon
+                mon = self._current_mon()
+                if mon and mon.get("species") == species_id:
+                    try:
+                        from rogueeditor.form_persistence import get_pokemon_effective_types
+                        alt_types = get_pokemon_effective_types(mon, self.data, self.username, self.slot)
+                        if alt_types and isinstance(alt_types, dict):
+                            t1 = str(alt_types.get("type1") or "unknown").strip().lower()
+                            t2 = str(alt_types.get("type2") or "").strip().lower() if alt_types.get("type2") else None
+                            self._species_types_cache[cache_key] = (t1, t2)
+                            return (t1, t2)
+                    except Exception as e:
+                        debug_log(f"Error getting alternative form types: {e}")
+
+                # Fallback to existing pokemon_catalog.json logic
                 cat = self._get_cached_pokemon_catalog()
                 by_dex = cat.get("by_dex") or {}
                 entry = by_dex.get(str(species_id)) or {}

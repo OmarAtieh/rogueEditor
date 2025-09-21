@@ -9,6 +9,7 @@ from tkinter import ttk, messagebox
 from rogueeditor import PokerogueAPI
 from rogueeditor.editor import Editor
 from rogueeditor.catalog import DATA_TYPES_JSON, load_nature_catalog, load_berry_catalog, load_types_catalog
+from rogueeditor.form_persistence import get_pokemon_display_name
 
 
 def _format_item_name(item_id: str) -> str:
@@ -1037,21 +1038,29 @@ class ItemManagerDialog(tk.Toplevel):
                 or "?"
             )
             entry = by_dex.get(did) or {}
-            name = entry.get("name") or inv.get(did, did)
-            # Try to reflect form like Team Editor
-            fslug = self._detect_form_slug(mon)
-            form_disp = None
-            if fslug and (entry.get("forms") or {}).get(fslug):
-                fdn = (entry.get("forms") or {}).get(fslug, {}).get("display_name")
-                if isinstance(fdn, str) and fdn.strip():
-                    form_disp = fdn
-            if form_disp:
-                label = f"{i}. {int(did):04d} {name} ({form_disp})"
-            else:
-                try:
-                    label = f"{i}. {int(did):04d} {name}"
-                except Exception:
-                    label = f"{i}. {did} {name}"
+            base_name = entry.get("name") or inv.get(did, did)
+
+            # Use form-aware display name from the comprehensive form persistence system
+            try:
+                form_aware_name = get_pokemon_display_name(mon, self.data, self.api.username, self.slot)
+                display_name = form_aware_name if form_aware_name and form_aware_name != "Unknown" else base_name
+            except Exception:
+                # Fallback to the old form detection method if the new system fails
+                fslug = self._detect_form_slug(mon)
+                form_disp = None
+                if fslug and (entry.get("forms") or {}).get(fslug):
+                    fdn = (entry.get("forms") or {}).get(fslug, {}).get("display_name")
+                    if isinstance(fdn, str) and fdn.strip():
+                        form_disp = fdn
+                if form_disp:
+                    display_name = f"{base_name} ({form_disp})"
+                else:
+                    display_name = base_name
+
+            try:
+                label = f"{i}. {int(did):04d} {display_name}"
+            except Exception:
+                label = f"{i}. {did} {display_name}"
             mid = mon.get("id")
             lvl = mon.get("level") or mon.get("lvl") or "?"
             self.party_list.insert(tk.END, f"{label} • id {mid} • Lv {lvl}")
