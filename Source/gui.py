@@ -506,12 +506,14 @@ class RogueManagerGUI(ttk.Frame):
         log_level_combo.pack(side=tk.RIGHT, fill=tk.X, expand=True, pady=1)
         log_level_combo.bind('<<ComboboxSelected>>', lambda e: self._on_log_level_changed())
 
-        # Console toggle and open logs button (sharing one row)
+        # Console toggle and open/clear logs buttons (sharing one row)
         console_frm = ttk.Frame(tools_frm)
         console_frm.pack(fill=tk.X, padx=4, pady=2)
         self.console_visible = tk.BooleanVar(value=True)  # Console visible by default
         ttk.Checkbutton(console_frm, text="Show Console", variable=self.console_visible,
                        command=self._toggle_console).pack(side=tk.LEFT)
+        # Place Clear Logs to the left of Open Logs
+        ttk.Button(console_frm, text="Clear Logs", command=self._clear_logs_action).pack(side=tk.RIGHT, padx=(0,4))
         ttk.Button(console_frm, text="Open Logs", command=self._open_log_directory).pack(side=tk.RIGHT)
 
     def _build_actions(self):
@@ -1008,6 +1010,30 @@ class RogueManagerGUI(ttk.Frame):
         except Exception as e:
             self._log(f"[ERROR] Failed to open log directory: {e}")
             self.feedback.show_error_toast(f"Failed to open log directory: {e}")
+
+    def _clear_logs_action(self):
+        """Clear current and rotated log files, then notify user."""
+        try:
+            from rogueeditor.logging_utils import clear_logs
+            ok, msg = clear_logs()
+            if ok:
+                self._log(f"[INFO] {msg}")
+                try:
+                    self.feedback.show_toast("Logs cleared", duration_ms=2000)
+                except Exception:
+                    pass
+            else:
+                self._log(f"[ERROR] {msg}")
+                try:
+                    self.feedback.show_error_toast(msg)
+                except Exception:
+                    pass
+        except Exception as e:
+            self._log(f"[ERROR] Failed to clear logs: {e}")
+            try:
+                self.feedback.show_error_toast(f"Failed to clear logs: {e}")
+            except Exception:
+                pass
 
     def _toggle_console(self):
         """Toggle visibility of the console panel."""

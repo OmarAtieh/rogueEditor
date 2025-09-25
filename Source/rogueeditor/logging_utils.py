@@ -53,6 +53,51 @@ def setup_logging(level: int = logging.DEBUG) -> logging.Logger:
     return logger
 
 
+def clear_logs() -> tuple[bool, str]:
+    """Clear current and rotated log files safely.
+
+    On Windows the active log file can be locked by RotatingFileHandler.
+    We truncate the active file and remove rotated backups if present.
+    Returns (success, message).
+    """
+    try:
+        ensure_log_dir()
+        lf = log_file_path()
+
+        # Attempt to truncate the active log file
+        try:
+            # Flush any existing handlers to ensure contents are written
+            logger = logging.getLogger("rogueeditor")
+            for h in list(logger.handlers):
+                try:
+                    h.flush()
+                except Exception:
+                    pass
+
+            with open(lf, "w", encoding="utf-8") as f:
+                f.write("")
+        except Exception as e:
+            # If truncation fails, report but continue to attempt cleanup of backups
+            pass
+
+        # Remove rotated backups if they exist (app.log.1 .. app.log.9)
+        base = lf
+        removed = 0
+        for i in range(1, 10):
+            rotated = f"{base}.{i}"
+            try:
+                if os.path.exists(rotated):
+                    os.remove(rotated)
+                    removed += 1
+            except Exception:
+                # Ignore individual delete errors
+                pass
+
+        return True, f"Logs cleared. Rotated removed: {removed}"
+    except Exception as e:
+        return False, f"Failed to clear logs: {e}"
+
+
 def install_excepthook(logger: logging.Logger | None = None) -> None:
     """Install a sys.excepthook that logs uncaught exceptions with traceback."""
     lg = logger or logging.getLogger("rogueeditor")

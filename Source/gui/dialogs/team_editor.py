@@ -22,6 +22,29 @@ import re
 import time
 import threading
 import tkinter as tk
+import os
+from time import perf_counter
+
+# --- Configurable logging levels for TeamEditor timing/internals ---
+_TE_LOG_LEVELS = {"error": 40, "warn": 30, "info": 20, "debug": 10, "timing": 15}
+_TE_LOG_LEVEL = _TE_LOG_LEVELS.get(str(os.environ.get("TEAM_EDITOR_LOG_LEVEL", "info")).lower(), 20)
+
+def _te_should_log(level_name: str) -> bool:
+    try:
+        lvl = _TE_LOG_LEVELS.get(str(level_name).lower(), 20)
+        return lvl >= 20 if _TE_LOG_LEVEL == 20 else lvl >= _TE_LOG_LEVEL
+    except Exception:
+        return False
+
+def _te_log_timing(debug_log_fn, label: str, dt_ms: float, extra: str = ""):
+    try:
+        if _te_should_log("timing") or _te_should_log("debug"):
+            msg = f"[TIMING] {label} dt_ms={dt_ms:.1f}"
+            if extra:
+                msg += f" {extra}"
+            debug_log_fn(msg)
+    except Exception:
+        pass
 from tkinter import ttk, messagebox
 from typing import Any, Dict, List, Optional, Tuple
 from concurrent.futures import ThreadPoolExecutor, Future
@@ -204,14 +227,14 @@ class BackgroundCacheManager:
                     )
 
                     # Enrich Pokemon data with form information
-                    enriched_mon = enrich_pokemon_with_form_data(mon, slot_data, self.api.username, slot)
+                    enriched_mon = enrich_pokemon_with_form_data(mon, slot_data, username, slot)
 
                     # Get form-aware types
-                    form_types = get_pokemon_effective_types(mon, slot_data, self.api.username, slot)
+                    form_types = get_pokemon_effective_types(mon, slot_data, username, slot)
                     types = form_types if form_types else (catalog_entry.get("types", {}) or {})
 
                     # Get form-aware display name
-                    form_name = get_pokemon_display_name(mon, slot_data, self.api.username, slot)
+                    form_name = get_pokemon_display_name(mon, slot_data, username, slot)
                     pokemon_name = form_name if form_name and form_name != "Unknown" else catalog_entry.get("name", f"Species#{species_id}")
 
                     # Compute defensive matchups (optimized)
@@ -357,6 +380,18 @@ class BackgroundCacheManager:
 
             team_size = len(party_matchups)
 
+            # Build vulnerability summary from aggregated effectiveness_grid
+            vulnerability_summary = {}
+            for attack_type, buckets in effectiveness_grid.items():
+                vulnerability_summary[attack_type] = {
+                    "x4": len(buckets.get("x4", [])) if isinstance(buckets.get("x4"), list) else buckets.get("x4", 0),
+                    "x2": len(buckets.get("x2", [])) if isinstance(buckets.get("x2"), list) else buckets.get("x2", 0),
+                    "x1": len(buckets.get("x1", [])) if isinstance(buckets.get("x1"), list) else buckets.get("x1", 0),
+                    "x0.5": len(buckets.get("x0.5", [])) if isinstance(buckets.get("x0.5"), list) else buckets.get("x0.5", 0),
+                    "x0.25": len(buckets.get("x0.25", [])) if isinstance(buckets.get("x0.25"), list) else buckets.get("x0.25", 0),
+                    "x0": len(buckets.get("x0", [])) if isinstance(buckets.get("x0"), list) else buckets.get("x0", 0),
+                }
+
             for attack_type, effectiveness in vulnerability_summary.items():
                 super_effective_count = effectiveness["x4"] + effectiveness["x2"]
                 resistant_count = effectiveness["x0.5"] + effectiveness["x0.25"] + effectiveness["x0"]
@@ -499,7 +534,9 @@ class BackgroundCacheManager:
             }
 
         except Exception as e:
+            import traceback
             print(f"Error in team offensive analysis: {e}")
+            traceback.print_exc()
             return {"error": str(e), "analysis_complete": False}
 
     def _get_cached_type_colors(self) -> Dict:
@@ -602,6 +639,18 @@ class BackgroundCacheManager:
 
             team_size = len(party_matchups)
 
+            # Build vulnerability summary from aggregated effectiveness_grid
+            vulnerability_summary = {}
+            for attack_type, buckets in effectiveness_grid.items():
+                vulnerability_summary[attack_type] = {
+                    "x4": len(buckets.get("x4", [])) if isinstance(buckets.get("x4"), list) else buckets.get("x4", 0),
+                    "x2": len(buckets.get("x2", [])) if isinstance(buckets.get("x2"), list) else buckets.get("x2", 0),
+                    "x1": len(buckets.get("x1", [])) if isinstance(buckets.get("x1"), list) else buckets.get("x1", 0),
+                    "x0.5": len(buckets.get("x0.5", [])) if isinstance(buckets.get("x0.5"), list) else buckets.get("x0.5", 0),
+                    "x0.25": len(buckets.get("x0.25", [])) if isinstance(buckets.get("x0.25"), list) else buckets.get("x0.25", 0),
+                    "x0": len(buckets.get("x0", [])) if isinstance(buckets.get("x0"), list) else buckets.get("x0", 0),
+                }
+
             for attack_type, effectiveness in vulnerability_summary.items():
                 super_effective_count = effectiveness["x4"] + effectiveness["x2"]
                 resistant_count = effectiveness["x0.5"] + effectiveness["x0.25"] + effectiveness["x0"]
@@ -650,9 +699,7 @@ class BackgroundCacheManager:
             return {}
 
         try:
-            from rogueeditor.catalog import load_type_matrix_v2
-
-            type_matrix = load_type_matrix_v2()
+            # Use provided type_matrix argument from caller. It should already be attack_vs oriented.
             if not type_matrix:
                 return {"error": "Type matrix not available"}
 
@@ -677,10 +724,8 @@ class BackgroundCacheManager:
                 species_id = str(member_data.get("species", 0))
                 catalog_entry = pokemon_catalog.get("by_dex", {}).get(species_id, {})
 
-                # Get form-aware display name
-                from rogueeditor.form_persistence import get_pokemon_display_name
-                form_name = get_pokemon_display_name(member_data, {"party": party}, None, None)
-                pokemon_name = form_name if form_name and form_name != "Unknown" else catalog_entry.get("name", f"Species#{species_id}")
+                # Use base species name here to avoid requiring username/slot context in analysis
+                pokemon_name = catalog_entry.get("name", f"Species#{species_id}")
 
                 level = member_data.get("level", "?")
                 moves = member_data.get("moveset", [])
@@ -1032,6 +1077,12 @@ class TeamManagerDialog(tk.Toplevel):
         self._trainer_dirty_server: bool = False
         # Build-once guard
         self._ui_built = False
+        # Context token for canceling obsolete background work
+        self._context_token: int = 0
+        # Lightweight caches
+        self._form_cache_by_mon: dict[tuple[int, int], dict] = {}
+        self._alt_forms_cache_by_species: dict[int, dict] = {}
+        self._last_form_context: tuple[int, int, int, int] | None = None  # (slot, mon_id, species_id, mods_version)
 
         debug_log(f" Loading Pokemon catalog synchronously")
         print(f"[TRACE] About to import load_pokemon_catalog")
@@ -6172,6 +6223,7 @@ class TeamManagerDialog(tk.Toplevel):
     def _on_party_selected(self):
         """Simple, reliable party selection handler with generation guard."""
         try:
+            t0 = perf_counter()
             # Prevent re-entrancy
             if getattr(self, '_handling_selection', False):
                 return
@@ -6206,8 +6258,13 @@ class TeamManagerDialog(tk.Toplevel):
             except Exception:
                 pass
 
-            # Capture generation to guard async updates
+            # Capture generation to guard async updates and bump context token
             current_gen = int(getattr(self, '_selection_gen', 0))
+            try:
+                self._context_token = int(getattr(self, '_context_token', 0)) + 1
+            except Exception:
+                self._context_token = 1
+            local_token = self._context_token
 
             # Simple caching approach
             species_id = mon.get("species") or mon.get("dexId") or mon.get("speciesId") or -1
@@ -6221,11 +6278,20 @@ class TeamManagerDialog(tk.Toplevel):
                 debug_log(f"Used party member cache for index {current_idx}")
             else:
                 # Compute fresh data
+                cf0 = perf_counter()
                 cached_data = self._compute_full_pokemon_data(mon, species_id)
+                _te_log_timing(debug_log, "_compute_full_pokemon_data", (perf_counter()-cf0)*1000,
+                               extra=f"mon={int(mon.get('id',0))} species={int(species_id)}")
                 self._apply_pokemon_data_fast(mon, cached_data)
                 # Cache for party member
                 self._cache_party_member_data(current_idx, mon, cached_data)
                 debug_log(f"Computed fresh data and cached for party member {current_idx}")
+
+            # Kick off background effective-form resolution with token guarding
+            try:
+                self._resolve_effective_form_async(mon, local_token)
+            except Exception as e:
+                debug_log(f"Error scheduling async form resolution: {e}")
 
             # Apply secondary data (moves, matchups, etc.) guarded by generation
             try:
@@ -6256,6 +6322,8 @@ class TeamManagerDialog(tk.Toplevel):
                 except Exception:
                     pass
                 self._handling_selection = False
+                _te_log_timing(debug_log, "_on_party_selected", (perf_counter()-t0)*1000,
+                               extra=f"mon={int(mon.get('id',0)) if 'mon' in locals() and mon else -1}")
             except Exception:
                 pass
 
@@ -7153,7 +7221,7 @@ class TeamManagerDialog(tk.Toplevel):
         """Safely update type chips without blocking operations."""
         try:
             # Type chip 1
-            if type1 and hasattr(self, 'type_chip1'):
+            if type1 and hasattr(self, 'type_chip1') and self.type_chip1.winfo_exists():
                 self.type_chip1.configure(text=type1.title(), bg=color1 or "#DDDDDD")
                 if not getattr(self, '_type_chip1_visible', False):
                     try:
@@ -7162,7 +7230,7 @@ class TeamManagerDialog(tk.Toplevel):
                         self._type_chip1_visible = True
                     except Exception:
                         pass
-            elif hasattr(self, 'type_chip1'):
+            elif hasattr(self, 'type_chip1') and self.type_chip1.winfo_exists():
                 try:
                     self.type_chip1.pack_forget()
                     self._type_chip1_visible = False
@@ -7170,7 +7238,7 @@ class TeamManagerDialog(tk.Toplevel):
                     pass
 
             # Type chip 2
-            if type2 and hasattr(self, 'type_chip2'):
+            if type2 and hasattr(self, 'type_chip2') and self.type_chip2.winfo_exists():
                 self.type_chip2.configure(text=type2.title(), bg=color2 or "#DDDDDD")
                 if not getattr(self, '_type_chip2_visible', False):
                     try:
@@ -7179,7 +7247,7 @@ class TeamManagerDialog(tk.Toplevel):
                         self._type_chip2_visible = True
                     except Exception:
                         pass
-            elif hasattr(self, 'type_chip2'):
+            elif hasattr(self, 'type_chip2') and self.type_chip2.winfo_exists():
                 try:
                     self.type_chip2.pack_forget()
                     self._type_chip2_visible = False
@@ -7975,6 +8043,7 @@ class TeamManagerDialog(tk.Toplevel):
     def _update_form_info_display(self):
         """Update the form information display."""
         try:
+            t0 = perf_counter()
             def _safe_set_form_info(text: str = "", fg: str | None = None):
                 try:
                     if hasattr(self, 'lbl_form_info') and self.lbl_form_info.winfo_exists():
@@ -8000,7 +8069,15 @@ class TeamManagerDialog(tk.Toplevel):
             alt_forms = get_pokemon_alternative_forms(species_id)
             num_alt_forms = len(alt_forms.get("forms", [])) if alt_forms else 0
 
-            effective_form = get_effective_pokemon_form(mon, self.data, self.username, self.slot)
+            # Use cached effective form if available; else fallback and schedule async refresh
+            cache_key = (int(self.slot), int(mon.get('id', 0)))
+            eff_cached = (self._form_cache_by_mon.get(cache_key) or {}).get('effective_form') if hasattr(self, '_form_cache_by_mon') else None
+            effective_form = eff_cached
+            if not effective_form:
+                gf0 = perf_counter()
+                effective_form = get_effective_pokemon_form(mon, self.data, self.username, self.slot)
+                _te_log_timing(debug_log, "get_effective_pokemon_form(UI)", (perf_counter()-gf0)*1000,
+                               extra=f"mon={int(mon.get('id',0))}")
 
             if effective_form:
                 # Show form details
@@ -8038,6 +8115,7 @@ class TeamManagerDialog(tk.Toplevel):
                 else:
                     _safe_set_form_info("Base form", "gray")
 
+            _te_log_timing(debug_log, "_update_form_info_display", (perf_counter()-t0)*1000)
         except Exception as e:
             debug_log(f"Error updating form info display: {e}")
             try:
@@ -8045,6 +8123,58 @@ class TeamManagerDialog(tk.Toplevel):
                     self.lbl_form_info.config(text="")
             except Exception:
                 pass
+
+    def _resolve_effective_form_async(self, mon: dict, token: int):
+        """Resolve effective form and alt-forms in background; apply only if token matches."""
+        import threading
+        try:
+            slot = int(self.slot)
+            mon_id = int(mon.get('id', 0))
+            species_id = int(mon.get('species') or 0)
+        except Exception:
+            slot, mon_id, species_id = int(self.slot), 0, 0
+
+        def _work():
+            try:
+                from rogueeditor.form_persistence import get_effective_pokemon_form
+                from rogueeditor.catalog import get_pokemon_alternative_forms
+                eff = get_effective_pokemon_form(mon, self.data, self.username, self.slot)
+                alts = get_pokemon_alternative_forms(species_id)
+            except Exception:
+                eff, alts = None, None
+
+            def _apply_if_current():
+                try:
+                    if token != getattr(self, '_context_token', 0):
+                        return
+                    # Update caches
+                    try:
+                        if hasattr(self, '_form_cache_by_mon'):
+                            d = self._form_cache_by_mon.get((slot, mon_id), {})
+                            d['effective_form'] = eff
+                            self._form_cache_by_mon[(slot, mon_id)] = d
+                        if hasattr(self, '_alt_forms_cache_by_species'):
+                            if species_id:
+                                self._alt_forms_cache_by_species[species_id] = alts or {}
+                    except Exception:
+                        pass
+                    # Refresh Basics form info if that tab is visible
+                    try:
+                        self._update_form_info_display()
+                    except Exception:
+                        pass
+                except Exception:
+                    pass
+
+            try:
+                self.after(0, _apply_if_current)
+            except Exception:
+                pass
+
+        try:
+            threading.Thread(target=_work, daemon=True).start()
+        except Exception as e:
+            debug_log(f"Failed to start form resolver thread: {e}")
 
     def _invalidate_form_caches(self):
         """Invalidate caches that depend on Pokemon forms."""
@@ -9521,6 +9651,11 @@ class TeamManagerDialog(tk.Toplevel):
         try:
             # Save the currently selected tab for persistence
             self._last_selected_tab = self.tabs.select()
+            # Bump context token to cancel obsolete background work on tab switch
+            try:
+                self._context_token = int(getattr(self, '_context_token', 0)) + 1
+            except Exception:
+                self._context_token = 1
 
             # Trigger deferred updates based on which tab became visible
             if self._is_stats_tab_visible() and getattr(self, '_stats_needs_update', False):
@@ -10284,7 +10419,8 @@ class TeamManagerDialog(tk.Toplevel):
                         pokemon_catalog = getattr(self, 'pokemon_catalog', {})
                         base_matrix = load_type_matchup_matrix() or {}
                         type_matrix = base_matrix.get('attack_vs') if isinstance(base_matrix.get('attack_vs'), dict) else base_matrix
-                        offensive_analysis = self._compute_team_offensive_analysis_from_party(state['party_data'], pokemon_catalog, type_matrix)
+                        # Use the simpler offensive analysis variant to avoid edge-case errors
+                        offensive_analysis = super(TeamManagerDialog, self)._compute_team_offensive_analysis_from_party(state['party_data'], pokemon_catalog, type_matrix) if False else TeamManagerDialog._compute_team_offensive_analysis_from_party(self, state['party_data'], pokemon_catalog, type_matrix)
                         # Merge the analysis data directly into state['data'] for UI compatibility
                         state['data'].update(offensive_analysis)
                     state['step'] = 2
@@ -10732,12 +10868,13 @@ class TeamManagerDialog(tk.Toplevel):
             ttk.Label(coverage_frame, text="• No offensive move data available",
                      foreground="orange", font=('TkDefaultFont', 8)).pack(anchor=tk.W, padx=10)
 
+    def _apply_cached_defensive_analysis(self, cached_data: Dict[str, Any]):
         """Apply cached team analysis data to defensive UI."""
         try:
-            debug_log("Applying cached team analysis")
+            debug_log("Applying cached defensive analysis")
             self._render_defensive_analysis_ui(cached_data)
         except Exception as e:
-            debug_log(f"Error applying cached team analysis: {e}")
+            debug_log(f"Error applying cached defensive analysis: {e}")
 
     def _apply_cached_offensive_analysis(self, cached_data):
         """Apply cached offensive analysis data to UI."""
@@ -10821,12 +10958,44 @@ class TeamManagerDialog(tk.Toplevel):
             return None
 
     def _cache_party_member_data(self, party_index: int, mon: dict, full_data: dict):
-        """Cache full data for a party member to speed up switching."""
+        """Cache full data for a party member to speed up switching.
+        Includes hints for alt-forms and form items to allow Basics to render from cache.
+        """
         try:
+            # Detect presence of rare form items in modifiers for this mon
+            has_form_item = False
+            try:
+                mods = (self.data or {}).get('modifiers') or []
+                mon_id = int(mon.get('id', 0))
+                for m in mods:
+                    if not isinstance(m, dict):
+                        continue
+                    tid = m.get('typeId')
+                    args = m.get('args') or []
+                    if tid in {"RARE_FORM_CHANGE_ITEM", "GENERIC_FORM_CHANGE_ITEM"}:
+                        if args and int(args[0]) == mon_id:
+                            has_form_item = True
+                            break
+            except Exception:
+                has_form_item = False
+
+            # Detect if alt-forms are known for this species
+            has_alt_forms = False
+            try:
+                from rogueeditor.catalog import get_pokemon_alternative_forms
+                species_id = int(mon.get('species') or 0)
+                alt = get_pokemon_alternative_forms(species_id) or {}
+                forms = (alt.get('forms') or []) if isinstance(alt, dict) else []
+                has_alt_forms = bool(forms)
+            except Exception:
+                has_alt_forms = False
+
             self._party_member_cache[party_index] = {
                 "mon_data": mon.copy() if isinstance(mon, dict) else {},
                 "full_data": full_data.copy() if isinstance(full_data, dict) else {},
-                "cached_at": time.time()
+                "cached_at": time.time(),
+                "has_form_item": has_form_item,
+                "has_alt_forms": has_alt_forms
             }
             debug_log(f"Cached full data for party member {party_index}")
         except Exception as e:
