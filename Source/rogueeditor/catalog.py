@@ -21,6 +21,7 @@ DATA_STATS_JSON = repo_path("data", "stats.json")
 DATA_MODIFIERS_JSON = repo_path("data", "modifiers.json")
 DATA_BERRIES_JSON = repo_path("data", "berries.json")
 DATA_ITEMS_JSON = repo_path("data", "items.json")
+DATA_ITEM_DATA_JSON = repo_path("data", "item_data.json")
 DATA_POKEBALLS_JSON = repo_path("data", "pokeballs.json")
 DATA_TYPES_JSON = repo_path("data", "types.json")
 DATA_TYPE_MATRIX_JSON = repo_path("data", "type_matrix.json")
@@ -1101,6 +1102,7 @@ def preload_all_catalogs(progress_callback=None):
         ("Ability catalog", load_ability_catalog),
         ("Nature catalog", load_nature_catalog),
         ("Move data", load_moves_data),
+        ("Item data", load_item_data),
     ]
 
     total = len(catalogs)
@@ -1498,16 +1500,13 @@ def get_form_for_pokemon_with_items(dex_number: int, modifiers: list, form_index
             gmax_forms = [f for f in forms if "gigantamax" in f.get("form_type", "").lower()]
             detected_forms.extend([f["form_key"] for f in gmax_forms])
 
-    # If we have a form_index and it's within range, use that
-    if 0 <= form_index < len(forms):
-        return forms[form_index]
-
     # If we detected specific forms, return the first one
     if detected_forms:
         for form in forms:
             if form["form_key"] in detected_forms:
                 return form
 
+    # Do not assume a non-base form purely from an index; require an item trigger
     return None
 
 
@@ -1515,3 +1514,212 @@ def invalidate_alternative_forms_cache():
     """Invalidate the alternative forms cache."""
     global _ALTERNATIVE_FORMS_CACHE
     _ALTERNATIVE_FORMS_CACHE = None
+
+
+# --- Item Data System ---
+
+_ITEM_DATA_CACHE: Optional[Dict[str, object]] = None
+
+
+def load_item_data() -> Dict[str, object]:
+    """Load comprehensive item data with caching."""
+    global _ITEM_DATA_CACHE
+    if isinstance(_ITEM_DATA_CACHE, dict):
+        return _ITEM_DATA_CACHE
+    
+    if not os.path.exists(DATA_ITEM_DATA_JSON):
+        _ITEM_DATA_CACHE = {}
+        return _ITEM_DATA_CACHE
+    
+    try:
+        with open(DATA_ITEM_DATA_JSON, "r", encoding="utf-8") as f:
+            _ITEM_DATA_CACHE = json.load(f)
+    except Exception:
+        _ITEM_DATA_CACHE = {}
+    
+    return _ITEM_DATA_CACHE
+
+
+def get_item_info(item_id: str) -> Optional[Dict[str, object]]:
+    """Get comprehensive information for a specific item."""
+    data = load_item_data()
+    items = data.get("items", {})
+    return items.get(item_id)
+
+
+def get_item_display_name(item_id: str) -> str:
+    """Get display name for an item, with fallback formatting."""
+    item_info = get_item_info(item_id)
+    if item_info and isinstance(item_info, dict):
+        return str(item_info.get("display_name", item_id))
+    
+    # Fallback to original formatting logic
+    return item_id.replace("_", " ").title()
+
+
+def get_item_emoji(item_id: str) -> str:
+    """Get emoji for an item."""
+    # Special fallback for type boosters
+    try:
+        if isinstance(item_id, str) and item_id.endswith("_BOOSTER"):
+            # Use a safe crossed swords without variation selector to avoid glyph issues
+            return "⚔"
+    except Exception:
+        pass
+
+    item_info = get_item_info(item_id)
+    if item_info and isinstance(item_info, dict):
+        return str(item_info.get("emoji", "📦"))
+    return "📦"
+
+
+def get_item_description(item_id: str) -> str:
+    """Get description for an item."""
+    item_info = get_item_info(item_id)
+    if item_info and isinstance(item_info, dict):
+        return str(item_info.get("description", "Item"))
+    return "Item"
+
+
+def get_item_category(item_id: str) -> Optional[str]:
+    """Get category for an item."""
+    item_info = get_item_info(item_id)
+    if item_info and isinstance(item_info, dict):
+        return str(item_info.get("category"))
+    return None
+
+
+def get_items_by_category(category: str) -> List[str]:
+    """Get all items in a specific category."""
+    data = load_item_data()
+    categories = data.get("categories", {})
+    category_info = categories.get(category, {})
+    
+    if isinstance(category_info, dict):
+        items = category_info.get("items", [])
+        if isinstance(items, list):
+            return items
+        elif items == "dynamic_from_catalog":
+            # Handle dynamic categories that pull from other catalogs
+            return _get_dynamic_category_items(category)
+    
+    return []
+
+
+def _get_dynamic_category_items(category: str) -> List[str]:
+    """Get items for dynamic categories that pull from other catalogs."""
+    if category == "berries":
+        try:
+            _, berry_i2n = load_berry_catalog()
+            return [name.lower() for name in berry_i2n.values()]
+        except Exception:
+            return []
+    elif category == "type_boosters":
+        try:
+            _, type_i2n = load_types_catalog()
+            return [f"{name}_BOOSTER" for name in type_i2n.values()]
+        except Exception:
+            return []
+    elif category == "mints":
+        try:
+            _, nature_i2n = load_nature_catalog()
+            return [f"{name}_MINT" for name in nature_i2n.values()]
+        except Exception:
+            return []
+    
+    return []
+
+
+def get_pokemon_specific_items(pokemon_id: int) -> Dict[str, List[str]]:
+    """Get items specific to a Pokemon by species ID."""
+    data = load_item_data()
+    pokemon_items = data.get("pokemon_specific_items", {})
+    pokemon_data = pokemon_items.get(str(pokemon_id), {})
+    
+    result = {}
+    if isinstance(pokemon_data, dict):
+        items_data = pokemon_data.get("items", {})
+        for subcategory, info in items_data.items():
+            if isinstance(info, dict) and isinstance(info.get("items"), list):
+                result[subcategory] = info["items"]
+    
+    return result
+
+
+def get_form_change_items_for_pokemon(pokemon_id: int) -> List[str]:
+    """Get all form change items available for a specific Pokemon."""
+    pokemon_items = get_pokemon_specific_items(pokemon_id)
+    form_items = []
+    
+    # Add items from all subcategories
+    for subcategory_items in pokemon_items.values():
+        form_items.extend(subcategory_items)
+    
+    # Add generic form change items
+    form_items.extend(["RARE_FORM_CHANGE_ITEM", "GENERIC_FORM_CHANGE_ITEM"])
+    
+    return form_items
+
+
+def format_item_for_display(
+    item_id: str,
+    stacks: int | None = None,
+    args: list[object] | None = None,
+    catalog_label: str | None = None,
+) -> str:
+    """Format an item for display with emoji, name, description, and optional stacks/args.
+
+    Behavior:
+      - Falls back to title-cased name from the enum token when unknown
+      - Uses a default emoji when no specific emoji is defined
+      - Appends stacks (xN) and argument list when provided
+      - Optionally appends a catalog label for cohesion with save data
+    """
+    try:
+        emoji = get_item_emoji(item_id) or "📦"
+    except Exception:
+        emoji = "📦"
+
+    try:
+        display_name = get_item_display_name(item_id)
+    except Exception:
+        display_name = item_id.replace("_", " ").title()
+
+    try:
+        description = get_item_description(item_id)
+    except Exception:
+        description = "Item"
+
+    parts: list[str] = [f"{emoji} {display_name} ({item_id})"]
+
+    if description:
+        parts.append(f"- {description}")
+
+    # Suffix with stacks and args to mirror other explicit items
+    try:
+        if isinstance(stacks, int) and stacks > 1:
+            parts.append(f"x{stacks}")
+    except Exception:
+        pass
+
+    try:
+        if isinstance(args, list) and len(args) > 0:
+            arg_str = ", ".join(str(a) for a in args)
+            parts.append(f"[{arg_str}]")
+    except Exception:
+        pass
+
+    # Optional catalog label from save if provided
+    try:
+        if isinstance(catalog_label, str) and catalog_label.strip():
+            parts.append(f"– {catalog_label.strip()}")
+    except Exception:
+        pass
+
+    return " ".join(parts)
+
+
+def invalidate_item_data_cache():
+    """Invalidate the item data cache."""
+    global _ITEM_DATA_CACHE
+    _ITEM_DATA_CACHE = None

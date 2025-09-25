@@ -1,0 +1,856 @@
+{
+  "metadata": {
+    "version": "1.0",
+    "description": "Comprehensive item data for RogueEditor",
+    "last_updated": "2024-01-01"
+  },
+  "categories": {
+    "common": {
+      "name": "Common Items",
+      "description": "Core held items that don't fit other categories",
+      "items": [
+        "FOCUS_BAND",
+        "MYSTICAL_ROCK", 
+        "SOOTHE_BELL",
+        "LEEK",
+        "EVIOLITE",
+        "SOUL_DEW",
+        "GOLDEN_PUNCH",
+        "GRIP_CLAW",
+        "QUICK_CLAW",
+        "KINGS_ROCK",
+        "LEFTOVERS",
+        "SHELL_BELL",
+        "TOXIC_ORB",
+        "FLAME_ORB",
+        "BATON",
+        "MULTI_LENS"
+      ]
+    },
+    "accuracy": {
+      "name": "Accuracy Items",
+      "description": "Items that boost accuracy",
+      "items": [
+        "WIDE_LENS",
+        "SCOPE_LENS"
+      ]
+    },
+    "experience": {
+      "name": "Experience Items", 
+      "description": "Items that affect experience gain",
+      "items": [
+        "LUCKY_EGG",
+        "GOLDEN_EGG"
+      ]
+    },
+    "berries": {
+      "name": "Berries",
+      "description": "Consumable berries with various effects",
+      "items": "dynamic_from_catalog"
+    },
+    "vitamins": {
+      "name": "Vitamins",
+      "description": "Items that boost specific stats",
+      "items": [
+        "HP_UP",
+        "PROTEIN", 
+        "IRON",
+        "CALCIUM",
+        "ZINC",
+        "CARBOS"
+      ]
+    },
+    "type_boosters": {
+      "name": "Type Boosters",
+      "description": "Items that boost specific types",
+      "items": "dynamic_from_catalog"
+    },
+    "mints": {
+      "name": "Mints",
+      "description": "Items that change Pokemon natures",
+      "items": "dynamic_from_catalog"
+    },
+    "temp_battle": {
+      "name": "Temporary Battle Items",
+      "description": "Items with temporary battle effects",
+      "items": [
+        "X_ATTACK",
+        "X_DEFENSE",
+        "X_SP_ATTACK", 
+        "X_SP_DEFENSE",
+        "X_SPEED",
+        "X_ACCURACY",
+        "LURE",
+        "SUPER_LURE",
+        "MAX_LURE"
+      ]
+    },
+    "trainer": {
+      "name": "Trainer Items",
+      "description": "Items that affect trainer-wide mechanics",
+      "items": [
+        "EXP_CHARM",
+        "SUPER_EXP_CHARM",
+        "EXP_SHARE",
+        "MAP",
+        "IV_SCANNER",
+        "GOLDEN_POKEBALL",
+        "AMULET_COIN",
+        "MEGA_BRACELET",
+        "TERA_ORB",
+        "DYNAMAX_BAND",
+        "SHINY_CHARM",
+        "ABILITY_CHARM",
+        "CATCHING_CHARM",
+        "NUGGET",
+        "BIG_NUGGET",
+        "RELIC_GOLD",
+        "COIN_CASE",
+        "LOCK_CAPSULE",
+        "BERRY_POUCH",
+        "HEALING_CHARM",
+        "CANDY_JAR",
+        "DIRE_HIT"
+      ]
+    },
+    "form_change": {
+      "name": "Form Change Items",
+      "description": "Items that change Pokemon forms",
+      "items": [
+        "RARE_FORM_CHANGE_ITEM",
+        "GENERIC_FORM_CHANGE_ITEM"
+      ]
+    },
+    "plates": {
+      "name": "Arceus Plates",
+      "description": "Type-specific plates for Arceus",
+      "items": [
+        "FLAME_PLATE",
+        "SPLASH_PLATE",
+        "ZAP_PLATE", 
+        "MEADOW_PLATE",
+        "ICICLE_PLATE",
+        "FIST_PLATE",
+        "TOXIC_PLATE",
+        "EARTH_PLATE",
+        "SKY_PLATE",
+        "MIND_PLATE",
+        "INSECT_PLATE",
+        "STONE_PLATE",
+        "SPOOKY_PLATE",
+        "DRACO_PLATE",
+        "DREAD_PLATE",
+        "IRON_PLATE",
+        "PIXIE_PLATE"
+      ]
+    },
+    "memories": {
+      "name": "Type: Null Memories",
+      "description": "Memory discs for Type: Null evolution",
+      "items": [
+        "FIRE_MEMORY",
+        "WATER_MEMORY",
+        "ELECTRIC_MEMORY",
+        "GRASS_MEMORY",
+        "ICE_MEMORY",
+        "FIGHTING_MEMORY",
+        "POISON_MEMORY",
+        "GROUND_MEMORY",
+        "FLYING_MEMORY",
+        "PSYCHIC_MEMORY",
+        "BUG_MEMORY",
+        "ROCK_MEMORY",
+        "GHOST_MEMORY",
+        "DRAGON_MEMORY",
+        "DARK_MEMORY",
+        "STEEL_MEMORY",
+        "FAIRY_MEMORY"
+      ]
+    }
+  },
+  "items": {
+    "FOCUS_BAND": {
+      "id": "FOCUS_BAND",
+      "display_name": "Focus Band",
+      "emoji": "🎯",
+      "description": "Survive Fatal",
+      "category": "common",
+      "subcategory": "held_item",
+      "tags": ["survival", "held"],
+      "ui_order": 1
+    },
+    "MYSTICAL_ROCK": {
+      "id": "MYSTICAL_ROCK", 
+      "display_name": "Mystical Rock",
+      "emoji": "🪨",
+      "description": "Weather Extend",
+      "category": "common",
+      "subcategory": "held_item",
+      "tags": ["weather", "held"],
+      "ui_order": 2
+    },
+    "SOOTHE_BELL": {
+      "id": "SOOTHE_BELL",
+      "display_name": "Soothe Bell", 
+      "emoji": "🔔",
+      "description": "Friendship Boost",
+      "category": "common",
+      "subcategory": "held_item",
+      "tags": ["friendship", "held"],
+      "ui_order": 3
+    },
+    "LEEK": {
+      "id": "LEEK",
+      "display_name": "Leek",
+      "emoji": "🥬", 
+      "description": "Crit Boost",
+      "category": "common",
+      "subcategory": "held_item",
+      "tags": ["critical", "held"],
+      "ui_order": 4
+    },
+    "EVIOLITE": {
+      "id": "EVIOLITE",
+      "display_name": "Eviolite",
+      "emoji": "💎",
+      "description": "Pre-Evo Boost", 
+      "category": "common",
+      "subcategory": "held_item",
+      "tags": ["evolution", "held"],
+      "ui_order": 5
+    },
+    "SOUL_DEW": {
+      "id": "SOUL_DEW",
+      "display_name": "Soul Dew",
+      "emoji": "💎",
+      "description": "Nature Boost",
+      "category": "common", 
+      "subcategory": "held_item",
+      "tags": ["nature", "held"],
+      "ui_order": 6
+    },
+    "GOLDEN_PUNCH": {
+      "id": "GOLDEN_PUNCH",
+      "display_name": "Golden Punch",
+      "emoji": "👊",
+      "description": "Money Reward",
+      "category": "common",
+      "subcategory": "held_item", 
+      "tags": ["money", "held"],
+      "ui_order": 7
+    },
+    "GRIP_CLAW": {
+      "id": "GRIP_CLAW",
+      "display_name": "Grip Claw",
+      "emoji": "🦀",
+      "description": "Trap Effect",
+      "category": "common",
+      "subcategory": "held_item",
+      "tags": ["trap", "held"],
+      "ui_order": 8
+    },
+    "QUICK_CLAW": {
+      "id": "QUICK_CLAW", 
+      "display_name": "Quick Claw",
+      "emoji": "⚡",
+      "description": "Speed Priority",
+      "category": "common",
+      "subcategory": "held_item",
+      "tags": ["speed", "held"],
+      "ui_order": 9
+    },
+    "KINGS_ROCK": {
+      "id": "KINGS_ROCK",
+      "display_name": "King's Rock",
+      "emoji": "👑",
+      "description": "Flinch Chance",
+      "category": "common",
+      "subcategory": "held_item",
+      "tags": ["flinch", "held"],
+      "ui_order": 10
+    },
+    "LEFTOVERS": {
+      "id": "LEFTOVERS",
+      "display_name": "Leftovers", 
+      "emoji": "🍖",
+      "description": "Turn Heal",
+      "category": "common",
+      "subcategory": "held_item",
+      "tags": ["healing", "held"],
+      "ui_order": 11
+    },
+    "SHELL_BELL": {
+      "id": "SHELL_BELL",
+      "display_name": "Shell Bell",
+      "emoji": "🐚",
+      "description": "Hit Heal",
+      "category": "common",
+      "subcategory": "held_item",
+      "tags": ["healing", "held"],
+      "ui_order": 12
+    },
+    "TOXIC_ORB": {
+      "id": "TOXIC_ORB",
+      "display_name": "Toxic Orb",
+      "emoji": "☠️",
+      "description": "Toxic Status",
+      "category": "common",
+      "subcategory": "held_item",
+      "tags": ["status", "held"],
+      "ui_order": 13
+    },
+    "FLAME_ORB": {
+      "id": "FLAME_ORB",
+      "display_name": "Flame Orb",
+      "emoji": "🔥",
+      "description": "Burn Status",
+      "category": "common",
+      "subcategory": "held_item",
+      "tags": ["status", "held"],
+      "ui_order": 14
+    },
+    "BATON": {
+      "id": "BATON",
+      "display_name": "Baton",
+      "emoji": "🏃",
+      "description": "Switch Item",
+      "category": "common",
+      "subcategory": "held_item",
+      "tags": ["switch", "held"],
+      "ui_order": 15
+    },
+    "MULTI_LENS": {
+      "id": "MULTI_LENS",
+      "display_name": "Multi Lens",
+      "emoji": "🔍",
+      "description": "Multi Hit",
+      "category": "common",
+      "subcategory": "held_item",
+      "tags": ["accuracy", "held"],
+      "ui_order": 16
+    },
+    "WIDE_LENS": {
+      "id": "WIDE_LENS",
+      "display_name": "Wide Lens",
+      "emoji": "🔍",
+      "description": "Accuracy Boost",
+      "category": "accuracy",
+      "subcategory": "held_item",
+      "tags": ["accuracy", "held"],
+      "ui_order": 1
+    },
+    "SCOPE_LENS": {
+      "id": "SCOPE_LENS",
+      "display_name": "Scope Lens", 
+      "emoji": "🔍",
+      "description": "Crit Boost",
+      "category": "accuracy",
+      "subcategory": "held_item",
+      "tags": ["critical", "held"],
+      "ui_order": 2
+    },
+    "LUCKY_EGG": {
+      "id": "LUCKY_EGG",
+      "display_name": "Lucky Egg",
+      "emoji": "🥚",
+      "description": "Exp Boost",
+      "category": "experience",
+      "subcategory": "held_item",
+      "tags": ["experience", "held"],
+      "ui_order": 1
+    },
+    "GOLDEN_EGG": {
+      "id": "GOLDEN_EGG",
+      "display_name": "Golden Egg",
+      "emoji": "🥚",
+      "description": "Super Exp Boost",
+      "category": "experience",
+      "subcategory": "held_item",
+      "tags": ["experience", "held"],
+      "ui_order": 2
+    },
+    "HP_UP": {
+      "id": "HP_UP",
+      "display_name": "HP Up",
+      "emoji": "💊",
+      "description": "Vitamin",
+      "category": "vitamins",
+      "subcategory": "vitamin",
+      "tags": ["vitamin", "hp"],
+      "ui_order": 1
+    },
+    "PROTEIN": {
+      "id": "PROTEIN",
+      "display_name": "Protein",
+      "emoji": "💊",
+      "description": "Vitamin",
+      "category": "vitamins",
+      "subcategory": "vitamin",
+      "tags": ["vitamin", "attack"],
+      "ui_order": 2
+    },
+    "IRON": {
+      "id": "IRON",
+      "display_name": "Iron",
+      "emoji": "💊",
+      "description": "Vitamin",
+      "category": "vitamins",
+      "subcategory": "vitamin",
+      "tags": ["vitamin", "defense"],
+      "ui_order": 3
+    },
+    "CALCIUM": {
+      "id": "CALCIUM",
+      "display_name": "Calcium",
+      "emoji": "💊",
+      "description": "Vitamin",
+      "category": "vitamins",
+      "subcategory": "vitamin",
+      "tags": ["vitamin", "sp_attack"],
+      "ui_order": 4
+    },
+    "ZINC": {
+      "id": "ZINC",
+      "display_name": "Zinc",
+      "emoji": "💊",
+      "description": "Vitamin",
+      "category": "vitamins",
+      "subcategory": "vitamin",
+      "tags": ["vitamin", "sp_defense"],
+      "ui_order": 5
+    },
+    "CARBOS": {
+      "id": "CARBOS",
+      "display_name": "Carbos",
+      "emoji": "💊",
+      "description": "Vitamin",
+      "category": "vitamins",
+      "subcategory": "vitamin",
+      "tags": ["vitamin", "speed"],
+      "ui_order": 6
+    },
+    "X_ATTACK": {
+      "id": "X_ATTACK",
+      "display_name": "X Attack",
+      "emoji": "⚔️",
+      "description": "Temp Battle",
+      "category": "temp_battle",
+      "subcategory": "x_item",
+      "tags": ["temporary", "attack"],
+      "ui_order": 1
+    },
+    "X_DEFENSE": {
+      "id": "X_DEFENSE",
+      "display_name": "X Defense",
+      "emoji": "🛡️",
+      "description": "Temp Battle",
+      "category": "temp_battle",
+      "subcategory": "x_item",
+      "tags": ["temporary", "defense"],
+      "ui_order": 2
+    },
+    "X_SP_ATTACK": {
+      "id": "X_SP_ATTACK",
+      "display_name": "X Sp. Attack",
+      "emoji": "⚔️",
+      "description": "Temp Battle",
+      "category": "temp_battle",
+      "subcategory": "x_item",
+      "tags": ["temporary", "sp_attack"],
+      "ui_order": 3
+    },
+    "X_SP_DEFENSE": {
+      "id": "X_SP_DEFENSE",
+      "display_name": "X Sp. Defense",
+      "emoji": "🛡️",
+      "description": "Temp Battle",
+      "category": "temp_battle",
+      "subcategory": "x_item",
+      "tags": ["temporary", "sp_defense"],
+      "ui_order": 4
+    },
+    "X_SPEED": {
+      "id": "X_SPEED",
+      "display_name": "X Speed",
+      "emoji": "💨",
+      "description": "Temp Battle",
+      "category": "temp_battle",
+      "subcategory": "x_item",
+      "tags": ["temporary", "speed"],
+      "ui_order": 5
+    },
+    "X_ACCURACY": {
+      "id": "X_ACCURACY",
+      "display_name": "X Accuracy",
+      "emoji": "🎯",
+      "description": "Temp Battle",
+      "category": "temp_battle",
+      "subcategory": "x_item",
+      "tags": ["temporary", "accuracy"],
+      "ui_order": 6
+    },
+    "LURE": {
+      "id": "LURE",
+      "display_name": "Lure",
+      "emoji": "🎣",
+      "description": "Encounter Boost",
+      "category": "temp_battle",
+      "subcategory": "lure",
+      "tags": ["temporary", "encounter"],
+      "ui_order": 7
+    },
+    "SUPER_LURE": {
+      "id": "SUPER_LURE",
+      "display_name": "Super Lure",
+      "emoji": "🎣",
+      "description": "Super Encounter Boost",
+      "category": "temp_battle",
+      "subcategory": "lure",
+      "tags": ["temporary", "encounter"],
+      "ui_order": 8
+    },
+    "MAX_LURE": {
+      "id": "MAX_LURE",
+      "display_name": "Max Lure",
+      "emoji": "🎣",
+      "description": "Max Encounter Boost",
+      "category": "temp_battle",
+      "subcategory": "lure",
+      "tags": ["temporary", "encounter"],
+      "ui_order": 9
+    },
+    "EXP_CHARM": {
+      "id": "EXP_CHARM",
+      "display_name": "Exp Charm",
+      "emoji": "✨",
+      "description": "Trainer Item",
+      "category": "trainer",
+      "subcategory": "charm",
+      "tags": ["trainer", "experience"],
+      "ui_order": 1
+    },
+    "SUPER_EXP_CHARM": {
+      "id": "SUPER_EXP_CHARM",
+      "display_name": "Super Exp Charm",
+      "emoji": "✨",
+      "description": "Trainer Item",
+      "category": "trainer",
+      "subcategory": "charm",
+      "tags": ["trainer", "experience"],
+      "ui_order": 2
+    },
+    "EXP_SHARE": {
+      "id": "EXP_SHARE",
+      "display_name": "Exp Share",
+      "emoji": "📊",
+      "description": "Trainer Item",
+      "category": "trainer",
+      "subcategory": "share",
+      "tags": ["trainer", "experience"],
+      "ui_order": 3
+    },
+    "MAP": {
+      "id": "MAP",
+      "display_name": "Map",
+      "emoji": "🗺️",
+      "description": "Trainer Item",
+      "category": "trainer",
+      "subcategory": "tool",
+      "tags": ["trainer", "navigation"],
+      "ui_order": 4
+    },
+    "IV_SCANNER": {
+      "id": "IV_SCANNER",
+      "display_name": "IV Scanner",
+      "emoji": "📡",
+      "description": "Trainer Item",
+      "category": "trainer",
+      "subcategory": "tool",
+      "tags": ["trainer", "analysis"],
+      "ui_order": 5
+    },
+    "GOLDEN_POKEBALL": {
+      "id": "GOLDEN_POKEBALL",
+      "display_name": "Golden Pokéball",
+      "emoji": "⚡",
+      "description": "Trainer Item",
+      "category": "trainer",
+      "subcategory": "pokeball",
+      "tags": ["trainer", "pokeball"],
+      "ui_order": 6
+    },
+    "AMULET_COIN": {
+      "id": "AMULET_COIN",
+      "display_name": "Amulet Coin",
+      "emoji": "💰",
+      "description": "Trainer Item",
+      "category": "trainer",
+      "subcategory": "charm",
+      "tags": ["trainer", "money"],
+      "ui_order": 7
+    },
+    "MEGA_BRACELET": {
+      "id": "MEGA_BRACELET",
+      "display_name": "Mega Bracelet",
+      "emoji": "💍",
+      "description": "Trainer Item",
+      "category": "trainer",
+      "subcategory": "bracelet",
+      "tags": ["trainer", "mega"],
+      "ui_order": 8
+    },
+    "TERA_ORB": {
+      "id": "TERA_ORB",
+      "display_name": "Tera Orb",
+      "emoji": "💎",
+      "description": "Trainer Item",
+      "category": "trainer",
+      "subcategory": "orb",
+      "tags": ["trainer", "tera"],
+      "ui_order": 9
+    },
+    "DYNAMAX_BAND": {
+      "id": "DYNAMAX_BAND",
+      "display_name": "Dynamax Band",
+      "emoji": "💪",
+      "description": "Trainer Item",
+      "category": "trainer",
+      "subcategory": "band",
+      "tags": ["trainer", "dynamax"],
+      "ui_order": 10
+    },
+    "SHINY_CHARM": {
+      "id": "SHINY_CHARM",
+      "display_name": "Shiny Charm",
+      "emoji": "✨",
+      "description": "Trainer Item",
+      "category": "trainer",
+      "subcategory": "charm",
+      "tags": ["trainer", "shiny"],
+      "ui_order": 11
+    },
+    "ABILITY_CHARM": {
+      "id": "ABILITY_CHARM",
+      "display_name": "Ability Charm",
+      "emoji": "✨",
+      "description": "Trainer Item",
+      "category": "trainer",
+      "subcategory": "charm",
+      "tags": ["trainer", "ability"],
+      "ui_order": 12
+    },
+    "CATCHING_CHARM": {
+      "id": "CATCHING_CHARM",
+      "display_name": "Catching Charm",
+      "emoji": "✨",
+      "description": "Trainer Item",
+      "category": "trainer",
+      "subcategory": "charm",
+      "tags": ["trainer", "catching"],
+      "ui_order": 13
+    },
+    "NUGGET": {
+      "id": "NUGGET",
+      "display_name": "Nugget",
+      "emoji": "🥇",
+      "description": "Trainer Item",
+      "category": "trainer",
+      "subcategory": "currency",
+      "tags": ["trainer", "money"],
+      "ui_order": 14
+    },
+    "BIG_NUGGET": {
+      "id": "BIG_NUGGET",
+      "display_name": "Big Nugget",
+      "emoji": "🥇",
+      "description": "Trainer Item",
+      "category": "trainer",
+      "subcategory": "currency",
+      "tags": ["trainer", "money"],
+      "ui_order": 15
+    },
+    "RELIC_GOLD": {
+      "id": "RELIC_GOLD",
+      "display_name": "Relic Gold",
+      "emoji": "🏺",
+      "description": "Trainer Item",
+      "category": "trainer",
+      "subcategory": "currency",
+      "tags": ["trainer", "money"],
+      "ui_order": 16
+    },
+    "COIN_CASE": {
+      "id": "COIN_CASE",
+      "display_name": "Coin Case",
+      "emoji": "💰",
+      "description": "Trainer Item",
+      "category": "trainer",
+      "subcategory": "tool",
+      "tags": ["trainer", "money"],
+      "ui_order": 17
+    },
+    "LOCK_CAPSULE": {
+      "id": "LOCK_CAPSULE",
+      "display_name": "Lock Capsule",
+      "emoji": "🔒",
+      "description": "Trainer Item",
+      "category": "trainer",
+      "subcategory": "tool",
+      "tags": ["trainer", "lock"],
+      "ui_order": 18
+    },
+    "BERRY_POUCH": {
+      "id": "BERRY_POUCH",
+      "display_name": "Berry Pouch",
+      "emoji": "🎒",
+      "description": "Trainer Item",
+      "category": "trainer",
+      "subcategory": "tool",
+      "tags": ["trainer", "berry"],
+      "ui_order": 19
+    },
+    "HEALING_CHARM": {
+      "id": "HEALING_CHARM",
+      "display_name": "Healing Charm",
+      "emoji": "✨",
+      "description": "Trainer Item",
+      "category": "trainer",
+      "subcategory": "charm",
+      "tags": ["trainer", "healing"],
+      "ui_order": 20
+    },
+    "CANDY_JAR": {
+      "id": "CANDY_JAR",
+      "display_name": "Candy Jar",
+      "emoji": "🍬",
+      "description": "Trainer Item",
+      "category": "trainer",
+      "subcategory": "tool",
+      "tags": ["trainer", "candy"],
+      "ui_order": 21
+    },
+    "DIRE_HIT": {
+      "id": "DIRE_HIT",
+      "display_name": "Dire Hit",
+      "emoji": "💥",
+      "description": "Trainer Item",
+      "category": "trainer",
+      "subcategory": "battle",
+      "tags": ["trainer", "critical"],
+      "ui_order": 22
+    },
+    "REVIVER_SEED": {
+      "id": "REVIVER_SEED",
+      "display_name": "Reviver Seed",
+      "emoji": "🌱",
+      "description": "Held Item",
+      "category": "common",
+      "subcategory": "held_item",
+      "tags": ["held", "revival"],
+      "ui_order": 23
+    },
+    "MINI_BLACK_HOLE": {
+      "id": "MINI_BLACK_HOLE",
+      "display_name": "Mini Black Hole",
+      "emoji": "🕳️",
+      "description": "Held Item",
+      "category": "common",
+      "subcategory": "held_item",
+      "tags": ["held", "special"],
+      "ui_order": 24
+    },
+    "RARE_FORM_CHANGE_ITEM": {
+      "id": "RARE_FORM_CHANGE_ITEM",
+      "display_name": "Rare Form Change Item",
+      "emoji": "🔄",
+      "description": "Form Change",
+      "category": "form_change",
+      "subcategory": "rare",
+      "tags": ["form", "rare"],
+      "ui_order": 1
+    },
+    "GENERIC_FORM_CHANGE_ITEM": {
+      "id": "GENERIC_FORM_CHANGE_ITEM",
+      "display_name": "Generic Form Change Item",
+      "emoji": "🔄",
+      "description": "Form Change",
+      "category": "form_change",
+      "subcategory": "generic",
+      "tags": ["form", "generic"],
+      "ui_order": 2
+    }
+  },
+  "pokemon_specific_items": {
+    "493": {
+      "name": "Arceus",
+      "items": {
+        "plates": {
+          "category": "plates",
+          "items": [
+            "FLAME_PLATE",
+            "SPLASH_PLATE",
+            "ZAP_PLATE",
+            "MEADOW_PLATE",
+            "ICICLE_PLATE",
+            "FIST_PLATE",
+            "TOXIC_PLATE",
+            "EARTH_PLATE",
+            "SKY_PLATE",
+            "MIND_PLATE",
+            "INSECT_PLATE",
+            "STONE_PLATE",
+            "SPOOKY_PLATE",
+            "DRACO_PLATE",
+            "DREAD_PLATE",
+            "IRON_PLATE",
+            "PIXIE_PLATE"
+          ]
+        }
+      }
+    },
+    "773": {
+      "name": "Type: Null",
+      "items": {
+        "memories": {
+          "category": "memories",
+          "items": [
+            "FIRE_MEMORY",
+            "WATER_MEMORY",
+            "ELECTRIC_MEMORY",
+            "GRASS_MEMORY",
+            "ICE_MEMORY",
+            "FIGHTING_MEMORY",
+            "POISON_MEMORY",
+            "GROUND_MEMORY",
+            "FLYING_MEMORY",
+            "PSYCHIC_MEMORY",
+            "BUG_MEMORY",
+            "ROCK_MEMORY",
+            "GHOST_MEMORY",
+            "DRAGON_MEMORY",
+            "DARK_MEMORY",
+            "STEEL_MEMORY",
+            "FAIRY_MEMORY"
+          ]
+        }
+      }
+    }
+  },
+  "form_change_mappings": {
+    "22": {
+      "item_name": "Gyaradosite",
+      "form_type": "mega",
+      "target_pokemon": 130
+    },
+    "48": {
+      "item_name": "Venusaurite", 
+      "form_type": "mega",
+      "target_pokemon": 3
+    },
+    "56": {
+      "item_name": "Blastoisinite",
+      "form_type": "mega", 
+      "target_pokemon": 9
+    }
+  }
+}

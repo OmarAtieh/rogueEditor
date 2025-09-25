@@ -302,12 +302,5 @@ def determine_default_form_selection(pokemon_data: Dict, slot_data: Dict, userna
         if user_form_name and user_form_name in ["Base Form"] + form_names:
             return user_form_name
 
-    # If only one alternative form, auto-select it
-    if len(form_names) == 1:
-        return form_names[0]
-
-    # Multiple forms exist - default to first but will show hint
-    if len(form_names) > 1:
-        return form_names[0]
-
+    # Do not auto-select forms solely based on availability; require item or user choice
     return "Base Form"
