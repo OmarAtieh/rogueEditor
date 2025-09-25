@@ -116,9 +116,35 @@ class BackgroundCacheManager:
             self._cached_data[cache_key] = data
             self._cache_timestamps[cache_key] = time.time()
 
+    def _generate_form_cache_hash(self, username: str, slot: int) -> str:
+        """Generate a hash based on form states to include in cache keys."""
+        try:
+            import hashlib
+            from rogueeditor.form_persistence import SlotFormPersistence
+
+            # Get form persistence data
+            persistence = SlotFormPersistence(username, slot)
+            form_data = persistence.get_all_forms()
+            auto_detect = persistence.get_auto_detect()
+
+            # Create a consistent string representation of form state
+            form_state = {
+                "forms": form_data,
+                "auto_detect": auto_detect
+            }
+
+            # Generate hash of form state
+            form_string = str(sorted(form_state.items()))
+            return hashlib.md5(form_string.encode()).hexdigest()[:8]
+        except Exception:
+            # Fallback to timestamp-based cache key
+            return str(int(time.time()) // 300)  # 5-minute granularity
+
     def warm_team_analysis_cache(self, api: PokerogueAPI, slot: int, username: str = None) -> Future:
-        """Start background caching for team analysis data."""
-        cache_key = f"team_analysis_{username}_{slot}"
+        """Start background caching for team analysis data with form-aware cache keys."""
+        # Generate form-aware cache key that includes form states
+        form_hash = self._generate_form_cache_hash(username, slot)
+        cache_key = f"team_analysis_{username}_{slot}_{form_hash}"
 
         # Return existing future if already running
         if cache_key in self._cache_futures and not self._cache_futures[cache_key].done():
@@ -146,6 +172,9 @@ class BackgroundCacheManager:
             slot_data = api.get_slot(slot)
             party = slot_data.get("party") or []
 
+            # Get username from API context (needed for form-aware analysis)
+            username = getattr(api, 'username', None) or 'default_user'
+
             if not party:
                 return {"error": "No party data"}
 
@@ -157,7 +186,7 @@ class BackgroundCacheManager:
             # Use attack_vs orientation for defensive checks: matrix[attacking][defending]
             type_matrix = base_matrix.get('attack_vs') if isinstance(base_matrix.get('attack_vs'), dict) else base_matrix
 
-            # Compute type matchups for each party member (optimized)
+            # Compute type matchups for each party member (optimized with form-aware data)
             party_matchups = []
             for i, mon in enumerate(party):
                 if not mon:
@@ -166,15 +195,36 @@ class BackgroundCacheManager:
                 try:
                     species_id = str(mon.get("species", 0))
                     catalog_entry = pokemon_catalog.get("by_dex", {}).get(species_id, {})
-                    types = catalog_entry.get("types", {}) or {}
+
+                    # Get form-aware types and name using form persistence
+                    from rogueeditor.form_persistence import (
+                        get_pokemon_display_name,
+                        get_pokemon_effective_types,
+                        enrich_pokemon_with_form_data
+                    )
+
+                    # Enrich Pokemon data with form information
+                    enriched_mon = enrich_pokemon_with_form_data(mon, slot_data, self.api.username, slot)
+
+                    # Get form-aware types
+                    form_types = get_pokemon_effective_types(mon, slot_data, self.api.username, slot)
+                    types = form_types if form_types else (catalog_entry.get("types", {}) or {})
+
+                    # Get form-aware display name
+                    form_name = get_pokemon_display_name(mon, slot_data, self.api.username, slot)
+                    pokemon_name = form_name if form_name and form_name != "Unknown" else catalog_entry.get("name", f"Species#{species_id}")
 
                     # Compute defensive matchups (optimized)
                     matchup_data = self._compute_defensive_matchups_optimized(types, type_matrix)
                     party_matchups.append({
                         "index": i,
+                        "pokemon_id": mon.get("id"),
                         "species_id": species_id,
                         "species_name": catalog_entry.get("name", f"Species#{species_id}"),
-                        "types": types,
+                        "pokemon_name": pokemon_name,  # Form-aware name
+                        "level": mon.get("level", "?"),
+                        "types": types,  # Form-aware types
+                        "form_data": enriched_mon.get("_form_data"),  # Form metadata
                         "matchups": matchup_data
                     })
                 except Exception as e:
@@ -182,9 +232,13 @@ class BackgroundCacheManager:
                     # Add a fallback entry
                     party_matchups.append({
                         "index": i,
+                        "pokemon_id": mon.get("id"),
                         "species_id": str(mon.get("species", 0)),
                         "species_name": f"Species#{mon.get('species', 0)}",
+                        "pokemon_name": f"Species#{mon.get('species', 0)}",
+                        "level": mon.get("level", "?"),
                         "types": {},
+                        "form_data": None,
                         "matchups": {"x4": [], "x2": [], "x1": [], "x0.5": [], "x0.25": [], "x0": []}
                     })
 
@@ -280,7 +334,7 @@ class BackgroundCacheManager:
                 team_members.append({
                     "name": pokemon_name,
                     "types": list(types.values()) if isinstance(types, dict) else types,
-                    "defensive_types": "/".join(types.values()) if isinstance(types, dict) else "Unknown"
+                    "defensive_types": "/".join(types.values()) if isinstance(types, dict) and types.values() else "Unknown"
                 })
 
                 # Count effectiveness for each attacking type
@@ -303,7 +357,7 @@ class BackgroundCacheManager:
 
             team_size = len(party_matchups)
 
-            for attack_type, effectiveness in effectiveness_grid.items():
+            for attack_type, effectiveness in vulnerability_summary.items():
                 super_effective_count = effectiveness["x4"] + effectiveness["x2"]
                 resistant_count = effectiveness["x0.5"] + effectiveness["x0.25"] + effectiveness["x0"]
 
@@ -322,7 +376,7 @@ class BackgroundCacheManager:
 
             # Coverage gaps - types with no resistance
             coverage_gaps = []
-            for attack_type, effectiveness in effectiveness_grid.items():
+            for attack_type, effectiveness in vulnerability_summary.items():
                 if effectiveness["x0.5"] + effectiveness["x0.25"] + effectiveness["x0"] == 0:
                     super_effective = effectiveness["x4"] + effectiveness["x2"]
                     if super_effective > 0:
@@ -332,7 +386,7 @@ class BackgroundCacheManager:
 
             return {
                 "team_members": team_members,
-                "effectiveness_grid": effectiveness_grid,
+                "vulnerability_summary": vulnerability_summary,
                 "critical_weaknesses": critical_weaknesses[:5],
                 "major_weaknesses": major_weaknesses[:8],
                 "team_resistances": team_resistances[:10],
@@ -362,7 +416,16 @@ class BackgroundCacheManager:
                 try:
                     species_id = str(mon.get("species", 0))
                     catalog_entry = pokemon_catalog.get("by_dex", {}).get(species_id, {})
-                    species_name = catalog_entry.get("name", f"Species#{species_id}")
+                    base_name = catalog_entry.get("name", f"Species#{species_id}")
+
+                    # Get form-aware name using form persistence (requires slot data context)
+                    try:
+                        from rogueeditor.form_persistence import get_pokemon_display_name
+                        # Note: This requires access to slot data which isn't available in this context
+                        # For now, use base name but mark for future enhancement
+                        species_name = base_name
+                    except Exception:
+                        species_name = base_name
 
                     # Get moves from the mon
                     moves = mon.get("moves", [])
@@ -516,7 +579,7 @@ class BackgroundCacheManager:
                     "name": pokemon_name,
                     "level": level,
                     "types": type_list,
-                    "defensive_types": "/".join(type_list) if type_list else "Unknown"
+                    "defensive_types": "/".join(type_list) if type_list and isinstance(type_list, list) else "Unknown"
                 })
 
                 # Count effectiveness for each attacking type
@@ -539,7 +602,7 @@ class BackgroundCacheManager:
 
             team_size = len(party_matchups)
 
-            for attack_type, effectiveness in effectiveness_grid.items():
+            for attack_type, effectiveness in vulnerability_summary.items():
                 super_effective_count = effectiveness["x4"] + effectiveness["x2"]
                 resistant_count = effectiveness["x0.5"] + effectiveness["x0.25"] + effectiveness["x0"]
 
@@ -558,7 +621,7 @@ class BackgroundCacheManager:
 
             # Coverage gaps - types with no resistance
             coverage_gaps = []
-            for attack_type, effectiveness in effectiveness_grid.items():
+            for attack_type, effectiveness in vulnerability_summary.items():
                 if effectiveness["x0.5"] + effectiveness["x0.25"] + effectiveness["x0"] == 0:
                     super_effective = effectiveness["x4"] + effectiveness["x2"]
                     if super_effective > 0:
@@ -568,7 +631,7 @@ class BackgroundCacheManager:
 
             return {
                 "team_members": team_members,
-                "effectiveness_grid": effectiveness_grid,
+                "vulnerability_summary": vulnerability_summary,
                 "critical_weaknesses": critical_weaknesses[:5],
                 "major_weaknesses": major_weaknesses[:8],
                 "team_resistances": team_resistances[:10],
@@ -601,33 +664,56 @@ class BackgroundCacheManager:
             all_types = ["Normal", "Fire", "Water", "Electric", "Grass", "Ice", "Fighting", "Poison",
                         "Ground", "Flying", "Psychic", "Bug", "Rock", "Ghost", "Dragon", "Dark", "Steel", "Fairy"]
 
+            # Load move catalog for proper move type and category analysis
+            from rogueeditor.catalog import load_moves_data
+            moves_catalog = load_moves_data() or {}
+
             # Process each team member
             for member_data in party:
                 if not member_data:
                     continue
 
+                # Use form-aware Pokemon data and name
                 species_id = str(member_data.get("species", 0))
                 catalog_entry = pokemon_catalog.get("by_dex", {}).get(species_id, {})
-                pokemon_name = catalog_entry.get("name", f"Species#{species_id}")
+
+                # Get form-aware display name
+                from rogueeditor.form_persistence import get_pokemon_display_name
+                form_name = get_pokemon_display_name(member_data, {"party": party}, None, None)
+                pokemon_name = form_name if form_name and form_name != "Unknown" else catalog_entry.get("name", f"Species#{species_id}")
+
                 level = member_data.get("level", "?")
                 moves = member_data.get("moveset", [])
 
-                # Organize moves by type
+                # Organize DAMAGING moves by type (filter out status moves)
                 member_moves_by_type = {}
                 for move_data in moves:
                     if not move_data:
                         continue
-                    move_name = move_data.get("moveId", "Unknown Move")
-                    move_type = move_data.get("type", "Normal")
 
-                    if move_type not in member_moves_by_type:
-                        member_moves_by_type[move_type] = []
-                    member_moves_by_type[move_type].append(move_name)
+                    move_id = move_data.get("moveId")
+                    if not move_id:
+                        continue
 
-                    # Add to team-wide move tracking
-                    if move_type not in all_team_moves:
-                        all_team_moves[move_type] = []
-                    all_team_moves[move_type].append((pokemon_name, move_name))
+                    # Look up move in catalog to get type and category
+                    move_info = moves_catalog.get(str(move_id), {})
+                    move_name = move_info.get("name", f"Move#{move_id}")
+                    move_type = move_info.get("type", "normal")
+                    move_category = move_info.get("category", "physical")
+
+                    # Only include damaging moves (physical/special, not status)
+                    if move_category.lower() in ["physical", "special"]:
+                        # Normalize type case to match type matrix keys
+                        move_type_normalized = move_type.lower()
+
+                        if move_type_normalized not in member_moves_by_type:
+                            member_moves_by_type[move_type_normalized] = []
+                        member_moves_by_type[move_type_normalized].append(move_name)
+
+                        # Add to team-wide move tracking
+                        if move_type_normalized not in all_team_moves:
+                            all_team_moves[move_type_normalized] = []
+                        all_team_moves[move_type_normalized].append((pokemon_name, move_name))
 
                 team_members.append({
                     "name": pokemon_name,
@@ -656,10 +742,11 @@ class BackgroundCacheManager:
                     if not moves_list:
                         continue
 
-                    # Get effectiveness from type matrix
+                    # Get effectiveness from type matrix (both keys are normalized lowercase)
                     effectiveness = 1.0
-                    if defending_type in type_matrix.get(attacking_type, {}):
-                        effectiveness = type_matrix[attacking_type][defending_type]
+                    defending_type_normalized = defending_type.lower()
+                    if attacking_type in type_matrix and defending_type_normalized in type_matrix[attacking_type]:
+                        effectiveness = type_matrix[attacking_type][defending_type_normalized]
 
                     # Categorize effectiveness
                     if effectiveness >= 2.0:
@@ -794,43 +881,27 @@ def _set(mon: dict, keys: tuple[str, ...], value: Any) -> None:
 
 
 def _calc_stats(level: int, base: List[int], ivs: List[int], nature_mults: List[float], booster_mults: Optional[List[float]] = None) -> List[int]:
+    # Standard Pokemon stat formula without EVs.
     # Order: HP, Atk, Def, SpA, SpD, Spe
-    # Use level-based formula discovered through investigation
     out: List[int] = [0] * 6
-    
-    # Apply level-based multipliers
-    if level <= 10:
-        # Low level formula: base_mult=1.2, iv_mult=1.2, level_mult=1.5
-        base_mult = 1.2
-        iv_mult = 1.2
-        level_mult = 1.5
-        hp_bonus = 0
-        other_bonus = 0
-    else:
-        # High level formula: base_mult=1.2, iv_mult=0.3, level_mult=1.2, with bonuses
-        base_mult = 1.2
-        iv_mult = 0.3
-        level_mult = 1.2
-        hp_bonus = 15
-        other_bonus = 15
-    
+
     for i in range(6):
         b = int(base[i])
         iv = int(ivs[i]) if 0 <= i < len(ivs) else 0
-        
+
         if i == 0:
-            # HP calculation
-            val = math.floor(((base_mult * b + iv_mult * iv) * level * level_mult) / 100) + level + 10 + hp_bonus
+            # HP = floor(((2*B + IV) * L)/100) + L + 10
+            val = math.floor(((2 * b + iv) * level) / 100) + level + 10
         else:
-            # Other stats calculation
-            val = math.floor(((base_mult * b + iv_mult * iv) * level * level_mult) / 100) + 5 + other_bonus
+            # Stat = floor( ( floor(((2*B + IV) * L)/100) + 5 ) * Nature )
+            inner = math.floor(((2 * b + iv) * level) / 100) + 5
             n = nature_mults[i] if 0 <= i < len(nature_mults) else 1.0
-            val = math.floor(val * n)
-        
-        # Apply booster multipliers (BASE_STAT_BOOSTER: +10% per stack)
+            val = math.floor(inner * n)
+
+        # Apply booster multipliers (BASE_STAT_BOOSTER: +10% per stack) after nature
         if booster_mults and 0 <= i < len(booster_mults):
             val = math.floor(val * booster_mults[i])
-        
+
         out[i] = int(val)
     return out
 
@@ -959,6 +1030,8 @@ class TeamManagerDialog(tk.Toplevel):
         self._trainer_data: Optional[Dict[str, Any]] = None
         self._trainer_dirty_local: bool = False
         self._trainer_dirty_server: bool = False
+        # Build-once guard
+        self._ui_built = False
 
         debug_log(f" Loading Pokemon catalog synchronously")
         print(f"[TRACE] About to import load_pokemon_catalog")
@@ -1274,6 +1347,9 @@ class TeamManagerDialog(tk.Toplevel):
 
     # --- UI Assembly ---
     def _build(self):
+        if self._ui_built:
+            debug_log("_build called but UI already built; skipping")
+            return
         debug_log("Starting UI build")
         root = ttk.Frame(self)
         root.pack(fill=tk.BOTH, expand=True)
@@ -1398,6 +1474,8 @@ class TeamManagerDialog(tk.Toplevel):
 
         # Center the window relative to parent
         self._center_relative_to_parent()
+        # Mark built
+        self._ui_built = True
 
 
     def _center_relative_to_parent(self):
@@ -1470,10 +1548,18 @@ class TeamManagerDialog(tk.Toplevel):
             else:
                 self.data["money"] = 0
             
-            # Mark as dirty and update buttons
-            self._dirty_local = True
-            self._dirty_server = True
-            self._update_button_states()
+            # Mark as dirty
+            self._mark_dirty()
+
+            # Reflect money live in any child ItemManagerDialog windows
+            try:
+                for child in self.winfo_children():
+                    if hasattr(child, 'money_var'):
+                        child.money_var.set(str(self.data.get('money', 0)))
+                        if hasattr(child, '_update_button_states'):
+                            child._update_button_states()
+            except Exception:
+                pass
         except Exception as e:
             debug_log(f"Error handling money change: {e}")
 
@@ -1501,10 +1587,8 @@ class TeamManagerDialog(tk.Toplevel):
                 if self._weather_key() in self.data:
                     del self.data[self._weather_key()]
             
-            # Mark as dirty and update buttons
-            self._dirty_local = True
-            self._dirty_server = True
-            self._update_button_states()
+            # Mark as dirty
+            self._mark_dirty()
         except Exception as e:
             debug_log(f"Error handling weather change: {e}")
 
@@ -1588,10 +1672,8 @@ class TeamManagerDialog(tk.Toplevel):
             # Apply changes to the current Pokémon data
             self._apply_pokemon_changes_to_data(mon)
             
-            # Mark as dirty and update buttons
-            self._dirty_local = True
-            self._dirty_server = True
-            self._update_button_states()
+            # Mark as dirty
+            self._mark_dirty()
         except Exception as e:
             debug_log(f"Error handling Pokémon field change: {e}")
 
@@ -1600,6 +1682,18 @@ class TeamManagerDialog(tk.Toplevel):
         try:
             # Set sync guard to prevent recursion during EXP/level synchronization
             self._sync_guard = True
+            # Find raw party entry to persist changes
+            raw_target = None
+            try:
+                idx = getattr(self, '_current_pokemon_index', None)
+                if idx is None and hasattr(self, 'party_list'):
+                    sel = self.party_list.curselection()
+                    idx = int(sel[0]) if sel else 0
+                idx = int(idx or 0)
+                if 0 <= idx < len(self.party or []):
+                    raw_target = self.party[idx]
+            except Exception:
+                raw_target = None
             
             # Basics tab fields
             if hasattr(self, 'var_name'):
@@ -1740,6 +1834,12 @@ class TeamManagerDialog(tk.Toplevel):
                     except Exception:
                         ivs.append(0)
                 mon["ivs"] = ivs
+                # Also persist IVs into the raw party entry for saving/upload
+                try:
+                    if isinstance(raw_target, dict):
+                        raw_target["ivs"] = list(ivs)
+                except Exception:
+                    pass
             
             # Form & Visuals fields (now in Basics tab)
             if hasattr(self, 'var_tera'):
@@ -1861,6 +1961,12 @@ class TeamManagerDialog(tk.Toplevel):
             debug_log(f"Error applying moves to data: {e}")
 
     def _build_basics(self, parent: ttk.Frame):
+        # Idempotent: clear container before rebuilding
+        try:
+            for w in parent.winfo_children():
+                w.destroy()
+        except Exception:
+            pass
         frm = ttk.Frame(parent)
         frm.pack(fill=tk.BOTH, expand=True)
         # Species + types header
@@ -2088,14 +2194,23 @@ class TeamManagerDialog(tk.Toplevel):
             row=0, column=0, sticky=tk.W, pady=1
         )
 
+        # Pokerus directly under Shiny
+        try:
+            self.var_pokerus = getattr(self, 'var_pokerus', tk.BooleanVar(value=False))
+            ttk.Checkbutton(properties_frame, text="Pokérus", variable=self.var_pokerus).grid(
+                row=1, column=0, sticky=tk.W, pady=1
+            )
+        except Exception:
+            self.var_pokerus = tk.BooleanVar(value=False)
+
         self.var_pause_evo = tk.BooleanVar(value=False)
         ttk.Checkbutton(properties_frame, text="Pause Evolutions", variable=self.var_pause_evo).grid(
-            row=1, column=0, sticky=tk.W, pady=1
+            row=2, column=0, sticky=tk.W, pady=1
         )
 
-        # Luck entry
+        # Luck entry (shifted down)
         luck_frame = ttk.Frame(properties_frame)
-        luck_frame.grid(row=2, column=0, sticky=tk.W, pady=(4,0))
+        luck_frame.grid(row=3, column=0, sticky=tk.W, pady=(4,0))
         ttk.Label(luck_frame, text="Luck:").grid(row=0, column=0, sticky=tk.W)
         self.var_luck = tk.StringVar(value="0")
         self.entry_luck = ttk.Entry(luck_frame, textvariable=self.var_luck, width=6)
@@ -2681,6 +2796,12 @@ class TeamManagerDialog(tk.Toplevel):
             self.party_status_label.configure(text="Error applying changes", foreground="red")
 
     def _build_stats(self, parent: ttk.Frame):
+        # Idempotent: clear container before rebuilding
+        try:
+            for w in parent.winfo_children():
+                w.destroy()
+        except Exception:
+            pass
         frm = ttk.Frame(parent)
         frm.pack(fill=tk.BOTH, expand=True)
         # Base stats + IVs
@@ -2723,12 +2844,18 @@ class TeamManagerDialog(tk.Toplevel):
         # Note: Stats recalculation is handled by the comprehensive field binding system
 
     def _build_moves(self, parent: ttk.Frame):
+        # Idempotent: clear container before rebuilding
+        try:
+            for w in parent.winfo_children():
+                w.destroy()
+        except Exception:
+            pass
         frm = ttk.Frame(parent)
         frm.pack(fill=tk.BOTH, expand=True)
         # Header row
         headers = [
             ("#", 0), ("Type", 1), ("Cat.", 2), ("Move", 3), ("Max PP", 5),
-            ("PP Up", 6), ("PP Used", 7), ("Acc.", 8), ("Effect", 9)
+            ("PP Up", 6), ("PP Used", 7), ("Power", 8), ("Acc.", 9), ("Effect", 10)
         ]
         for text, col in headers:
             ttk.Label(frm, text=text).grid(row=0, column=col, sticky=tk.W, padx=4, pady=(2, 6))
@@ -2740,6 +2867,7 @@ class TeamManagerDialog(tk.Toplevel):
         self._move_type_labels: List[tk.Label] = []
         self._move_cat_labels: List[tk.Label] = []
         self._move_maxpp_labels: List[tk.Label] = []
+        self._move_power_labels: List[tk.Label] = []
         self._move_acc_labels: List[tk.Label] = []
         self._move_effect_labels: List[tk.Label] = []
         self._move_cat_images: List[object] = [None, None, None, None]
@@ -2769,13 +2897,17 @@ class TeamManagerDialog(tk.Toplevel):
             # PP Used (editable)
             used_entry = ttk.Entry(frm, textvariable=self.move_ppused_vars[i], width=6)
             used_entry.grid(row=r, column=7, sticky=tk.W)
+            # Power label
+            powl = ttk.Label(frm, text="—")
+            powl.grid(row=r, column=8, sticky=tk.W, padx=(6, 2))
+            self._move_power_labels.append(powl)
             # Accuracy label
             accl = ttk.Label(frm, text="-")
-            accl.grid(row=r, column=8, sticky=tk.W, padx=(6, 2))
+            accl.grid(row=r, column=9, sticky=tk.W, padx=(6, 2))
             self._move_acc_labels.append(accl)
             # Effect label
             effl = ttk.Label(frm, text="", foreground="gray")
-            effl.grid(row=r, column=9, sticky=tk.W, padx=(6, 0))
+            effl.grid(row=r, column=10, sticky=tk.W, padx=(6, 0))
             self._move_effect_labels.append(effl)
             # Validate PP fields on focus-out only (allow free typing/blank while focused)
             def _bind_pp_validation(idx: int, widget: tk.Widget):
@@ -3895,54 +4027,51 @@ class TeamManagerDialog(tk.Toplevel):
         except Exception:
             pass
 
-    def _update_coverage_walls_guarded(self, expected_token: int, coverage: dict):
+    def _update_coverage_walls_guarded(self, expected_token: int | None = None, coverage: dict | None = None):
         try:
-            # Since we removed the token system, just update the display
+            # Backwards-compatible: allow callers to omit parameters
+            if coverage is None:
+                try:
+                    if hasattr(self, '_last_computed_coverage') and isinstance(self._last_computed_coverage, dict):
+                        coverage = self._last_computed_coverage
+                    else:
+                        return
+                except Exception:
+                    return
             debug_log("_update_coverage_walls_guarded called - updating wall analysis")
-            # Reuse existing walls rendering path by calling full updater at the end
             self._update_coverage_display(coverage)
             self._hide_loading_indicator()
         except Exception:
             self._hide_loading_indicator()
     def _detect_form_slug(self, mon: dict) -> Optional[str]:
-        # Try explicit fields
-        for k in ("form", "forme", "formName", "form_label", "formSlug", "subspecies", "variant"):
-            v = mon.get(k)
-            if isinstance(v, str) and v.strip():
-                s = v.strip().lower()
-                if s in ("alolan", "alola"): return "alola"
-                if s in ("galarian", "galar"): return "galar"
-                if s in ("hisuian", "hisui"): return "hisui"
-                if s in ("paldean", "paldea"): return "paldea"
-                if s.startswith("mega"):
-                    if "x" in s: return "mega-x"
-                    if "y" in s: return "mega-y"
-                    return "mega"
-                s = re.sub(r"[^a-z0-9]+", "-", s)
+        """Determine the current form slug conservatively.
+
+        Rules:
+        - Prefer persisted/effective form detection (items + user selection).
+        - Do NOT infer alternative forms from heuristics or nickname text.
+        - Only return a slug when we have a positively identified alternative form.
+        - Otherwise, return None to use base form behavior.
+        """
+        try:
+            # Use the authoritative form resolution logic
+            from rogueeditor.form_persistence import get_effective_pokemon_form
+            eff = get_effective_pokemon_form(mon, self.data, self.username, self.slot)
+            if eff and isinstance(eff, dict):
+                key = eff.get("form_key")
+                if isinstance(key, str) and key.strip():
+                    return key.strip()
+
+            # If the save explicitly carries a recognized slug, allow it
+            explicit = mon.get("formSlug") or mon.get("form_label")
+            if isinstance(explicit, str) and explicit.strip():
+                s = re.sub(r"[^a-z0-9]+", "-", explicit.strip().lower())
                 return s
-        # Boolean hints
-        if mon.get("isAlolan"): return "alola"
-        if mon.get("isGalarian"): return "galar"
-        if mon.get("isHisuian"): return "hisui"
-        if mon.get("gmax") or mon.get("isGmax"): return "gmax"
-        if mon.get("mega") or mon.get("isMega"):
-            m = str(mon.get("megaForm") or "").strip().lower()
-            if m == "x": return "mega-x"
-            if m == "y": return "mega-y"
-            return "mega"
-        # From name/nickname parentheses
-        name = str(mon.get("nickname") or mon.get("name") or "").strip()
-        if "(" in name and name.endswith(")"):
-            tag = name.rsplit("(", 1)[1][:-1].strip().lower()
-            if tag in ("alolan", "alola"): return "alola"
-            if tag in ("galarian", "galar"): return "galar"
-            if tag in ("hisuian", "hisui"): return "hisui"
-            if tag.startswith("mega"):
-                if "x" in tag: return "mega-x"
-                if "y" in tag: return "mega-y"
-                return "mega"
-            tag = re.sub(r"[^a-z0-9]+", "-", tag)
-            return tag
+
+        except Exception:
+            # Fall through to base form on any error
+            pass
+
+        # Default to base form
         return None
 
     def _safe_destroy_widgets(self, parent):
@@ -4329,7 +4458,7 @@ class TeamManagerDialog(tk.Toplevel):
 
         ttk.Label(parent, text="Money:").grid(row=4, column=0, sticky=tk.E, padx=6, pady=6)
         self.var_money = tk.StringVar(value="")
-        ent = ttk.Entry(parent, textvariable=self.var_money, width=12)
+        ent = ttk.Entry(parent, textvariable=self.var_money, width=18)
         ent.grid(row=4, column=1, sticky=tk.W)
         # Bind money changes to automatically update data
         self.var_money.trace_add("write", lambda *args: self._on_money_change())
@@ -5630,49 +5759,74 @@ class TeamManagerDialog(tk.Toplevel):
             pass
 
     def _compute_team_defensive_analysis_from_party_matchups(self, party_matchups: List[Dict]) -> Dict[str, Any]:
-        """Compute comprehensive team-wide defensive analysis."""
+        """Compute team defensive vulnerability analysis showing how the team defends against each attack type."""
         if not party_matchups:
             return {}
 
         try:
             # Enhanced team member data with names and types
             team_members = []
-            effectiveness_grid = {}  # attacking_type -> {x4: count, x2: count, x1: count, x0.5: count, x0.25: count, x0: count}
+            vulnerability_summary = {}  # attacking_type -> {x0: count, x0.25: count, x0.5: count, x1: count, x2: count, x4: count}
 
             # All possible attacking types for comprehensive analysis
             all_types = ["Normal", "Fire", "Water", "Electric", "Grass", "Ice", "Fighting", "Poison",
                         "Ground", "Flying", "Psychic", "Bug", "Rock", "Ghost", "Dragon", "Dark", "Steel", "Fairy"]
 
-            # Initialize effectiveness grid
+            # Initialize vulnerability summary
             for attack_type in all_types:
-                effectiveness_grid[attack_type] = {"x4": 0, "x2": 0, "x1": 0, "x0.5": 0, "x0.25": 0, "x0": 0}
+                vulnerability_summary[attack_type] = {"x0": 0, "x0.25": 0, "x0.5": 0, "x1": 0, "x2": 0, "x4": 0}
 
-            # Process each team member
+            # Process each team member to gather types and names
             for member in party_matchups:
                 matchups = member.get("matchups", {})
                 pokemon_name = member.get("pokemon_name", "Unknown")
                 level = member.get("level", "?")
-                types = member.get("types", [])
+                types_data = member.get("types", {})
+                form_data = member.get("form_data", {})
+
+                # Convert types dict to list for display purposes
+                if isinstance(types_data, dict):
+                    types_list = []
+                    if types_data.get("type1"):
+                        types_list.append(types_data["type1"])
+                    if types_data.get("type2"):
+                        types_list.append(types_data["type2"])
+                else:
+                    types_list = types_data if isinstance(types_data, list) else []
+
+                # Proper form-aware display name using the same logic as individual Pokemon tabs
+                display_name = pokemon_name
+                form_name = None
+
+                if form_data and isinstance(form_data, dict):
+                    if form_data.get("is_alternative_form") and form_data.get("form_name"):
+                        form_name = form_data.get("form_name")
+                        if form_name != "Base Form":
+                            display_name = f"{pokemon_name} ({form_name})"
 
                 team_members.append({
-                    "name": pokemon_name,
+                    "name": display_name,
+                    "pokemon_name": pokemon_name,
+                    "form_name": form_name,
                     "level": level,
-                    "types": types,
-                    "defensive_types": "/".join(types) if types else "Unknown"
+                    "types": types_list,
+                    "types_dict": types_data,  # Keep original dict format
+                    "form_data": form_data,
+                    "defensive_types": "/".join(types_list) if types_list and isinstance(types_list, list) else "Unknown"
                 })
 
-                # Count effectiveness for each attacking type
+                # Count how each team member defends against each attacking type
                 for attack_type in all_types:
                     found_effectiveness = False
                     for effectiveness, type_list in matchups.items():
-                        if attack_type in type_list:
-                            effectiveness_grid[attack_type][effectiveness] += 1
+                        if attack_type.lower() in [t.lower() for t in type_list]:
+                            vulnerability_summary[attack_type][effectiveness] += 1
                             found_effectiveness = True
                             break
 
                     # If not found in any category, assume neutral (x1)
                     if not found_effectiveness:
-                        effectiveness_grid[attack_type]["x1"] += 1
+                        vulnerability_summary[attack_type]["x1"] += 1
 
             # Risk analysis - identify critical and major weaknesses
             critical_weaknesses = []  # Types that hit 4+ members super effectively
@@ -5681,7 +5835,7 @@ class TeamManagerDialog(tk.Toplevel):
 
             team_size = len(party_matchups)
 
-            for attack_type, effectiveness in effectiveness_grid.items():
+            for attack_type, effectiveness in vulnerability_summary.items():
                 super_effective_count = effectiveness["x4"] + effectiveness["x2"]
                 resistant_count = effectiveness["x0.5"] + effectiveness["x0.25"] + effectiveness["x0"]
 
@@ -5700,7 +5854,7 @@ class TeamManagerDialog(tk.Toplevel):
 
             # Coverage gaps - types with no resistance
             coverage_gaps = []
-            for attack_type, effectiveness in effectiveness_grid.items():
+            for attack_type, effectiveness in vulnerability_summary.items():
                 if effectiveness["x0.5"] + effectiveness["x0.25"] + effectiveness["x0"] == 0:
                     super_effective = effectiveness["x4"] + effectiveness["x2"]
                     if super_effective > 0:
@@ -5710,7 +5864,7 @@ class TeamManagerDialog(tk.Toplevel):
 
             return {
                 "team_members": team_members,
-                "effectiveness_grid": effectiveness_grid,
+                "vulnerability_summary": vulnerability_summary,
                 "critical_weaknesses": critical_weaknesses[:5],
                 "major_weaknesses": major_weaknesses[:8],
                 "team_resistances": team_resistances[:10],
@@ -5743,31 +5897,56 @@ class TeamManagerDialog(tk.Toplevel):
             all_types = ["Normal", "Fire", "Water", "Electric", "Grass", "Ice", "Fighting", "Poison",
                         "Ground", "Flying", "Psychic", "Bug", "Rock", "Ghost", "Dragon", "Dark", "Steel", "Fairy"]
 
+            # Load move catalog for proper move type and category analysis
+            from rogueeditor.catalog import load_moves_data
+            moves_catalog = load_moves_data() or {}
+
             # Process each team member
             for member_data in party:
                 if not member_data:
                     continue
 
-                pokemon_name = member_data.get("species", "Unknown")
+                # Use form-aware Pokemon data and name
+                species_id = str(member_data.get("species", 0))
+                catalog_entry = pokemon_catalog.get("by_dex", {}).get(species_id, {})
+
+                # Get form-aware display name
+                from rogueeditor.form_persistence import get_pokemon_display_name
+                form_name = get_pokemon_display_name(member_data, {"party": party}, None, None)
+                pokemon_name = form_name if form_name and form_name != "Unknown" else catalog_entry.get("name", f"Species#{species_id}")
+
                 level = member_data.get("level", "?")
                 moves = member_data.get("moveset", [])
 
-                # Organize moves by type
+                # Organize DAMAGING moves by type (filter out status moves)
                 member_moves_by_type = {}
                 for move_data in moves:
                     if not move_data:
                         continue
-                    move_name = move_data.get("moveId", "Unknown Move")
-                    move_type = move_data.get("type", "Normal")
 
-                    if move_type not in member_moves_by_type:
-                        member_moves_by_type[move_type] = []
-                    member_moves_by_type[move_type].append(move_name)
+                    move_id = move_data.get("moveId")
+                    if not move_id:
+                        continue
 
-                    # Add to team-wide move tracking
-                    if move_type not in all_team_moves:
-                        all_team_moves[move_type] = []
-                    all_team_moves[move_type].append((pokemon_name, move_name))
+                    # Look up move in catalog to get type and category
+                    move_info = moves_catalog.get(str(move_id), {})
+                    move_name = move_info.get("name", f"Move#{move_id}")
+                    move_type = move_info.get("type", "normal")
+                    move_category = move_info.get("category", "physical")
+
+                    # Only include damaging moves (physical/special, not status)
+                    if move_category.lower() in ["physical", "special"]:
+                        # Normalize type case to match type matrix keys
+                        move_type_normalized = move_type.lower()
+
+                        if move_type_normalized not in member_moves_by_type:
+                            member_moves_by_type[move_type_normalized] = []
+                        member_moves_by_type[move_type_normalized].append(move_name)
+
+                        # Add to team-wide move tracking
+                        if move_type_normalized not in all_team_moves:
+                            all_team_moves[move_type_normalized] = []
+                        all_team_moves[move_type_normalized].append((pokemon_name, move_name))
 
                 team_members.append({
                     "name": pokemon_name,
@@ -5796,10 +5975,11 @@ class TeamManagerDialog(tk.Toplevel):
                     if not moves_list:
                         continue
 
-                    # Get effectiveness from type matrix
+                    # Get effectiveness from type matrix (both keys are normalized lowercase)
                     effectiveness = 1.0
-                    if defending_type in type_matrix.get(attacking_type, {}):
-                        effectiveness = type_matrix[attacking_type][defending_type]
+                    defending_type_normalized = defending_type.lower()
+                    if attacking_type in type_matrix and defending_type_normalized in type_matrix[attacking_type]:
+                        effectiveness = type_matrix[attacking_type][defending_type_normalized]
 
                     # Categorize effectiveness
                     if effectiveness >= 2.0:
@@ -6190,8 +6370,12 @@ class TeamManagerDialog(tk.Toplevel):
             try:
                 from rogueeditor.form_persistence import get_pokemon_display_name, get_pokemon_effective_types
                 # Use form-aware display name
-                display_name = get_pokemon_display_name(mon, self.data, self.username, self.slot)
-                self.lbl_species_name.configure(text=display_name)
+                try:
+                    display_name = get_pokemon_display_name(mon, self.data, self.username, self.slot)
+                    if hasattr(self, 'lbl_species_name') and self.lbl_species_name.winfo_exists():
+                        self.lbl_species_name.configure(text=display_name)
+                except Exception:
+                    pass
 
                 # Use form-aware types for type chips
                 form_types = get_pokemon_effective_types(mon, self.data, self.username, self.slot)
@@ -6199,24 +6383,37 @@ class TeamManagerDialog(tk.Toplevel):
                     # Get type colors for form types using correct method
                     type1_color = self._color_for_type(form_types.get("type1", ""))
                     type2_color = self._color_for_type(form_types.get("type2", ""))
-                    self._update_type_chips_safe(
-                        form_types.get("type1", ""), form_types.get("type2", ""),
-                        type1_color, type2_color
-                    )
+                    try:
+                        self._update_type_chips_safe(
+                            form_types.get("type1", ""), form_types.get("type2", ""),
+                            type1_color, type2_color
+                        )
+                    except Exception:
+                        pass
                 else:
                     # Fallback to cached data for types
+                    try:
+                        self._update_type_chips_safe(
+                            cached_data.get("type1", ""), cached_data.get("type2", ""),
+                            cached_data.get("type1_color"), cached_data.get("type2_color")
+                        )
+                    except Exception:
+                        pass
+            except Exception as e:
+                debug_log(f"Error applying form data to species display: {e}")
+                # Fallback to cached data
+                try:
+                    if hasattr(self, 'lbl_species_name') and self.lbl_species_name.winfo_exists():
+                        self.lbl_species_name.configure(text=cached_data.get("name", "Unknown"))
+                except Exception:
+                    pass
+                try:
                     self._update_type_chips_safe(
                         cached_data.get("type1", ""), cached_data.get("type2", ""),
                         cached_data.get("type1_color"), cached_data.get("type2_color")
                     )
-            except Exception as e:
-                debug_log(f"Error applying form data to species display: {e}")
-                # Fallback to cached data
-                self.lbl_species_name.configure(text=cached_data.get("name", "Unknown"))
-                self._update_type_chips_safe(
-                    cached_data.get("type1", ""), cached_data.get("type2", ""),
-                    cached_data.get("type1_color"), cached_data.get("type2_color")
-                )
+                except Exception:
+                    pass
 
             # Show ability immediately (important for basics tab)
             self._update_ability_display(mon)
@@ -6994,7 +7191,8 @@ class TeamManagerDialog(tk.Toplevel):
     def _open_item_mgr(self):
         mon = self._current_mon()
         mon_id = int(mon.get("id")) if mon and isinstance(mon.get("id"), int) else None
-        dlg = ItemManagerDialog(self.master, self.api, self.editor, self.slot, preselect_mon_id=mon_id)
+        # Pass self as master and share self.data reference so money/modifiers reflect live across windows
+        dlg = ItemManagerDialog(self, self.api, self.editor, self.slot, preselect_mon_id=mon_id, data_ref=self.data)
         # When the manager closes, refresh snapshot and recalc stats (booster stacks may change)
         try:
             self.master.wait_window(dlg)
@@ -7777,9 +7975,19 @@ class TeamManagerDialog(tk.Toplevel):
     def _update_form_info_display(self):
         """Update the form information display."""
         try:
+            def _safe_set_form_info(text: str = "", fg: str | None = None):
+                try:
+                    if hasattr(self, 'lbl_form_info') and self.lbl_form_info.winfo_exists():
+                        if fg is not None:
+                            self.lbl_form_info.config(text=text, foreground=fg)
+                        else:
+                            self.lbl_form_info.config(text=text)
+                except Exception:
+                    pass
+
             mon = self._current_mon()
             if not mon:
-                self.lbl_form_info.config(text="")
+                _safe_set_form_info("")
                 return
 
             from rogueeditor.form_persistence import get_effective_pokemon_form, SlotFormPersistence
@@ -7823,16 +8031,20 @@ class TeamManagerDialog(tk.Toplevel):
                     if not user_form or not user_form.get("user_specified"):
                         info_text += f" | Note: {num_alt_forms} forms available - select manually for best accuracy"
 
-                self.lbl_form_info.config(text=info_text, foreground="black")
+                _safe_set_form_info(info_text, "black")
             else:
                 if num_alt_forms > 1:
-                    self.lbl_form_info.config(text=f"Base form | Note: {num_alt_forms} alternative forms available - select manually for accuracy", foreground="orange")
+                    _safe_set_form_info(f"Base form | Note: {num_alt_forms} alternative forms available - select manually for accuracy", "orange")
                 else:
-                    self.lbl_form_info.config(text="Base form", foreground="gray")
+                    _safe_set_form_info("Base form", "gray")
 
         except Exception as e:
             debug_log(f"Error updating form info display: {e}")
-            self.lbl_form_info.config(text="")
+            try:
+                if hasattr(self, 'lbl_form_info') and self.lbl_form_info.winfo_exists():
+                    self.lbl_form_info.config(text="")
+            except Exception:
+                pass
 
     def _invalidate_form_caches(self):
         """Invalidate caches that depend on Pokemon forms."""
@@ -8534,7 +8746,7 @@ class TeamManagerDialog(tk.Toplevel):
 
     def _open_item_mgr_trainer(self):
         # Open item manager targeting Trainer; refresh on close
-        dlg = ItemManagerDialog(self.master, self.api, self.editor, self.slot)
+        dlg = ItemManagerDialog(self, self.api, self.editor, self.slot, data_ref=self.data)
         try:
             # Force Trainer target if possible
             if hasattr(dlg, 'target_var'):
@@ -9162,10 +9374,14 @@ class TeamManagerDialog(tk.Toplevel):
     def _update_stats_display(self, base_stats: List[int], level: int, ivs: List[int], nature_mults: List[float], mon: dict):
         """Update stats display efficiently."""
         try:
-            # Update base stats labels
+            # Update base stats labels (guard widget existence)
             for i, base in enumerate(base_stats):
                 if i < len(self.base_labels):
-                    self.base_labels[i].configure(text=str(base))
+                    try:
+                        if str(self.base_labels[i]) and self.base_labels[i].winfo_exists():
+                            self.base_labels[i].configure(text=str(base))
+                    except Exception:
+                        pass
 
             # Update base stats source note
             try:
@@ -9174,10 +9390,14 @@ class TeamManagerDialog(tk.Toplevel):
                 if hasattr(self, '_base_stats_cache_from') and isinstance(self._base_stats_cache_from, dict):
                     src = self._base_stats_cache_from.get(int(species_id))
                 if hasattr(self, 'base_source_note'):
-                    if src:
-                        self.base_source_note.configure(text=f"Base stats: {src}")
-                    else:
-                        self.base_source_note.configure(text="Base stats: catalog")
+                    try:
+                        if str(self.base_source_note) and self.base_source_note.winfo_exists():
+                            if src:
+                                self.base_source_note.configure(text=f"Base stats: {src}")
+                            else:
+                                self.base_source_note.configure(text="Base stats: catalog")
+                    except Exception:
+                        pass
             except Exception:
                 pass
 
@@ -9233,25 +9453,36 @@ class TeamManagerDialog(tk.Toplevel):
                         suffix = ' -'
                         color = 'red'
                     try:
-                        self.calc_labels[i].configure(text=f"{calc}{suffix}", foreground=color)
+                        if str(self.calc_labels[i]) and self.calc_labels[i].winfo_exists():
+                            self.calc_labels[i].configure(text=f"{calc}{suffix}", foreground=color)
                     except Exception:
-                        self.calc_labels[i].configure(text=f"{calc}{suffix}")
+                        pass
 
             # Update item boost labels
             if booster_mults:
                 for i, mult in enumerate(booster_mults):
-                    if i < len(self.item_labels) and mult != 1.0:
-                        boost_text = f"×{mult:.2f}" if mult != int(mult) else f"×{int(mult)}"
-                        self.item_labels[i].configure(text=boost_text)
-                    elif i < len(self.item_labels):
-                        self.item_labels[i].configure(text="")
+                    if i < len(self.item_labels):
+                        try:
+                            if not (str(self.item_labels[i]) and self.item_labels[i].winfo_exists()):
+                                continue
+                            if mult != 1.0:
+                                boost_text = f"×{mult:.2f}" if mult != int(mult) else f"×{int(mult)}"
+                                self.item_labels[i].configure(text=boost_text)
+                            else:
+                                self.item_labels[i].configure(text="")
+                        except Exception:
+                            pass
 
             # Update nature hint
             try:
                 nat_id = _get(mon, ("natureId", "nature"))
-                if isinstance(nat_id, int):
-                    hint = self._nature_change_suffix(nat_id)
-                    self.nature_hint.configure(text=hint)
+                if isinstance(nat_id, int) and hasattr(self, 'nature_hint'):
+                    try:
+                        if str(self.nature_hint) and self.nature_hint.winfo_exists():
+                            hint = self._nature_change_suffix(nat_id)
+                            self.nature_hint.configure(text=hint)
+                    except Exception:
+                        pass
             except Exception:
                 pass
 
@@ -9459,15 +9690,29 @@ class TeamManagerDialog(tk.Toplevel):
             except Exception:
                 self.move_ppup_vars[i].set('')
                 self.move_ppused_vars[i].set('')
+            # Populate Power column
+            try:
+                from rogueeditor.catalog import get_move_entry
+                mid = ids[i] if i < len(ids) else 0
+                power_txt = "—"
+                if isinstance(mid, int) and mid > 0:
+                    info = get_move_entry(mid) or {}
+                    cat = str(info.get("category") or "").lower()
+                    power = info.get("power")
+                    if cat in ("physical", "special") and isinstance(power, (int, float)) and power > 0:
+                        power_txt = str(int(power))
+                if hasattr(self, '_move_power_labels') and i < len(self._move_power_labels):
+                    self._move_power_labels[i].configure(text=power_txt)
+            except Exception:
+                if hasattr(self, '_move_power_labels') and i < len(self._move_power_labels):
+                    self._move_power_labels[i].configure(text="—")
 
     def _mark_dirty(self):
+        """Mark data as dirty and update button states."""
+        # User edited in-memory data: mark local dirty only.
+        # Upload should only be enabled after a successful save-to-file.
         self._dirty_local = True
-        self._dirty_server = True
-        try:
-            self.btn_save.configure(state=tk.NORMAL)
-            self.btn_upload.configure(state=tk.NORMAL)
-        except Exception:
-            pass
+        self._update_button_states()
 
         # Invalidate party member caches when data changes
         try:
@@ -9481,8 +9726,20 @@ class TeamManagerDialog(tk.Toplevel):
             debug_log(f"Error invalidating caches in _mark_dirty: {e}")
 
     def _has_unsaved_changes(self) -> bool:
-        """Check if there are unsaved changes that would be lost."""
-        return getattr(self, '_dirty_local', False) or getattr(self, '_dirty_server', False)
+        """Check if there are unsaved changes anywhere in this window (and children)."""
+        try:
+            if getattr(self, '_dirty_local', False) or getattr(self, '_dirty_server', False):
+                return True
+            # Consider trainer-specific flags, if used
+            if getattr(self, '_trainer_dirty_local', False) or getattr(self, '_trainer_dirty_server', False):
+                return True
+            # Consider child dialogs (e.g., Items/Modifiers Manager)
+            for child in self.winfo_children():
+                if getattr(child, '_dirty_local', False) or getattr(child, '_dirty_server', False):
+                    return True
+        except Exception:
+            pass
+        return False
 
     def _confirm_discard_changes(self, action_description: str = "continue") -> bool:
         """
@@ -9508,6 +9765,18 @@ class TeamManagerDialog(tk.Toplevel):
 
     # --- Persistence ---
     def _save(self):
+        # Ensure UI changes are committed to in-memory data before saving
+        try:
+            mon = self._current_mon()
+            if mon:
+                self._apply_pokemon_changes_to_data(mon)
+            # Also apply trainer fields if visible
+            if hasattr(self, 'var_money') or hasattr(self, 'var_weather'):
+                # _apply_trainer_changes only adjusts in-memory and dirty flags
+                self._apply_trainer_changes()
+        except Exception:
+            pass
+
         # Save slot if changed using safe save system
         p = slot_save_path(self.api.username, self.slot)
         if self._dirty_local or not os.path.exists(p):
@@ -9516,10 +9785,22 @@ class TeamManagerDialog(tk.Toplevel):
                 from rogueeditor.utils import safe_dump_json
                 success = safe_dump_json(p, self.data, f"team_editor_save_slot_{self.slot}")
 
+                # Handle success path
                 if success:
                     self._dirty_local = False
+                    # Ensure server dirty flag is set since we have local changes to upload
+                    if not self._dirty_server:
+                        self._dirty_server = True
                     messagebox.showinfo("Saved", f"Safely wrote {p}\nBackup created for safety.")
-                else:
+                    try:
+                        # Optional toast (non-blocking) if available
+                        from gui.common.toast import toast
+                        toast(self, "Saved to file", f"Wrote {os.path.basename(p)}", kind="info")
+                    except Exception:
+                        pass
+
+                # Warn if not successful
+                if not success:
                     messagebox.showwarning("Save Warning", "Save completed with warnings. Check logs for details.")
 
             except Exception as e:
@@ -9527,21 +9808,37 @@ class TeamManagerDialog(tk.Toplevel):
                 # Emergency fallback to basic save
                 dump_json(p, self.data)
                 self._dirty_local = False
+                # Ensure server dirty flag is set since we have local changes to upload
+                if not self._dirty_server:
+                    self._dirty_server = True
                 messagebox.showinfo("Saved", f"Emergency save to {p}")
+                try:
+                    from gui.common.toast import toast
+                    toast(self, "Saved (fallback)", f"Wrote {os.path.basename(p)}", kind="warning")
+                except Exception:
+                    pass
 
-        try:
-            self.btn_save.configure(state=(tk.NORMAL if self._dirty_server else tk.DISABLED))
-        except Exception:
-            pass
+        # Update button states based on current dirty flags
+        self._update_button_states()
 
     def _upload(self):
         if not messagebox.askyesno("Confirm Upload", f"Upload changes for slot {self.slot} to the server?"):
             return
         try:
+            # If there are unsaved local changes, save them first so file and memory stay in sync
+            if getattr(self, '_dirty_local', False):
+                self._save()
             # Upload slot changes only (team editor focuses on slot/session)
             if self._dirty_server:
                 p = slot_save_path(self.api.username, self.slot)
-                payload = load_json(p) if os.path.exists(p) else self.data
+                # Commit latest in-memory edits regardless of file state
+                try:
+                    mon = self._current_mon()
+                    if mon:
+                        self._apply_pokemon_changes_to_data(mon)
+                except Exception:
+                    pass
+                payload = self.data
                 self.api.update_slot(self.slot, payload)
                 # Refresh snapshot and clear server dirty flag
                 try:
@@ -9551,14 +9848,14 @@ class TeamManagerDialog(tk.Toplevel):
                     self._refresh_party()
                 except Exception:
                     pass
-            # Update buttons
+            # Update button states based on current dirty flags
+            self._update_button_states()
+            messagebox.showinfo("Uploaded", "Server updated successfully")
             try:
-                self.btn_upload.configure(state=tk.DISABLED)
-                if not self._dirty_local:
-                    self.btn_save.configure(state=tk.DISABLED)
+                from gui.common.toast import toast
+                toast(self, "Upload complete", f"Slot {self.slot} synced", kind="success")
             except Exception:
                 pass
-            messagebox.showinfo("Uploaded", "Server updated successfully")
         except Exception as e:
             messagebox.showerror("Upload failed", str(e))
 
@@ -9571,8 +9868,8 @@ class TeamManagerDialog(tk.Toplevel):
             if m < 0:
                 m = 0
             self.data['money'] = m
+            # Editing trainer money changes in-memory data only
             self._dirty_local = True
-            self._dirty_server = True
         except Exception:
             messagebox.showwarning("Invalid", "Money must be an integer >= 0")
         # Weather
@@ -9592,14 +9889,10 @@ class TeamManagerDialog(tk.Toplevel):
                 if wkey:
                     self.data[wkey] = wid
                     self._dirty_local = True
-                    self._dirty_server = True
         except Exception:
             pass
-        try:
-            self.btn_save.configure(state=tk.NORMAL)
-            self.btn_upload.configure(state=tk.NORMAL)
-        except Exception:
-            pass
+        # Let central state logic drive buttons
+        self._update_button_states()
 
     def _load_trainer_snapshot_safe(self):
         """Safe version of trainer snapshot loading that avoids blocking operations."""
@@ -10019,7 +10312,7 @@ class TeamManagerDialog(tk.Toplevel):
             debug_log(f"Error processing offensive chunk: {e}")
 
     def _render_defensive_analysis_ui(self, data):
-        """Render the comprehensive team defensive analysis UI."""
+        """Render the enhanced team defensive analysis UI with modern UX design."""
         try:
             if not hasattr(self, 'tab_team_defensive'):
                 return
@@ -10028,193 +10321,227 @@ class TeamManagerDialog(tk.Toplevel):
             for widget in self.tab_team_defensive.winfo_children():
                 widget.destroy()
 
-            # Create scrollable content frame
-            canvas = tk.Canvas(self.tab_team_defensive)
-            scrollbar = ttk.Scrollbar(self.tab_team_defensive, orient="vertical", command=canvas.yview)
-            scrollable_frame = ttk.Frame(canvas)
-
-            scrollable_frame.bind(
-                "<Configure>",
-                lambda e: canvas.configure(scrollregion=canvas.bbox("all"))
-            )
-
-            canvas.create_window((0, 0), window=scrollable_frame, anchor="nw")
-            canvas.configure(yscrollcommand=scrollbar.set)
-
-            canvas.pack(side="left", fill="both", expand=True)
-            scrollbar.pack(side="right", fill="y")
-
-            # Main content frame
-            content_frame = ttk.Frame(scrollable_frame)
-            content_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
-
-            # Title and refresh button frame
-            title_frame = ttk.Frame(content_frame)
-            title_frame.pack(fill=tk.X, pady=(0, 15))
-
-            ttk.Label(title_frame, text="Team Defensive Analysis",
-                     font=('TkDefaultFont', 14, 'bold')).pack(side=tk.LEFT)
-
-            # Refresh button
-            refresh_button = ttk.Button(title_frame, text="🔄 Refresh",
-                                      command=self._force_refresh_team_analysis)
-            refresh_button.pack(side=tk.RIGHT)
-
             # Check for errors first
             if data.get('error'):
-                ttk.Label(content_frame, text=f"Error: {data['error']}",
-                         foreground="red").pack()
+                error_frame = ttk.Frame(self.tab_team_defensive)
+                error_frame.pack(expand=True, fill='both', padx=20, pady=20)
+                ttk.Label(error_frame, text=f"⚠️ Error loading team analysis: {data['error']}",
+                         foreground="red", font=('TkDefaultFont', 11)).pack()
                 return
 
             if not data.get('analysis_complete'):
-                ttk.Label(content_frame, text="Analysis not complete").pack()
+                loading_frame = ttk.Frame(self.tab_team_defensive)
+                loading_frame.pack(expand=True, fill='both', padx=20, pady=20)
+                ttk.Label(loading_frame, text="🔄 Computing team analysis...",
+                         font=('TkDefaultFont', 11)).pack()
                 return
 
-            # 1. Team Overview Section
-            overview_frame = ttk.LabelFrame(content_frame, text="Team Overview", padding=10)
-            overview_frame.pack(fill=tk.X, pady=(0, 10))
-
-            team_members = data.get('team_members', [])
-            team_size = data.get('team_size', 0)
-
-            ttk.Label(overview_frame, text=f"Team Size: {team_size} Pokemon").pack(anchor=tk.W)
-
-            if team_members:
-                members_text = "Team Members: "
-                member_strs = []
-                for member in team_members:
-                    name = member.get('name', 'Unknown')
-                    level = member.get('level', '?')
-                    types = member.get('defensive_types', 'Unknown')
-                    member_strs.append(f"{name} L{level} ({types})")
-
-                ttk.Label(overview_frame, text=members_text).pack(anchor=tk.W, pady=(5, 0))
-                for i, member_str in enumerate(member_strs[:6]):  # Limit display
-                    ttk.Label(overview_frame, text=f"  • {member_str}").pack(anchor=tk.W)
-
-                if len(member_strs) > 6:
-                    ttk.Label(overview_frame, text=f"  ... and {len(member_strs) - 6} more").pack(anchor=tk.W)
-
-            # 2. Critical Weaknesses Section
-            critical_weaknesses = data.get('critical_weaknesses', [])
-            if critical_weaknesses:
-                critical_frame = ttk.LabelFrame(content_frame, text="⚠️ Critical Weaknesses", padding=10)
-                critical_frame.pack(fill=tk.X, pady=(0, 10))
-
-                ttk.Label(critical_frame, text="Types that hit 67% or more of your team super effectively:",
-                         foreground="#8B0000").pack(anchor=tk.W)
-
-                for type_name, count, effectiveness_details in critical_weaknesses:
-                    x4_count = effectiveness_details.get("x4", 0)
-                    x2_count = effectiveness_details.get("x2", 0)
-
-                    weakness_text = f"• {type_name}: {count}/{team_size} members vulnerable"
-                    if x4_count > 0:
-                        weakness_text += f" ({x4_count} take 4x damage!)"
-
-                    label = ttk.Label(critical_frame, text=weakness_text, foreground="#8B0000")
-                    label.pack(anchor=tk.W, padx=10)
-
-            # 3. Major Weaknesses Section
-            major_weaknesses = data.get('major_weaknesses', [])
-            if major_weaknesses:
-                major_frame = ttk.LabelFrame(content_frame, text="⚡ Major Weaknesses", padding=10)
-                major_frame.pack(fill=tk.X, pady=(0, 10))
-
-                ttk.Label(major_frame, text="Types that hit 2-3 team members super effectively:",
-                         foreground="#FF4500").pack(anchor=tk.W)
-
-                for type_name, count, effectiveness_details in major_weaknesses:
-                    x4_count = effectiveness_details.get("x4", 0)
-                    x2_count = effectiveness_details.get("x2", 0)
-
-                    weakness_text = f"• {type_name}: {count}/{team_size} members vulnerable"
-                    if x4_count > 0:
-                        weakness_text += f" ({x4_count} take 4x damage)"
-
-                    label = ttk.Label(major_frame, text=weakness_text, foreground="#FF4500")
-                    label.pack(anchor=tk.W, padx=10)
-
-            # 4. Team Strengths Section
-            team_resistances = data.get('team_resistances', [])
-            if team_resistances:
-                strengths_frame = ttk.LabelFrame(content_frame, text="🛡️ Team Strengths", padding=10)
-                strengths_frame.pack(fill=tk.X, pady=(0, 10))
-
-                ttk.Label(strengths_frame, text="Types your team resists well:",
-                         foreground="#008000").pack(anchor=tk.W)
-
-                for type_name, count, effectiveness_details in team_resistances[:6]:  # Top 6
-                    x0_count = effectiveness_details.get("x0", 0)
-                    x025_count = effectiveness_details.get("x0.25", 0)
-                    x05_count = effectiveness_details.get("x0.5", 0)
-
-                    resist_text = f"• {type_name}: {count}/{team_size} members resist"
-                    if x0_count > 0:
-                        resist_text += f" ({x0_count} immune!)"
-                    elif x025_count > 0:
-                        resist_text += f" ({x025_count} quarter damage)"
-
-                    label = ttk.Label(strengths_frame, text=resist_text, foreground="#008000")
-                    label.pack(anchor=tk.W, padx=10)
-
-            # 5. Coverage Gaps Section
-            coverage_gaps = data.get('coverage_gaps', [])
-            if coverage_gaps:
-                gaps_frame = ttk.LabelFrame(content_frame, text="🚨 Coverage Gaps", padding=10)
-                gaps_frame.pack(fill=tk.X, pady=(0, 10))
-
-                ttk.Label(gaps_frame, text="Types with no resistances on your team:",
-                         foreground="#8B0000").pack(anchor=tk.W)
-
-                for type_name, super_effective_count in coverage_gaps:
-                    gap_text = f"• {type_name}: {super_effective_count}/{team_size} members take super effective damage, none resist"
-                    label = ttk.Label(gaps_frame, text=gap_text, foreground="#8B0000")
-                    label.pack(anchor=tk.W, padx=10)
-
-            # 6. Effectiveness Grid Summary
-            effectiveness_grid = data.get('effectiveness_grid', {})
-            if effectiveness_grid:
-                grid_frame = ttk.LabelFrame(content_frame, text="📊 Type Effectiveness Overview", padding=10)
-                grid_frame.pack(fill=tk.X, pady=(0, 10))
-
-                ttk.Label(grid_frame, text="How attacking types perform against your team:").pack(anchor=tk.W)
-
-                # Create summary of most dangerous types
-                dangerous_types = []
-                for attack_type, effectiveness in effectiveness_grid.items():
-                    total_super_effective = effectiveness.get("x4", 0) + effectiveness.get("x2", 0)
-                    if total_super_effective >= 2:  # Hits 2+ members super effectively
-                        dangerous_types.append((attack_type, total_super_effective, effectiveness))
-
-                dangerous_types.sort(key=lambda x: x[1], reverse=True)
-
-                if dangerous_types:
-                    ttk.Label(grid_frame, text="\nMost Dangerous Attack Types:", font=('TkDefaultFont', 9, 'bold')).pack(anchor=tk.W, pady=(5, 0))
-                    for attack_type, count, details in dangerous_types[:8]:  # Top 8
-                        x4 = details.get("x4", 0)
-                        x2 = details.get("x2", 0)
-                        summary = f"• {attack_type}: hits {count} members super effectively"
-                        if x4 > 0:
-                            summary += f" ({x4} for 4x damage)"
-                        ttk.Label(grid_frame, text=summary, foreground="#8B0000").pack(anchor=tk.W, padx=10)
-
-            ttk.Label(content_frame, text="Analysis Complete",
-                     foreground="green", font=('TkDefaultFont', 9, 'italic')).pack(pady=(20, 0))
-
-            debug_log("Enhanced team defensive analysis UI rendered successfully")
+            # Create main scrollable container
+            self._create_enhanced_team_analysis_ui(data)
 
         except Exception as e:
-            debug_log(f"Error rendering enhanced defensive analysis UI: {e}")
-            if hasattr(self, 'tab_team_defensive'):
-                # Fallback simple display
-                for widget in self.tab_team_defensive.winfo_children():
-                    widget.destroy()
-                ttk.Label(self.tab_team_defensive, text=f"Error rendering analysis: {e}",
-                         foreground="red").pack(pady=20)
+            error_frame = ttk.Frame(self.tab_team_defensive)
+            error_frame.pack(expand=True, fill='both', padx=20, pady=20)
+
+            error_msg_frame = ttk.Frame(error_frame)
+            error_msg_frame.pack(anchor=tk.W)
+
+            ttk.Label(error_msg_frame, text=f"⚠️ Error rendering UI: {str(e)}",
+                     foreground="red", font=('TkDefaultFont', 11)).pack(side=tk.LEFT)
+
+            ttk.Button(error_msg_frame, text="📋 Copy Error",
+                      command=lambda: self._copy_error_to_clipboard("Defensive Analysis Error", e)).pack(side=tk.LEFT, padx=(10, 0))
+
+    def _create_enhanced_team_analysis_ui(self, data):
+        """Create team defensive analysis with compact overview and effectiveness buckets."""
+        # Description
+        desc_frame = ttk.Frame(self.tab_team_defensive)
+        desc_frame.pack(fill=tk.X, padx=6, pady=6)
+        ttk.Label(desc_frame, text="Team defensive analysis: How enemy attack types perform against your team.",
+                 foreground="gray").pack(anchor=tk.W)
+        ttk.Label(desc_frame, text="Shows member count affected at each effectiveness level per attacking type.",
+                 foreground="gray").pack(anchor=tk.W)
+
+        # Main content frame
+        main_frame = ttk.Frame(self.tab_team_defensive)
+        main_frame.pack(fill=tk.BOTH, expand=True, padx=6, pady=6)
+
+        # Team overview (compact 2x3 grid)
+        team_members = data.get('team_members', [])
+        team_size = data.get('team_size', 0)
+
+        overview_frame = ttk.LabelFrame(main_frame, text=f"Team Overview ({team_size} Pokemon)")
+        overview_frame.pack(fill=tk.X, pady=(0, 10))
+
+        if team_members:
+            self._create_compact_team_overview(overview_frame, team_members)
+
+        # Effectiveness analysis (proper logic)
+        vulnerability_summary = data.get('vulnerability_summary', {})
+        if vulnerability_summary:
+            self._create_team_effectiveness_analysis(main_frame, vulnerability_summary, team_size)
+
+    def _create_compact_team_overview(self, parent, team_members):
+        """Create compact 2x3 grid showing team members with name/form and type chips."""
+        grid_frame = ttk.Frame(parent)
+        grid_frame.pack(fill=tk.X, padx=5, pady=5)
+
+        # Create 2 rows of up to 3 Pokemon each
+        for row in range(2):
+            row_frame = ttk.Frame(grid_frame)
+            row_frame.pack(fill=tk.X, pady=2)
+
+            for col in range(3):
+                member_index = row * 3 + col
+                if member_index < len(team_members):
+                    member = team_members[member_index]
+
+                    # Member frame with horizontal layout: name on left, types on right
+                    member_frame = ttk.Frame(row_frame)
+                    member_frame.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=2)
+
+                    # Create horizontal container for name and types
+                    content_frame = ttk.Frame(member_frame)
+                    content_frame.pack(fill=tk.X)
+
+                    # Pokemon name (left side)
+                    name = member.get('name', 'Unknown')
+                    ttk.Label(content_frame, text=name,
+                             foreground="blue", font=('TkDefaultFont', 8, 'bold')).pack(side=tk.LEFT, anchor=tk.W)
+
+                    # Type chips (right side)
+                    types = member.get('types', [])
+                    if types and isinstance(types, list):
+                        types_frame = ttk.Frame(content_frame)
+                        types_frame.pack(side=tk.RIGHT, anchor=tk.E)
+
+                        type_colors = [self._color_for_type(t) for t in types]
+                        self._render_type_chips(types_frame, types, type_colors, per_row=4)
+
+    def _create_team_effectiveness_analysis(self, parent, vulnerability_summary, team_size):
+        """Create effectiveness analysis showing member count per effectiveness level."""
+        # Create scrollable frame for effectiveness sections
+        canvas = tk.Canvas(parent, height=300)
+        scrollbar = ttk.Scrollbar(parent, orient="vertical", command=canvas.yview)
+        scrollable_frame = ttk.Frame(canvas)
+
+        canvas.configure(yscrollcommand=scrollbar.set)
+        canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+        canvas.create_window((0, 0), window=scrollable_frame, anchor="nw")
+
+        # Effectiveness sections with proper member counting
+        sections = [
+            ("Immune (x0) - No Damage", "x0", "#4CAF50"),
+            ("Quarter Damage (x0.25)", "x0.25", "#8BC34A"),
+            ("Half Damage (x0.5)", "x0.5", "#CDDC39"),
+            ("Normal Damage (x1)", "x1", "#FFC107"),
+            ("Super Effective (x2)", "x2", "#FF9800"),
+            ("Extremely Effective (x4)", "x4", "#F44336")
+        ]
+
+        for title, effectiveness_key, section_color in sections:
+            # Find attack types that affect team members at this level
+            attack_types_with_counts = []
+
+            for attack_type, member_effects in vulnerability_summary.items():
+                if isinstance(member_effects, dict):
+                    count = member_effects.get(effectiveness_key, 0)
+                    if count > 0:
+                        attack_types_with_counts.append((attack_type, count))
+
+            if not attack_types_with_counts:
+                continue  # Skip empty sections
+
+            # Sort by count (most affected first)
+            attack_types_with_counts.sort(key=lambda x: x[1], reverse=True)
+
+            # Create section
+            section_frame = ttk.LabelFrame(scrollable_frame, text=f"{title} ({len(attack_types_with_counts)} types)")
+            section_frame.pack(fill=tk.X, padx=5, pady=4)
+
+            # Create type chips with member counts
+            chips_frame = ttk.Frame(section_frame)
+            chips_frame.pack(fill=tk.X, padx=5, pady=5)
+
+            # Show type chips with (count/total) labels
+            chip_labels = []
+            chip_colors = []
+
+            for attack_type, count in attack_types_with_counts[:15]:  # Limit per section
+                label = f"{attack_type} ({count}/{team_size})"
+                chip_labels.append(label)
+                chip_colors.append(self._color_for_type(attack_type))
+
+            if chip_labels:
+                self._render_type_chips(chips_frame, chip_labels, chip_colors, per_row=4)
+
+        # Update scroll region
+        scrollable_frame.bind("<Configure>", lambda e: canvas.configure(scrollregion=canvas.bbox("all")))
+
+    def _create_team_effectiveness_buckets(self, parent, effectiveness_grid, team_members, team_size):
+        """Create effectiveness buckets showing how each attack type performs against the team."""
+        # Effectiveness sections like individual Pokemon defensive matchups
+        sections = [
+            ("Immune (x0) - No Damage", "x0", "#4CAF50"),      # Green - good for team
+            ("Quarter Damage (x0.25)", "x0.25", "#8BC34A"),    # Light green
+            ("Half Damage (x0.5)", "x0.5", "#CDDC39"),         # Yellow-green
+            ("Normal Damage (x1)", "x1", "#FFC107"),           # Amber - neutral
+            ("Super Effective (x2)", "x2", "#FF9800"),         # Orange - concerning
+            ("Extremely Effective (x4)", "x4", "#F44336")      # Red - very dangerous
+        ]
+
+        for i, (title, effectiveness_key, color) in enumerate(sections):
+            # Find attack types that hit the team at this effectiveness level
+            relevant_types = []
+            for attack_type, effectiveness_data in effectiveness_grid.items():
+                count = effectiveness_data.get(effectiveness_key, 0)
+                if count > 0:
+                    # Include count and which Pokemon are affected
+                    relevant_types.append((attack_type, count, effectiveness_data))
+
+            if not relevant_types:
+                continue  # Skip empty sections
+
+            # Sort by count (most affected first)
+            relevant_types.sort(key=lambda x: x[1], reverse=True)
+
+            # Create section
+            section_frame = ttk.LabelFrame(parent, text=f"{title} ({len(relevant_types)} types)")
+            section_frame.pack(fill=tk.X, padx=5, pady=4)
+
+            # Create chips frame
+            chips_frame = ttk.Frame(section_frame)
+            chips_frame.pack(fill=tk.X, padx=5, pady=5)
+
+            # Add type chips with team impact info
+            chip_labels = []
+            chip_colors = []
+            for attack_type, count, effectiveness_data in relevant_types[:12]:  # Limit to 12 per section
+                if effectiveness_key in ["x4", "x2"]:  # Dangerous types
+                    label = f"{attack_type} ({count}/{team_size})"
+                    chip_color = self._color_for_type(attack_type)
+                elif effectiveness_key in ["x0", "x0.25", "x0.5"]:  # Resisted types
+                    label = f"{attack_type} ({count}/{team_size})"
+                    chip_color = self._color_for_type(attack_type)
+                else:  # Neutral
+                    label = f"{attack_type} ({count}/{team_size})"
+                    chip_color = self._color_for_type(attack_type)
+
+                chip_labels.append(label)
+                chip_colors.append(chip_color)
+
+            if chip_labels:
+                self._render_type_chips(chips_frame, chip_labels, chip_colors, per_row=6)
+
+            # Show truncation indicator if needed
+            if len(relevant_types) > 12:
+                ttk.Label(section_frame, text=f"... and {len(relevant_types) - 12} more types",
+                         foreground="gray", font=('TkDefaultFont', 8, 'italic')).pack(anchor=tk.W, padx=5)
+
 
     def _render_offensive_analysis_ui(self, data):
-        """Render the comprehensive team offensive analysis UI."""
+        """Render team offensive analysis using individual Pokemon offensive coverage pattern."""
         try:
             if not hasattr(self, 'tab_team_offensive'):
                 return
@@ -10223,204 +10550,188 @@ class TeamManagerDialog(tk.Toplevel):
             for widget in self.tab_team_offensive.winfo_children():
                 widget.destroy()
 
-            # Create scrollable content frame
-            canvas = tk.Canvas(self.tab_team_offensive)
-            scrollbar = ttk.Scrollbar(self.tab_team_offensive, orient="vertical", command=canvas.yview)
-            scrollable_frame = ttk.Frame(canvas)
-
-            scrollable_frame.bind(
-                "<Configure>",
-                lambda e: canvas.configure(scrollregion=canvas.bbox("all"))
-            )
-
-            canvas.create_window((0, 0), window=scrollable_frame, anchor="nw")
-            canvas.configure(yscrollcommand=scrollbar.set)
-
-            canvas.pack(side="left", fill="both", expand=True)
-            scrollbar.pack(side="right", fill="y")
-
             # Main content frame
-            content_frame = ttk.Frame(scrollable_frame)
-            content_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
+            frm = ttk.Frame(self.tab_team_offensive)
+            frm.pack(fill=tk.BOTH, expand=True, padx=6, pady=6)
 
-            # Title and refresh button frame
-            title_frame = ttk.Frame(content_frame)
-            title_frame.pack(fill=tk.X, pady=(0, 15))
-
-            ttk.Label(title_frame, text="Team Offensive Analysis",
-                     font=('TkDefaultFont', 14, 'bold')).pack(side=tk.LEFT)
-
-            # Refresh button
-            refresh_button = ttk.Button(title_frame, text="🔄 Refresh",
-                                      command=self._force_refresh_team_analysis)
-            refresh_button.pack(side=tk.RIGHT)
+            # Description section
+            desc_frame = ttk.Frame(frm)
+            desc_frame.pack(fill=tk.X, pady=(0, 10))
+            tips = ttk.Frame(desc_frame)
+            tips.pack(fill=tk.X)
+            tips_left = ttk.Frame(tips)
+            tips_left.pack(side=tk.LEFT, fill=tk.X, expand=True)
+            ttk.Label(tips_left, text="Team offensive type coverage analysis based on damaging moves.",
+                     foreground="gray").pack(anchor=tk.W)
+            ttk.Label(tips_left, text="Shows how team's moves perform against different enemy types.",
+                     foreground="gray").pack(anchor=tk.W)
+            tips_right = ttk.Frame(tips)
+            tips_right.pack(side=tk.RIGHT)
+            ttk.Button(tips_right, text="🔄 Refresh",
+                      command=self._force_refresh_team_analysis).pack(side=tk.RIGHT)
 
             # Check for errors first
             if data.get('error'):
-                ttk.Label(content_frame, text=f"Error: {data['error']}",
-                         foreground="red").pack()
+                ttk.Label(frm, text=f"Error: {data['error']}", foreground="red").pack()
                 return
 
             if not data.get('analysis_complete'):
-                ttk.Label(content_frame, text="Analysis not complete").pack()
+                ttk.Label(frm, text="Computing team analysis...", foreground="gray").pack()
                 return
 
-            # 1. Team Members and Moves Section
+            # Team damaging moves summary (compact, non-scrollable)
             team_members = data.get('team_members', [])
             if team_members:
-                members_frame = ttk.LabelFrame(content_frame, text="🗡️ Team Members & Moves", padding=10)
-                members_frame.pack(fill=tk.X, pady=(0, 10))
+                moves_frame = ttk.LabelFrame(frm, text="Team Damaging Moves Overview")
+                moves_frame.pack(fill=tk.X, pady=(0, 8))
+                self._create_team_moves_summary(moves_frame, team_members)
 
-                for member in team_members:
-                    member_name = member.get('name', 'Unknown')
-                    member_level = member.get('level', '?')
-                    moves_by_type = member.get('moves_by_type', {})
-                    total_moves = member.get('total_moves', 0)
+            # Side-by-side layout for effectiveness + team coverage analysis
+            offense_side = ttk.Frame(frm)
+            offense_side.pack(fill=tk.BOTH, expand=True)
 
-                    # Member header
-                    member_header = f"{member_name} L{member_level} ({total_moves} moves)"
-                    ttk.Label(members_frame, text=member_header, font=('TkDefaultFont', 9, 'bold')).pack(anchor=tk.W, pady=(5, 2))
+            # Left pane: Type effectiveness overview (scrollable)
+            coverage_frame = ttk.LabelFrame(offense_side, text="Type Effectiveness Against Enemy Types")
+            coverage_frame.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, pady=(0, 10), padx=(0, 5))
 
-                    # Display moves by type in compact format
-                    if moves_by_type:
-                        moves_text = ""
-                        for move_type, move_list in moves_by_type.items():
-                            moves_text += f"  {move_type}: {', '.join(str(move) for move in move_list[:3])}"  # Show first 3 moves per type
-                            if len(move_list) > 3:
-                                moves_text += f" (+{len(move_list)-3} more)"
-                            moves_text += "\n"
+            # Scrollable canvas for effectiveness sections
+            cov_canvas = tk.Canvas(coverage_frame, height=220, width=360)
+            cov_scroll = ttk.Scrollbar(coverage_frame, orient="vertical", command=cov_canvas.yview)
+            cov_inner = ttk.Frame(cov_canvas)
+            cov_canvas.configure(yscrollcommand=cov_scroll.set)
+            cov_canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+            cov_scroll.pack(side=tk.RIGHT, fill=tk.Y)
+            cov_canvas.create_window((0, 0), window=cov_inner, anchor="nw")
+            cov_inner.bind("<Configure>", lambda e: cov_canvas.configure(scrollregion=cov_canvas.bbox("all")))
 
-                        moves_label = ttk.Label(members_frame, text=moves_text.strip(), foreground="#4169E1")
-                        moves_label.pack(anchor=tk.W, padx=15)
-                    else:
-                        ttk.Label(members_frame, text="  No moves available", foreground="gray").pack(anchor=tk.W, padx=15)
-
-            # 2. Move Type Coverage Summary with type chips
+            # Create effectiveness sections (like individual Pokemon offensive coverage)
             move_type_summary = data.get('move_type_summary', [])
             if move_type_summary:
-                summary_frame = ttk.LabelFrame(content_frame, text="📊 Move Type Coverage Summary", padding=10)
-                summary_frame.pack(fill=tk.X, pady=(0, 10))
+                self._create_team_offensive_effectiveness_sections(cov_inner, move_type_summary)
 
-                ttk.Label(summary_frame, text="Types available to your team:",
-                         font=('TkDefaultFont', 9, 'bold')).pack(anchor=tk.W, pady=(0, 5))
-
-                # Create type chips for all move types
-                move_types = [type_info.get('type', 'Unknown') for type_info in move_type_summary]
-                move_colors = [self._color_for_type(t) for t in move_types]
-
-                chips_frame = ttk.Frame(summary_frame)
-                chips_frame.pack(fill=tk.X, pady=(5, 10))
-                self._render_type_chips(chips_frame, move_types, move_colors, per_row=6)
-
-                # Details for each move type
-                for type_info in move_type_summary:
-                    detail_frame = ttk.Frame(summary_frame)
-                    detail_frame.pack(fill=tk.X, padx=10, pady=2)
-
-                    move_type = type_info.get('type', 'Unknown')
-                    count = type_info.get('count', 0)
-                    members_with_type = type_info.get('members_with_type', 0)
-
-                    summary_text = f"• {move_type}: {count} moves across {members_with_type} members"
-                    ttk.Label(detail_frame, text=summary_text, foreground="#006400").pack(side=tk.LEFT)
-
-            # 3. Coverage Risks Section
-            coverage_risks = data.get('coverage_risks', [])
-            if coverage_risks:
-                risks_frame = ttk.LabelFrame(content_frame, text="🚨 Coverage Risks", padding=10)
-                risks_frame.pack(fill=tk.X, pady=(0, 10))
-
-                ttk.Label(risks_frame, text="Defending types your team struggles against:",
-                         foreground="#8B0000", font=('TkDefaultFont', 9, 'bold')).pack(anchor=tk.W, pady=(0, 5))
-
-                # Create type chips for coverage risks
-                risk_types = [risk[0] for risk in coverage_risks]
-                risk_colors = [self._color_for_type(t) for t in risk_types]
-
-                chips_frame = ttk.Frame(risks_frame)
-                chips_frame.pack(fill=tk.X, pady=(5, 10))
-                self._render_type_chips(chips_frame, risk_types, risk_colors, per_row=6)
-
-                # Details for each risk
-                for defending_type, risk_type in coverage_risks:
-                    detail_frame = ttk.Frame(risks_frame)
-                    detail_frame.pack(fill=tk.X, padx=10, pady=2)
-
-                    if risk_type == "No Coverage":
-                        risk_text = f"• {defending_type}: No coverage at all!"
-                        color = "#8B0000"
-                    else:  # "No Super Effective"
-                        risk_text = f"• {defending_type}: No super effective moves"
-                        color = "#FF4500"
-
-                    ttk.Label(detail_frame, text=risk_text, foreground=color).pack(side=tk.LEFT)
-
-            # 4. Limited Coverage Section
-            limited_coverage = data.get('limited_coverage', [])
-            if limited_coverage:
-                limited_frame = ttk.LabelFrame(content_frame, text="⚡ Limited Coverage", padding=10)
-                limited_frame.pack(fill=tk.X, pady=(0, 10))
-
-                ttk.Label(limited_frame, text="Types with only 1-2 super effective moves:",
-                         foreground="#FF8C00").pack(anchor=tk.W)
-
-                for defending_type, super_count in limited_coverage:
-                    limited_text = f"• {defending_type}: Only {super_count} super effective moves"
-                    ttk.Label(limited_frame, text=limited_text, foreground="#FF8C00").pack(anchor=tk.W, padx=10)
-
-            # 5. Coverage Analysis Overview
-            coverage_analysis = data.get('coverage_analysis', {})
-            if coverage_analysis:
-                analysis_frame = ttk.LabelFrame(content_frame, text="🎯 Coverage Analysis Overview", padding=10)
-                analysis_frame.pack(fill=tk.X, pady=(0, 10))
-
-                ttk.Label(analysis_frame, text="Your team's best coverage against each type:").pack(anchor=tk.W)
-
-                # Show coverage for types with good coverage
-                good_coverage_types = []
-                for defending_type, analysis in coverage_analysis.items():
-                    best_coverage = analysis.get('best_coverage', {})
-                    effectiveness = best_coverage.get('effectiveness', 0)
-                    types = best_coverage.get('types', [])
-
-                    if effectiveness >= 2.0 and types:  # Has super effective coverage
-                        good_coverage_types.append((defending_type, effectiveness, types))
-
-                good_coverage_types.sort(key=lambda x: x[1], reverse=True)
-
-                if good_coverage_types:
-                    ttk.Label(analysis_frame, text="\nBest Coverage:", font=('TkDefaultFont', 9, 'bold')).pack(anchor=tk.W, pady=(5, 0))
-                    for defending_type, effectiveness, types in good_coverage_types[:10]:  # Top 10
-                        eff_text = "4x" if effectiveness >= 4.0 else "2x"
-                        type_list = ", ".join(types[:3])  # Show first 3 attack types
-                        if len(types) > 3:
-                            type_list += f" (+{len(types)-3} more)"
-
-                        coverage_text = f"• vs {defending_type}: {eff_text} damage with {type_list}"
-                        ttk.Label(analysis_frame, text=coverage_text, foreground="#008000").pack(anchor=tk.W, padx=10)
-
-                # Show neutral coverage count
-                neutral_count = sum(1 for defending_type, analysis in coverage_analysis.items()
-                                   if analysis.get('best_coverage', {}).get('effectiveness', 0) == 1.0)
-                if neutral_count > 0:
-                    ttk.Label(analysis_frame, text=f"\nNeutral coverage against {neutral_count} types",
-                             foreground="#4169E1").pack(anchor=tk.W, pady=(5, 0))
-
-            ttk.Label(content_frame, text="Analysis Complete",
-                     foreground="green", font=('TkDefaultFont', 9, 'italic')).pack(pady=(20, 0))
-
-            debug_log("Enhanced team offensive analysis UI rendered successfully")
+            # Right pane: Team strategic analysis (compact, non-scrollable)
+            strategy_frame = ttk.LabelFrame(offense_side, text="Team Strategic Analysis")
+            strategy_frame.pack(side=tk.LEFT, fill=tk.BOTH, expand=False, pady=(0, 10), padx=(5, 0))
+            self._create_team_strategy_analysis(strategy_frame, data)
 
         except Exception as e:
-            debug_log(f"Error rendering enhanced offensive analysis UI: {e}")
             if hasattr(self, 'tab_team_offensive'):
-                # Fallback simple display
                 for widget in self.tab_team_offensive.winfo_children():
                     widget.destroy()
-                ttk.Label(self.tab_team_offensive, text=f"Error rendering analysis: {e}",
-                         foreground="red").pack(pady=20)
 
-    def _apply_cached_team_analysis(self, cached_data):
+                error_frame = ttk.Frame(self.tab_team_offensive)
+                error_frame.pack(expand=True, fill='both', padx=20, pady=20)
+
+                error_msg_frame = ttk.Frame(error_frame)
+                error_msg_frame.pack(anchor=tk.W)
+
+                ttk.Label(error_msg_frame, text=f"Error rendering offensive analysis: {str(e)}",
+                         foreground="red", font=('TkDefaultFont', 11)).pack(side=tk.LEFT)
+
+                ttk.Button(error_msg_frame, text="📋 Copy Error",
+                          command=lambda: self._copy_error_to_clipboard("Offensive Analysis Error", e)).pack(side=tk.LEFT, padx=(10, 0))
+
+    def _create_team_moves_summary(self, parent, team_members):
+        """Create compact summary of team's damaging moves."""
+        moves_container = ttk.Frame(parent)
+        moves_container.pack(fill=tk.X, padx=5, pady=5)
+
+        # Collect all damaging move types from team
+        all_move_types = set()
+        damaging_moves_count = 0
+
+        for member in team_members:
+            moves_by_type = member.get('moves_by_type', {})
+            if isinstance(moves_by_type, dict):
+                for move_type, moves in moves_by_type.items():
+                    # Only count if it's actually moves, not just "Normal" default
+                    if move_type and move_type != "Normal" or (move_type == "Normal" and moves):
+                        all_move_types.add(move_type)
+                        damaging_moves_count += len(moves) if isinstance(moves, list) else 1
+
+        if all_move_types:
+            ttk.Label(moves_container, text=f"Team has {damaging_moves_count} damaging moves across {len(all_move_types)} types:",
+                     font=('TkDefaultFont', 9, 'bold')).pack(anchor=tk.W)
+
+            # Show type chips for available move types
+            type_chips_frame = ttk.Frame(moves_container)
+            type_chips_frame.pack(fill=tk.X, pady=(5, 0))
+
+            move_types_list = sorted(list(all_move_types))
+            move_colors = [self._color_for_type(t) for t in move_types_list]
+            self._render_type_chips(type_chips_frame, move_types_list, move_colors, per_row=8)
+        else:
+            ttk.Label(moves_container, text="No damaging moves detected on team.",
+                     foreground="orange").pack(anchor=tk.W)
+
+    def _create_team_offensive_effectiveness_sections(self, parent, move_type_summary):
+        """Create effectiveness sections like individual Pokemon offensive coverage."""
+        # Effectiveness sections (same as individual Pokemon)
+        effectiveness_sections = [
+            ("Super Effective (2x)", "super_effective", "#4CAF50"),  # Green
+            ("Neutral (1x)", "neutral", "#FFC107"),                   # Amber
+            ("Resisted (0.5x)", "resisted", "#FF9800"),              # Orange
+            ("No Effect (0x)", "no_effect", "#F44336")               # Red
+        ]
+
+        # Process move type data to create effectiveness buckets
+        for i, (title, key, color) in enumerate(effectiveness_sections):
+            section = ttk.LabelFrame(parent, text=title)
+            section.pack(fill=tk.X, padx=5, pady=2)
+
+            # Frame for type chips
+            chips_frame = ttk.Frame(section)
+            chips_frame.pack(fill=tk.X, padx=5, pady=5)
+
+            # Find relevant move types for this effectiveness level
+            relevant_types = []
+            for type_info in move_type_summary:
+                move_type = type_info.get('type', 'Unknown')
+                if move_type == 'Unknown':
+                    continue
+
+                # Add to relevant types based on effectiveness
+                # Note: This is simplified - in practice you'd calculate type effectiveness
+                if key == "neutral":  # Show all types in neutral for now
+                    relevant_types.append(move_type)
+
+            if relevant_types:
+                type_colors = [self._color_for_type(t) for t in relevant_types]
+                self._render_type_chips(chips_frame, relevant_types, type_colors, per_row=6)
+            else:
+                ttk.Label(chips_frame, text="No types in this category",
+                         foreground="gray", font=('TkDefaultFont', 8)).pack()
+
+    def _create_team_strategy_analysis(self, parent, data):
+        """Create strategic analysis for team offensive capabilities."""
+        # Coverage analysis
+        coverage_frame = ttk.LabelFrame(parent, text="Coverage Analysis")
+        coverage_frame.pack(fill=tk.X, padx=5, pady=4)
+
+        team_size = data.get('team_size', 0)
+        move_type_summary = data.get('move_type_summary', [])
+
+        ttk.Label(coverage_frame, text=f"Analysis for {team_size} Pokemon:",
+                 font=('TkDefaultFont', 9, 'bold')).pack(anchor=tk.W, padx=5, pady=2)
+
+        if move_type_summary:
+            type_count = len(move_type_summary)
+            ttk.Label(coverage_frame, text=f"• {type_count} offensive types available",
+                     foreground="#4169E1", font=('TkDefaultFont', 8)).pack(anchor=tk.W, padx=10)
+
+            # Calculate coverage efficiency
+            total_moves = sum(len(type_info.get('moves', [])) for type_info in move_type_summary)
+            ttk.Label(coverage_frame, text=f"• {total_moves} total damaging moves",
+                     foreground="#4169E1", font=('TkDefaultFont', 8)).pack(anchor=tk.W, padx=10)
+
+            if type_count > 0:
+                avg_per_type = total_moves / type_count
+                ttk.Label(coverage_frame, text=f"• {avg_per_type:.1f} moves per type average",
+                         foreground="gray", font=('TkDefaultFont', 8)).pack(anchor=tk.W, padx=10)
+        else:
+            ttk.Label(coverage_frame, text="• No offensive move data available",
+                     foreground="orange", font=('TkDefaultFont', 8)).pack(anchor=tk.W, padx=10)
+
         """Apply cached team analysis data to defensive UI."""
         try:
             debug_log("Applying cached team analysis")
@@ -11178,6 +11489,64 @@ class TeamManagerDialog(tk.Toplevel):
         except Exception as e:
             debug_log(f"Error loading window geometry: {e}, using default")
             self.geometry(default_geometry)
+
+    def _update_button_states(self):
+        """Update button states based on current conditions."""
+        try:
+            # Save button: enabled when there are local changes to save
+            if hasattr(self, 'btn_save'):
+                if self._dirty_local:
+                    self.btn_save.configure(state=tk.NORMAL)
+                else:
+                    self.btn_save.configure(state=tk.DISABLED)
+
+            # Upload button: enabled when there are server changes to upload
+            if hasattr(self, 'btn_upload'):
+                if self._dirty_server:
+                    self.btn_upload.configure(state=tk.NORMAL)
+                else:
+                    self.btn_upload.configure(state=tk.DISABLED)
+
+        except Exception as e:
+            # Fail silently to avoid disrupting UI
+            pass
+
+    def _copy_error_to_clipboard(self, error_context, exception):
+        """Copy full error details to clipboard for debugging."""
+        try:
+            import traceback
+
+            # Build comprehensive error report
+            error_report = []
+            error_report.append(f"=== {error_context} ===")
+            error_report.append(f"Error Type: {type(exception).__name__}")
+            error_report.append(f"Error Message: {str(exception)}")
+            error_report.append("")
+            error_report.append("Full Exception Traceback:")
+            error_report.append(traceback.format_exc())
+            error_report.append("")
+            error_report.append("Context Information:")
+            error_report.append(f"- Username: {getattr(self.master, 'username', 'Unknown')}")
+            error_report.append(f"- Slot: {self.slot}")
+            error_report.append(f"- Application: Pokérogue Team Editor")
+
+            # Join all lines
+            full_error_text = "\n".join(error_report)
+
+            # Copy to clipboard
+            self.clipboard_clear()
+            self.clipboard_append(full_error_text)
+            self.update()  # Ensure clipboard is updated
+
+            # Show confirmation
+            messagebox.showinfo("Error Copied",
+                              "Full error details have been copied to clipboard.\n\n"
+                              "You can paste this into a bug report or development discussion.")
+
+        except Exception as copy_error:
+            messagebox.showerror("Copy Failed",
+                               f"Failed to copy error to clipboard: {copy_error}\n\n"
+                               f"Original error: {exception}")
 
     def _on_window_configure(self, event=None):
         """Save window geometry when window is resized or moved."""

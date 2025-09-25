@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 import os
 import re
@@ -8,106 +8,17 @@ from tkinter import ttk, messagebox
 
 from rogueeditor import PokerogueAPI
 from rogueeditor.editor import Editor
-from rogueeditor.catalog import DATA_TYPES_JSON, load_nature_catalog, load_berry_catalog, load_types_catalog
+from rogueeditor.catalog import (
+    DATA_TYPES_JSON, load_nature_catalog, load_berry_catalog, load_types_catalog,
+    get_items_by_category, get_item_display_name, get_item_emoji, get_item_description,
+    format_item_for_display, get_form_change_items_for_pokemon
+)
 from rogueeditor.form_persistence import get_pokemon_display_name
 
 
 def _format_item_name(item_id: str) -> str:
-    """Convert item ID to human-friendly name."""
-    # Handle special cases
-    special_cases = {
-        "FOCUS_BAND": "Focus Band",
-        "MYSTICAL_ROCK": "Mystical Rock", 
-        "SOOTHE_BELL": "Soothe Bell",
-        "SCOPE_LENS": "Scope Lens",
-        "LEEK": "Leek",
-        "EVIOLITE": "Eviolite",
-        "SOUL_DEW": "Soul Dew",
-        "GOLDEN_PUNCH": "Golden Punch",
-        "GRIP_CLAW": "Grip Claw",
-        "QUICK_CLAW": "Quick Claw",
-        "KINGS_ROCK": "King's Rock",
-        "LEFTOVERS": "Leftovers",
-        "SHELL_BELL": "Shell Bell",
-        "TOXIC_ORB": "Toxic Orb",
-        "FLAME_ORB": "Flame Orb",
-        "BATON": "Baton",
-        "WIDE_LENS": "Wide Lens",
-        "MULTI_LENS": "Multi Lens",
-        "EXP_CHARM": "Exp Charm",
-        "SUPER_EXP_CHARM": "Super Exp Charm",
-        "EXP_SHARE": "Exp Share",
-        "MAP": "Map",
-        "IV_SCANNER": "IV Scanner",
-        "GOLDEN_POKEBALL": "Golden Pokéball",
-        "LURE": "Lure",
-        "SUPER_LURE": "Super Lure",
-        "MAX_LURE": "Max Lure",
-        "AMULET_COIN": "Amulet Coin",
-        "MEGA_BRACELET": "Mega Bracelet",
-        "TERA_ORB": "Tera Orb",
-        "DYNAMAX_BAND": "Dynamax Band",
-        "SHINY_CHARM": "Shiny Charm",
-        "ABILITY_CHARM": "Ability Charm",
-        "CATCHING_CHARM": "Catching Charm",
-        "NUGGET": "Nugget",
-        "BIG_NUGGET": "Big Nugget",
-        "RELIC_GOLD": "Relic Gold",
-        "COIN_CASE": "Coin Case",
-        "LOCK_CAPSULE": "Lock Capsule",
-        "BERRY_POUCH": "Berry Pouch",
-        "HEALING_CHARM": "Healing Charm",
-        "CANDY_JAR": "Candy Jar",
-        "LUCKY_EGG": "Lucky Egg",
-        "GOLDEN_EGG": "Golden Egg",
-        "RARE_FORM_CHANGE_ITEM": "Rare Form Change Item",
-        "GENERIC_FORM_CHANGE_ITEM": "Generic Form Change Item",
-        "DIRE_HIT": "Dire Hit",
-        
-        # Arceus Plates
-        "FLAME_PLATE": "Flame Plate",
-        "SPLASH_PLATE": "Splash Plate", 
-        "ZAP_PLATE": "Zap Plate",
-        "MEADOW_PLATE": "Meadow Plate",
-        "ICICLE_PLATE": "Icicle Plate",
-        "FIST_PLATE": "Fist Plate",
-        "TOXIC_PLATE": "Toxic Plate",
-        "EARTH_PLATE": "Earth Plate",
-        "SKY_PLATE": "Sky Plate",
-        "MIND_PLATE": "Mind Plate",
-        "INSECT_PLATE": "Insect Plate",
-        "STONE_PLATE": "Stone Plate",
-        "SPOOKY_PLATE": "Spooky Plate",
-        "DRACO_PLATE": "Draco Plate",
-        "DREAD_PLATE": "Dread Plate",
-        "IRON_PLATE": "Iron Plate",
-        "PIXIE_PLATE": "Pixie Plate",
-        
-        # Type: Null Memory Discs
-        "FIRE_MEMORY": "Fire Memory",
-        "WATER_MEMORY": "Water Memory",
-        "ELECTRIC_MEMORY": "Electric Memory",
-        "GRASS_MEMORY": "Grass Memory",
-        "ICE_MEMORY": "Ice Memory",
-        "FIGHTING_MEMORY": "Fighting Memory",
-        "POISON_MEMORY": "Poison Memory",
-        "GROUND_MEMORY": "Ground Memory",
-        "FLYING_MEMORY": "Flying Memory",
-        "PSYCHIC_MEMORY": "Psychic Memory",
-        "BUG_MEMORY": "Bug Memory",
-        "ROCK_MEMORY": "Rock Memory",
-        "GHOST_MEMORY": "Ghost Memory",
-        "DRAGON_MEMORY": "Dragon Memory",
-        "DARK_MEMORY": "Dark Memory",
-        "STEEL_MEMORY": "Steel Memory",
-        "FAIRY_MEMORY": "Fairy Memory",
-    }
-    
-    if item_id in special_cases:
-        return special_cases[item_id]
-    
-    # Default formatting: convert underscores to spaces and title case
-    return item_id.replace("_", " ").title()
+    """Convert item ID to human-friendly name using the new data system."""
+    return get_item_display_name(item_id)
 
 
 def _format_stat_name(stat_id: str) -> str:
@@ -150,7 +61,7 @@ def _extract_id_from_formatted_string(formatted_string: str) -> str:
 
 # Extracted from Source/gui.py (Phase 3). See debug/docs/GUI_MIGRATION_PLAN.md.
 class ItemManagerDialog(tk.Toplevel):
-    def __init__(self, master: "App", api: PokerogueAPI, editor: Editor, slot: int, preselect_mon_id: int | None = None):
+    def __init__(self, master: "App", api: PokerogueAPI, editor: Editor, slot: int, preselect_mon_id: int | None = None, data_ref: dict | None = None):
         super().__init__(master)
         try:
             s = int(slot)
@@ -164,7 +75,7 @@ class ItemManagerDialog(tk.Toplevel):
         self.slot = s
         self._preselect_mon_id = preselect_mon_id
         # Load slot data once
-        self.data = self.api.get_slot(slot)
+        self.data = data_ref if data_ref is not None else self.api.get_slot(slot)
         self.party = self.data.get("party") or []
         # Dirty state flags
         self._dirty_local = False
@@ -189,6 +100,31 @@ class ItemManagerDialog(tk.Toplevel):
 
         # Center the window relative to parent
         self._center_relative_to_parent()
+
+        # Warn on window close if there are unsaved changes
+        try:
+            self.protocol("WM_DELETE_WINDOW", self._on_close)
+        except Exception:
+            pass
+
+    def _has_unsaved_changes(self) -> bool:
+        """Return True if there are unsaved local changes or pending upload."""
+        return bool(getattr(self, '_dirty_local', False) or getattr(self, '_dirty_server', False))
+
+    def _on_close(self):
+        """Warn the user if there are unsaved changes before closing."""
+        try:
+            if self._has_unsaved_changes():
+                from tkinter import messagebox
+                if not messagebox.askyesno(
+                    "Unsaved Changes",
+                    "You have unsaved changes that will be lost if you close this window.\n\nProceed anyway?",
+                    icon="warning",
+                ):
+                    return
+        except Exception:
+            pass
+        self.destroy()
 
     def _center_relative_to_parent(self):
         """Center this window relative to its parent window."""
@@ -440,17 +376,7 @@ class ItemManagerDialog(tk.Toplevel):
 
         # Temp Battle Modifiers (X-items, DIRE_HIT, LUREs)
         self.temp_battle_var = tk.StringVar()
-        temp_battle_items = [
-            ("X Attack", "1"),
-            ("X Defense", "2"), 
-            ("X Sp. Attack", "3"),
-            ("X Sp. Defense", "4"),
-            ("X Speed", "5"),
-            ("X Accuracy", "6"),
-            ("Lure", "LURE"),
-            ("Super Lure", "SUPER_LURE"),
-            ("Max Lure", "MAX_LURE")
-        ]
+        # Data-driven; values provided by _temp_battle_items_formatted()
         self.temp_battle_cb = ttk.Combobox(right, textvariable=self.temp_battle_var, values=self._temp_battle_items_formatted(), width=28)
         self.lbl_temp_battle = ttk.Label(right, text="Temp Battle:")
         self.lbl_temp_battle.grid(row=row, column=0, sticky=tk.W)
@@ -474,40 +400,7 @@ class ItemManagerDialog(tk.Toplevel):
         self.lbl_player_type = ttk.Label(right, text="Trainer Item:")
         self.lbl_player_type.grid(row=row, column=0, sticky=tk.W)
         self.player_type_var = tk.StringVar()
-        # Organize trainer items by category and remove duplicates
-        trainer_items = [
-            # Experience and progression
-            ("Exp Charm", "EXP_CHARM"),
-            ("Super Exp Charm", "SUPER_EXP_CHARM"),
-            ("Exp Share", "EXP_SHARE"),
-            ("Map", "MAP"),
-            ("IV Scanner", "IV_SCANNER"),
-            ("Golden Pokéball", "GOLDEN_POKEBALL"),
-            
-            # Battle and encounter modifiers
-            ("Amulet Coin", "AMULET_COIN"),
-            ("Mega Bracelet", "MEGA_BRACELET"),
-            ("Tera Orb", "TERA_ORB"),
-            ("Dynamax Band", "DYNAMAX_BAND"),
-            
-            # Charms and quality of life
-            ("Shiny Charm", "SHINY_CHARM"),
-            ("Ability Charm", "ABILITY_CHARM"),
-            ("Catching Charm", "CATCHING_CHARM"),
-            ("Healing Charm", "HEALING_CHARM"),
-            
-            # Battle modifiers
-            ("Dire Hit", "DIRE_HIT"),
-            
-            # Currency and items
-            ("Nugget", "NUGGET"),
-            ("Big Nugget", "BIG_NUGGET"),
-            ("Relic Gold", "RELIC_GOLD"),
-            ("Coin Case", "COIN_CASE"),
-            ("Lock Capsule", "LOCK_CAPSULE"),
-            ("Berry Pouch", "BERRY_POUCH"),
-            ("Candy Jar", "CANDY_JAR"),
-        ]
+        # Data-driven; values provided by _trainer_items_formatted()
         
         self.player_type_cb = ttk.Combobox(
             right,
@@ -583,7 +476,7 @@ class ItemManagerDialog(tk.Toplevel):
         self.trainer_frame.grid_columnconfigure(1, weight=1)
         ttk.Label(self.trainer_frame, text="Money:").grid(row=0, column=0, sticky=tk.E, padx=4, pady=2)
         self.money_var = tk.StringVar(value="")
-        self.money_entry = ttk.Entry(self.trainer_frame, textvariable=self.money_var, width=12)
+        self.money_entry = ttk.Entry(self.trainer_frame, textvariable=self.money_var, width=18)
         self.money_entry.grid(row=0, column=1, sticky=tk.W, padx=4, pady=2)
         # Bind money field changes to automatically update data
         self.money_var.trace_add("write", lambda *args: self._on_money_change())
@@ -656,27 +549,7 @@ class ItemManagerDialog(tk.Toplevel):
         # - EXP_SHARE, IV_SCANNER, MAP, AMULET_COIN, MEGA_BRACELET, TERA_ORB, DYNAMAX_BAND -> Trainer items
         # - DIRE_HIT -> Trainer items
         # - LUCKY_EGG, GOLDEN_EGG -> Should be in a separate "Experience" category
-        return {
-            # Core held items that don't fit other categories
-            "FOCUS_BAND",      # Survive fatal damage
-            "MYSTICAL_ROCK",   # Extend weather/terrain
-            "SOOTHE_BELL",     # Friendship boost
-            "LEEK",            # Crit boost for specific species
-            "EVIOLITE",        # Pre-evolution stat boost
-            "SOUL_DEW",        # Nature effect boost
-            "GOLDEN_PUNCH",    # Money reward on hit
-            "GRIP_CLAW",       # Trap effect
-            "QUICK_CLAW",      # Speed priority chance
-            "KINGS_ROCK",      # Flinch chance
-            "LEFTOVERS",       # Turn heal
-            "SHELL_BELL",      # Hit heal
-            "TOXIC_ORB",       # Toxic status
-            "FLAME_ORB",       # Burn status
-            "BATON",           # Switch item
-            "MULTI_LENS",      # Multi-hit conversion
-            # Form change items (Pokémon-specific)
-            "RARE_FORM_CHANGE_ITEM",
-        }
+        return set(get_items_by_category("common"))
     
     def _invalidate_item_cache(self):
         """Invalidate the item list cache and recalculate all formatted lists."""
@@ -743,7 +616,8 @@ class ItemManagerDialog(tk.Toplevel):
             except Exception:
                 pass
         
-        # Format items with emojis and descriptions like other lists
+        # Format items via common formatter
+        from rogueeditor.catalog import format_item_for_display
         formatted_items = []
         for item in items:
             if self._is_pokemon_specific_form_item(item):
@@ -753,9 +627,9 @@ class ItemManagerDialog(tk.Toplevel):
                     data = self.pokemon_specific_forms[pokemon_id]
                     emoji = data["emoji"]
                     category = data["category_name"]
-                    formatted_items.append(f"{emoji} {_format_item_name(item)} - {category} ({item})")
+                    formatted_items.append(format_item_for_display(item, catalog_label=category))
                 else:
-                    formatted_items.append(f"🔄 {_format_item_name(item)} - Form Change ({item})")
+                    formatted_items.append(format_item_for_display(item, catalog_label="Form Change"))
             elif item == "RARE_FORM_CHANGE_ITEM" and hasattr(self, 'preselect_mon_id') and self.preselect_mon_id:
                 # Show specific form information for RARE_FORM_CHANGE_ITEM
                 try:
@@ -770,16 +644,13 @@ class ItemManagerDialog(tk.Toplevel):
                             form_descriptions.append(f"{form_data['name']} ({form_type.upper()})")
                         
                         form_info = " | ".join(form_descriptions)
-                        formatted_items.append(f"🔄 {_format_item_name(item)} - {form_info} ({item})")
+                        formatted_items.append(format_item_for_display(item, catalog_label=form_info))
                     else:
-                        formatted_items.append(f"🔄 {_format_item_name(item)} - Form Change ({item})")
+                        formatted_items.append(format_item_for_display(item, catalog_label="Form Change"))
                 except Exception:
-                    formatted_items.append(f"🔄 {_format_item_name(item)} - Form Change ({item})")
+                    formatted_items.append(format_item_for_display(item, catalog_label="Form Change"))
             else:
-                # Regular common items get standard formatting with emojis
-                emoji = self._get_item_emoji(item)
-                description = self._get_item_description(item)
-                formatted_items.append(f"{emoji} {_format_item_name(item)} - {description} ({item})")
+                formatted_items.append(format_item_for_display(item))
         
         # Cache the result
         self._item_list_cache[cache_key] = formatted_items
@@ -791,12 +662,9 @@ class ItemManagerDialog(tk.Toplevel):
         if cache_key in self._item_list_cache:
             return self._item_list_cache[cache_key]
         
-        items = ["WIDE_LENS", "SCOPE_LENS"]
-        formatted_items = []
-        for item in items:
-            emoji = self._get_item_emoji(item)
-            description = self._get_item_description(item)
-            formatted_items.append(f"{emoji} {_format_item_name(item)} ({item}) - {description}")
+        items = get_items_by_category("accuracy")
+        from rogueeditor.catalog import format_item_for_display
+        formatted_items = [format_item_for_display(item) for item in items]
         
         # Cache the result
         self._item_list_cache[cache_key] = formatted_items
@@ -808,12 +676,9 @@ class ItemManagerDialog(tk.Toplevel):
         if cache_key in self._item_list_cache:
             return self._item_list_cache[cache_key]
         
-        items = ["LUCKY_EGG", "GOLDEN_EGG"]
-        formatted_items = []
-        for item in items:
-            emoji = self._get_item_emoji(item)
-            description = self._get_item_description(item)
-            formatted_items.append(f"{emoji} {_format_item_name(item)} ({item}) - {description}")
+        items = get_items_by_category("experience")
+        from rogueeditor.catalog import format_item_for_display
+        formatted_items = [format_item_for_display(item) for item in items]
         
         # Cache the result
         self._item_list_cache[cache_key] = formatted_items
@@ -830,11 +695,9 @@ class ItemManagerDialog(tk.Toplevel):
             berry_n2i, berry_i2n = load_berry_catalog()
             
             formatted_items = []
+            from rogueeditor.catalog import format_item_for_display
             for name, berry_id in sorted(berry_n2i.items(), key=lambda kv: kv[1]):
-                formatted_name = name.replace("_", " ").title()  # Convert to Title Case
-                emoji = "🍓"  # Default berry emoji
-                description = "Berry"
-                formatted_items.append(f"{emoji} {formatted_name} ({name}) - {description}")
+                formatted_items.append(format_item_for_display(name))
             
             # Cache the result
             self._item_list_cache[cache_key] = formatted_items
@@ -848,21 +711,9 @@ class ItemManagerDialog(tk.Toplevel):
         if cache_key in self._item_list_cache:
             return self._item_list_cache[cache_key]
         
-        # Traditional vitamins only (exclude accuracy and evasion)
-        vitamin_stats = {
-            "hp": "HP Up",
-            "atk": "Protein", 
-            "def": "Iron",
-            "spatk": "Calcium",
-            "spdef": "Zinc",
-            "spd": "Carbos"
-        }
-        
-        formatted_items = []
-        for stat_name, vitamin_name in vitamin_stats.items():
-            emoji = "💊"  # Default vitamin emoji
-            description = "Vitamin"
-            formatted_items.append(f"{emoji} {vitamin_name} ({stat_name}) - {description}")
+        items = get_items_by_category("vitamins")
+        from rogueeditor.catalog import format_item_for_display
+        formatted_items = [format_item_for_display(item) for item in items]
         
         # Cache the result
         self._item_list_cache[cache_key] = formatted_items
@@ -874,22 +725,13 @@ class ItemManagerDialog(tk.Toplevel):
         if cache_key in self._item_list_cache:
             return self._item_list_cache[cache_key]
         
-        try:
-            from rogueeditor.catalog import load_types_catalog
-            type_n2i, type_i2n = load_types_catalog()
-            
-            formatted_items = []
-            for name, type_id in sorted(type_n2i.items(), key=lambda kv: kv[1]):
-                formatted_name = _format_type_name(name)
-                emoji = "⚔️"  # Default type booster emoji
-                description = "Type Booster"
-                formatted_items.append(f"{emoji} {formatted_name} ({name}) - {description}")
-            
-            # Cache the result
-            self._item_list_cache[cache_key] = formatted_items
-            return formatted_items
-        except Exception:
-            return []
+        items = get_items_by_category("type_boosters")
+        from rogueeditor.catalog import format_item_for_display
+        formatted_items = [format_item_for_display(item) for item in items]
+        
+        # Cache the result
+        self._item_list_cache[cache_key] = formatted_items
+        return formatted_items
 
     def _mint_items_formatted(self) -> list[str]:
         """Get mint items with human-friendly formatting for display."""
@@ -897,22 +739,13 @@ class ItemManagerDialog(tk.Toplevel):
         if cache_key in self._item_list_cache:
             return self._item_list_cache[cache_key]
         
-        try:
-            from rogueeditor.catalog import load_nature_catalog
-            nature_n2i, nature_i2n = load_nature_catalog()
-            
-            formatted_items = []
-            for nid, name in sorted(nature_i2n.items(), key=lambda kv: kv[0]):
-                formatted_name = _format_nature_name(name)
-                emoji = "🌿"  # Default mint emoji
-                description = "Mint"
-                formatted_items.append(f"{emoji} {formatted_name} ({nid}) - {description}")
-            
-            # Cache the result
-            self._item_list_cache[cache_key] = formatted_items
-            return formatted_items
-        except Exception:
-            return []
+        items = get_items_by_category("mints")
+        from rogueeditor.catalog import format_item_for_display
+        formatted_items = [format_item_for_display(item) for item in items]
+        
+        # Cache the result
+        self._item_list_cache[cache_key] = formatted_items
+        return formatted_items
 
     def _temp_battle_items_formatted(self) -> list[str]:
         """Get temp battle items with human-friendly formatting for display."""
@@ -920,23 +753,9 @@ class ItemManagerDialog(tk.Toplevel):
         if cache_key in self._item_list_cache:
             return self._item_list_cache[cache_key]
         
-        temp_battle_items = [
-            ("X Attack", "X_ATTACK", "5 waves"),
-            ("X Defense", "X_DEFENSE", "5 waves"),
-            ("X Sp. Attack", "X_SP_ATTACK", "5 waves"),
-            ("X Sp. Defense", "X_SP_DEFENSE", "5 waves"),
-            ("X Speed", "X_SPEED", "5 waves"),
-            ("X Accuracy", "X_ACCURACY", "5 waves"),
-            ("Dire Hit", "DIRE_HIT", "5 waves"),
-            ("Lure", "LURE", "10 turns"),
-            ("Super Lure", "SUPER_LURE", "15 turns"),
-            ("Max Lure", "MAX_LURE", "30 turns")
-        ]
-        formatted_items = []
-        for name, item_id, duration in temp_battle_items:
-            emoji = self._get_item_emoji(item_id)
-            description = self._get_item_description(item_id)
-            formatted_items.append(f"{emoji} {name} - {duration} - {description} ({item_id})")
+        items = get_items_by_category("temp_battle")
+        from rogueeditor.catalog import format_item_for_display
+        formatted_items = [format_item_for_display(item) for item in items]
         
         # Cache the result
         self._item_list_cache[cache_key] = formatted_items
@@ -968,32 +787,9 @@ class ItemManagerDialog(tk.Toplevel):
         if cache_key in self._item_list_cache:
             return self._item_list_cache[cache_key]
         
-        trainer_items = [
-            ("Exp Share", "EXP_SHARE"),
-            ("IV Scanner", "IV_SCANNER"),
-            ("Map", "MAP"),
-            ("Amulet Coin", "AMULET_COIN"),
-            ("Golden Pokéball", "GOLDEN_POKEBALL"),
-            ("Mega Bracelet", "MEGA_BRACELET"),
-            ("Tera Orb", "TERA_ORB"),
-            ("Dynamax Band", "DYNAMAX_BAND"),
-            ("Shiny Charm", "SHINY_CHARM"),
-            ("Ability Charm", "ABILITY_CHARM"),
-            ("Catching Charm", "CATCHING_CHARM"),
-            ("Nugget", "NUGGET"),
-            ("Big Nugget", "BIG_NUGGET"),
-            ("Relic Gold", "RELIC_GOLD"),
-            ("Coin Case", "COIN_CASE"),
-            ("Lock Capsule", "LOCK_CAPSULE"),
-            ("Berry Pouch", "BERRY_POUCH"),
-            ("Healing Charm", "HEALING_CHARM"),
-            ("Candy Jar", "CANDY_JAR"),
-        ]
-        formatted_items = []
-        for name, item_id in trainer_items:
-            emoji = self._get_item_emoji(item_id)
-            description = self._get_item_description(item_id)
-            formatted_items.append(f"{emoji} {name} ({item_id}) - {description}")
+        items = get_items_by_category("trainer")
+        from rogueeditor.catalog import format_item_for_display
+        formatted_items = [format_item_for_display(item) for item in items]
         
         # Cache the result
         self._item_list_cache[cache_key] = formatted_items
@@ -1473,8 +1269,23 @@ class ItemManagerDialog(tk.Toplevel):
             from rogueeditor.catalog import load_pokeball_catalog
             ball_n2i, ball_i2n = load_pokeball_catalog()
             
-            # Get pokeballCounts from save file (correct structure)
+            # Get pokeballCounts from save file (accept int or str keys)
             pokeball_counts = self.data.get("pokeballCounts", {})
+            # Normalize a copy for safe int access
+            try:
+                _normalized = {}
+                for k, v in (pokeball_counts or {}).items():
+                    try:
+                        kk = int(k)
+                    except Exception:
+                        continue
+                    try:
+                        _normalized[kk] = int(v)
+                    except Exception:
+                        _normalized[kk] = 0
+                pokeball_counts = _normalized
+            except Exception:
+                pokeball_counts = pokeball_counts or {}
             
             # Map numeric IDs to our UI keys (only available types)
             id_to_key = {
@@ -1495,7 +1306,12 @@ class ItemManagerDialog(tk.Toplevel):
                         break
                 
                 if ball_id is not None:
-                    count = pokeball_counts.get(ball_id, 0)
+                    # ball_id may be str in id_to_key; coerce to int for normalized map
+                    try:
+                        bid_int = int(ball_id)
+                    except Exception:
+                        bid_int = ball_id
+                    count = pokeball_counts.get(bid_int, 0)
                     self.pokeball_vars[key].set(str(count))
                 else:
                     self.pokeball_vars[key].set("0")
@@ -1535,11 +1351,19 @@ class ItemManagerDialog(tk.Toplevel):
         try:
             # Update Pokéball data immediately
             self._save_pokeball_data()
-            
-            # Mark as dirty and update buttons
-            self._dirty_local = True
-            self._dirty_server = True
-            self._update_button_states()
+
+            # Mark as local-dirty and update buttons
+            try:
+                self._dirty_local = True
+                self._dirty_server = True
+            except Exception:
+                pass
+            # Reflect money/pokéballs in parent Team Manager (optional)
+            try:
+                if hasattr(self.master, '_update_button_states'):
+                    self.master._update_button_states()
+            except Exception:
+                pass
         except Exception as e:
             print(f"Error handling Pokéball change: {e}")
 
@@ -1575,11 +1399,11 @@ class ItemManagerDialog(tk.Toplevel):
             
             # Map UI keys to numeric IDs (only available types)
             key_to_id = {
-                "pokeball": "0",      # POKEBALL
-                "greatball": "1",     # GREAT_BALL  
-                "ultraball": "2",     # ULTRA_BALL
-                "rogueball": "3",     # ROGUE_BALL
-                "masterball": "4"     # MASTER_BALL
+                "pokeball": 0,      # POKEBALL
+                "greatball": 1,     # GREAT_BALL  
+                "ultraball": 2,     # ULTRA_BALL
+                "rogueball": 3,     # ROGUE_BALL
+                "masterball": 4     # MASTER_BALL
             }
             
             # Update Pokéball data from UI (only available types 0-4)
@@ -1601,8 +1425,14 @@ class ItemManagerDialog(tk.Toplevel):
             # Remove any unavailable types (like type 5) from the data
             available_ids = set(key_to_id.values())
             pokeball_counts = self.data.get("pokeballCounts", {})
+            # Drop unsupported or non-numeric keys
             for ball_id in list(pokeball_counts.keys()):
-                if ball_id not in available_ids:
+                try:
+                    bid_int = int(ball_id)
+                except Exception:
+                    del self.data["pokeballCounts"][ball_id]
+                    continue
+                if bid_int not in available_ids:
                     del self.data["pokeballCounts"][ball_id]
             
             # Remove the incorrect "pokeballs" structure if it exists
@@ -1640,7 +1470,7 @@ class ItemManagerDialog(tk.Toplevel):
             # 384: {
             #     "items": ["MEGA_RAYQUAZA_ITEM"],
             #     "category_name": "Mega Rayquaza Items",
-            #     "emoji": "🐉"
+            #     "emoji": "ðŸ‰"
             # }
         }
         
@@ -1712,27 +1542,7 @@ class ItemManagerDialog(tk.Toplevel):
 
     def _get_form_change_items_for_pokemon(self, pokemon_id: int) -> list[str]:
         """Get all form change items available for a specific Pokémon."""
-        try:
-            species = self._get_pokemon_species(pokemon_id)
-            form_items = []
-            
-            # Get Pokémon-specific form items (Arceus Plates, Silvally Memories, etc.)
-            pokemon_specific = self._get_pokemon_specific_form_items(species)
-            form_items.extend(pokemon_specific)
-            
-            # Get alternative forms for this Pokémon
-            alternative_forms = self._get_alternative_forms_for_pokemon(species)
-            
-            # Add RARE_FORM_CHANGE_ITEM if this Pokémon has alternative forms
-            if alternative_forms:
-                form_items.append("RARE_FORM_CHANGE_ITEM")
-            
-            # Always add generic form change item as fallback for any Pokémon
-            form_items.append("GENERIC_FORM_CHANGE_ITEM")
-            
-            return form_items
-        except Exception:
-            return ["GENERIC_FORM_CHANGE_ITEM"]  # Fallback to generic item
+        return get_form_change_items_for_pokemon(pokemon_id)
 
     def _is_pokemon_specific_form_item(self, item_id: str) -> bool:
         """Check if an item is a Pokémon-specific form change item."""
@@ -1743,126 +1553,12 @@ class ItemManagerDialog(tk.Toplevel):
         return self.form_item_to_pokemon.get(item_id, None)
 
     def _get_item_emoji(self, item_id: str) -> str:
-        """Get emoji for a common item."""
-        emoji_map = {
-            "FOCUS_BAND": "🎗",
-            "MYSTICAL_ROCK": "🪨",
-            "SOOTHE_BELL": "🔔",
-            "LEEK": "🥬",
-            "EVIOLITE": "💎",
-            "SOUL_DEW": "💎",
-            "GOLDEN_PUNCH": "👊",
-            "GRIP_CLAW": "🦀",
-            "QUICK_CLAW": "⚡",
-            "KINGS_ROCK": "👑",
-            "LEFTOVERS": "🍖",
-            "SHELL_BELL": "🐚",
-            "TOXIC_ORB": "☠️",
-            "FLAME_ORB": "🔥",
-            "BATON": "🏃",
-            "LUCKY_EGG": "🥚",
-            "GOLDEN_EGG": "🥚",
-            "RARE_FORM_CHANGE_ITEM": "🔄",
-            "GENERIC_FORM_CHANGE_ITEM": "⚙️",
-            "MULTI_LENS": "🔀",
-            "MAP": "🗺",
-            "WIDE_LENS": "🎯",
-            "SCOPE_LENS": "🔍",
-            # Temp Battle Items
-            "X_ATTACK": "⚔️",
-            "X_DEFENSE": "🛡",
-            "X_SP_ATTACK": "💫",
-            "X_SP_DEFENSE": "🔮",
-            "X_SPEED": "💨",
-            "X_ACCURACY": "🎯",
-            "DIRE_HIT": "💥",
-            "LURE": "🎣",
-            "SUPER_LURE": "🎣",
-            "MAX_LURE": "🎣",
-            # Trainer Items
-            "EXP_CHARM": "⭐",
-            "SUPER_EXP_CHARM": "⭐",
-            "EXP_SHARE": "⭐",
-            "IV_SCANNER": "🔍",
-            "AMULET_COIN": "💰",
-            "GOLDEN_POKEBALL": "⚪",
-            "MEGA_BRACELET": "💎",
-            "TERA_ORB": "💎",
-            "DYNAMAX_BAND": "💎",
-            "SHINY_CHARM": "✨",
-            "ABILITY_CHARM": "🔮",
-            "CATCHING_CHARM": "🎣",
-            "NUGGET": "💰",
-            "BIG_NUGGET": "💰",
-            "RELIC_GOLD": "💰",
-            "COIN_CASE": "💰",
-            "LOCK_CAPSULE": "🔒",
-            "BERRY_POUCH": "🍓",
-            "HEALING_CHARM": "❤️",
-            "CANDY_JAR": "🍬",
-        }
-        return emoji_map.get(item_id, "📦")
+        """Delegate to catalog-driven emoji resolution."""
+        return get_item_emoji(item_id)
 
     def _get_item_description(self, item_id: str) -> str:
-        """Get description for a common item."""
-        description_map = {
-            "FOCUS_BAND": "Survive Fatal",
-            "MYSTICAL_ROCK": "Weather Extend",
-            "SOOTHE_BELL": "Friendship Boost",
-            "LEEK": "Crit Boost",
-            "EVIOLITE": "Pre-Evo Boost",
-            "SOUL_DEW": "Nature Boost",
-            "GOLDEN_PUNCH": "Money Reward",
-            "GRIP_CLAW": "Trap Effect",
-            "QUICK_CLAW": "Speed Priority",
-            "KINGS_ROCK": "Flinch Chance",
-            "LEFTOVERS": "Turn Heal",
-            "SHELL_BELL": "Hit Heal",
-            "TOXIC_ORB": "Toxic Status",
-            "FLAME_ORB": "Burn Status",
-            "BATON": "Switch Item",
-            "LUCKY_EGG": "Exp Boost",
-            "GOLDEN_EGG": "Super Exp Boost",
-            "RARE_FORM_CHANGE_ITEM": "Form Change",
-            "GENERIC_FORM_CHANGE_ITEM": "Custom Form",
-            "MULTI_LENS": "Multi-Hit",
-            "MAP": "Choose Next Destinations",
-            "WIDE_LENS": "Accuracy Boost",
-            "SCOPE_LENS": "Critical Hit",
-            # Temp Battle Items
-            "X_ATTACK": "Attack Boost",
-            "X_DEFENSE": "Defense Boost",
-            "X_SP_ATTACK": "Sp. Attack Boost",
-            "X_SP_DEFENSE": "Sp. Defense Boost",
-            "X_SPEED": "Speed Boost",
-            "X_ACCURACY": "Accuracy Boost",
-            "DIRE_HIT": "Critical Hit",
-            "LURE": "Encounter Rate",
-            "SUPER_LURE": "Super Encounter",
-            "MAX_LURE": "Max Encounter",
-            # Trainer Items
-            "EXP_CHARM": "Exp Boost",
-            "SUPER_EXP_CHARM": "Super Exp Boost",
-            "EXP_SHARE": "20% Exp per Party Member (Max 100%)",
-            "IV_SCANNER": "IV Scanner",
-            "AMULET_COIN": "Money Multiplier",
-            "GOLDEN_POKEBALL": "Golden Pokéball",
-            "MEGA_BRACELET": "Mega Evolution",
-            "TERA_ORB": "Terastallize",
-            "DYNAMAX_BAND": "Gigantamax",
-            "SHINY_CHARM": "Shiny Rate",
-            "ABILITY_CHARM": "Ability Rate",
-            "CATCHING_CHARM": "Catch Rate",
-            "NUGGET": "Money Value",
-            "BIG_NUGGET": "Big Money",
-            "RELIC_GOLD": "Relic Gold",
-            "COIN_CASE": "Coin Storage",
-            "LOCK_CAPSULE": "Lock Capsule",
-            "BERRY_POUCH": "Berry Storage",
-            "HEALING_CHARM": "Healing Boost",
-            "CANDY_JAR": "Candy Storage",
-        }
-        return description_map.get(item_id, "Held Item")
+        """Delegate to catalog-driven description resolution."""
+        return get_item_description(item_id)
 
     def _vitamin_stat_values(self) -> list[str]:
         # Map stat ids to mainstream vitamin names
@@ -2096,9 +1792,28 @@ class ItemManagerDialog(tk.Toplevel):
         mods = self.data.get("modifiers") or []
         if 0 <= idx < len(mods):
             import json as _json
-
             content = _json.dumps(mods[idx], ensure_ascii=False, indent=2)
-            self.master._show_text_dialog(f"Modifier Detail [{idx}]", content)
+            # Prefer parent's dialog helper if available; otherwise fallback to a simple viewer
+            try:
+                if hasattr(self.master, '_show_text_dialog') and callable(self.master._show_text_dialog):
+                    self.master._show_text_dialog(f"Modifier Detail [{idx}]", content)
+                    return
+            except Exception:
+                pass
+            try:
+                top = tk.Toplevel(self)
+                top.title(f"Modifier Detail [{idx}]")
+                top.geometry("640x480")
+                frm = ttk.Frame(top)
+                frm.pack(fill=tk.BOTH, expand=True)
+                txt = tk.Text(frm, wrap=tk.NONE)
+                txt.insert("1.0", content)
+                txt.configure(state="disabled")
+                txt.pack(fill=tk.BOTH, expand=True)
+                btn = ttk.Button(top, text="Close", command=top.destroy)
+                btn.pack(pady=6)
+            except Exception:
+                pass
 
     def _add(self):
         target = self.target_var.get()
@@ -2119,13 +1834,8 @@ class ItemManagerDialog(tk.Toplevel):
                 messagebox.showwarning("Invalid", "Select a temp battle modifier")
                 return
 
-            # Extract ID from formatted string "Display Name (ID)"
-            item_id = None
-            if sel.endswith(")") and "(" in sel:
-                try:
-                    item_id = sel.rsplit("(", 1)[1].rstrip(")")
-                except Exception:
-                    pass
+            # Extract ID from formatted string
+            item_id = _extract_id_from_formatted_string(sel)
             
             if not item_id:
                 messagebox.showwarning("Invalid", "Invalid temp battle modifier format")
@@ -2261,19 +1971,26 @@ class ItemManagerDialog(tk.Toplevel):
             sel = (self.common_var.get() or "").strip()
             if not sel:
                 return
-            # Extract item ID from formatted string "Display Name (ID)"
-            t = None
+            # Extract item ID from formatted string
+            t = _extract_id_from_formatted_string(sel).upper()
+            if not t:
+                return
+            # Default entry for held items
+            entry = {"args": [mon_id], "typePregenArgs": [], "player": True, "stackCount": stacks, "typeId": t}
+            # Known className mappings for common held items
+            class_map = {
+                "REVIVER_SEED": "PokemonInstantReviveModifier",
+                "MINI_BLACK_HOLE": "TurnHeldItemTransferModifier",
+            }
+            cname = class_map.get(t)
+            if cname:
+                entry["className"] = cname
         elif cat == "Experience":
             sel = (self.exp_var.get() or "").strip()
             if not sel:
                 return
-            # Extract item ID from formatted string "Display Name (ID)"
-            t = None
-            if sel.endswith(")") and "(" in sel:
-                try:
-                    t = sel.rsplit("(", 1)[1].rstrip(")").upper()
-                except Exception:
-                    pass
+            # Extract item ID from formatted string
+            t = _extract_id_from_formatted_string(sel).upper()
             if not t:
                 return
             # Experience items are simple - just the item ID
@@ -2290,13 +2007,8 @@ class ItemManagerDialog(tk.Toplevel):
             sel = (self.acc_var.get() or "").strip()
             if not sel:
                 return
-            # Extract item ID from formatted string "Display Name (ID)"
-            t = None
-            if sel.endswith(")") and "(" in sel:
-                try:
-                    t = sel.rsplit("(", 1)[1].rstrip(")").upper()
-                except Exception:
-                    pass
+            # Extract item ID from formatted string
+            t = _extract_id_from_formatted_string(sel).upper()
             if not t:
                 return
             if t == "WIDE_LENS":
@@ -2325,17 +2037,14 @@ class ItemManagerDialog(tk.Toplevel):
         elif cat == "Berries":
             sel = (self.berry_var.get() or "").strip()
             bid = None
-            if sel.endswith(")") and "(" in sel:
+            id_token = _extract_id_from_formatted_string(sel)
+            if id_token:
                 try:
-                    bid = int(sel.rsplit("(", 1)[1].rstrip(")"))
+                    bid = int(id_token)
                 except Exception:
-                    bid = None
-            if bid is None:
-                from rogueeditor.catalog import load_berry_catalog
-
-                n2i, _ = load_berry_catalog()
-                key = sel.lower().replace(" ", "_")
-                bid = n2i.get(key)
+                    from rogueeditor.catalog import load_berry_catalog
+                    n2i, _ = load_berry_catalog()
+                    bid = n2i.get(id_token.lower())
             if not isinstance(bid, int):
                 messagebox.showwarning("Invalid", "Select a berry")
                 return
@@ -2350,17 +2059,14 @@ class ItemManagerDialog(tk.Toplevel):
         elif cat == "Vitamins":
             sel = (self.stat_var.get() or "").strip()
             sid = None
-            if sel.endswith(")") and "(" in sel:
+            id_token = _extract_id_from_formatted_string(sel)
+            if id_token:
                 try:
-                    sid = int(sel.rsplit("(", 1)[1].rstrip(")"))
+                    sid = int(id_token)
                 except Exception:
-                    sid = None
-            if not isinstance(sid, int):
-                from rogueeditor.catalog import load_stat_catalog
-
-                n2i, _ = load_stat_catalog()
-                key = sel.lower().replace(" ", "_")
-                sid = n2i.get(key)
+                    from rogueeditor.catalog import load_stat_catalog
+                    n2i, _ = load_stat_catalog()
+                    sid = n2i.get(id_token.lower())
             if not isinstance(sid, int):
                 messagebox.showwarning("Invalid", "Select a stat")
                 return
@@ -2376,14 +2082,12 @@ class ItemManagerDialog(tk.Toplevel):
             # Attack Type Booster for a mon; requires type pregen arg
             sel = (self.type_var.get() or "").strip()
             tid = None
-            if sel.endswith(")") and "(" in sel:
+            id_token = _extract_id_from_formatted_string(sel)
+            if id_token:
                 try:
-                    tid = int(sel.rsplit("(", 1)[1].rstrip(")"))
+                    tid = int(id_token)
                 except Exception:
-                    tid = None
-            if not isinstance(tid, int):
-                key = sel.lower().strip()
-                tid = self._type_name_to_id.get(key)
+                    tid = self._type_name_to_id.get(id_token.lower())
             if not isinstance(tid, int):
                 messagebox.showwarning("Invalid", "Select a type")
                 return
@@ -2399,18 +2103,16 @@ class ItemManagerDialog(tk.Toplevel):
             # Nature change for a mon; requires nature pregen arg
             sel = (self.nature_var.get() or "").strip()
             nid = None
-            if sel.endswith(")") and "(" in sel:
+            id_token = _extract_id_from_formatted_string(sel)
+            if id_token:
                 try:
-                    nid = int(sel.rsplit("(", 1)[1].rstrip(")"))
+                    nid = int(id_token)
                 except Exception:
-                    nid = None
-            if not isinstance(nid, int):
-                try:
-                    _n2i, _ = load_nature_catalog()
-                    key = sel.lower().replace(" ", "_")
-                    nid = _n2i.get(key)
-                except Exception:
-                    nid = None
+                    try:
+                        _n2i, _ = load_nature_catalog()
+                        nid = _n2i.get(id_token.lower().replace(" ", "_"))
+                    except Exception:
+                        nid = None
             if not isinstance(nid, int):
                 messagebox.showwarning("Invalid", "Select a nature")
                 return
@@ -2650,8 +2352,8 @@ class ItemManagerDialog(tk.Toplevel):
                     type_id_arg = args[1]
                     # Use the existing _format_type_name function for consistent formatting
                     type_name = _format_type_name(type_i2n.get(type_id_arg, f"TYPE_{type_id_arg}"))
-                    return f"[{index_str}] ⚔️ {type_name} Type Booster x{stack_count}"
-                return f"[{index_str}] ⚔️ Type Booster x{stack_count}"
+                    return f"[{index_str}] âš”ï¸ {type_name} Type Booster x{stack_count}"
+                return f"[{index_str}] âš”ï¸ Type Booster x{stack_count}"
 
             elif type_id == "TEMP_STAT_STAGE_BOOSTER":
                 if type_pregen_args:
@@ -2905,29 +2607,14 @@ class ItemManagerDialog(tk.Toplevel):
             return 56  # Safe fallback to Blastoise form
 
     def _get_pokemon_species(self, pokemon_id: int) -> int:
-        """Extract Pokemon species from Pokemon ID using catalog lookup."""
+        """Extract species from the current party using pokemon_id (no fallbacks)."""
         try:
-            # Look through exp_level_relationships in high_level_pokemon_data.json to find species
-            # Format: [level, exp, species, pokemon_id]
-            import json
-            import os
-
-            high_level_data_path = os.path.join(os.getcwd(), "high_level_pokemon_data.json")
-            if os.path.exists(high_level_data_path):
-                with open(high_level_data_path, 'r', encoding='utf-8') as f:
-                    data = json.load(f)
-
-                exp_relationships = data.get("exp_level_relationships", [])
-                for entry in exp_relationships:
-                    if len(entry) >= 4 and entry[3] == pokemon_id:
-                        return entry[2]  # Return species
-
-            # Fallback: try to extract from Pokemon catalog if available
-            catalog_path = os.path.join(os.path.dirname(__file__), os.pardir, "data", "pokemon_catalog.json")
-            if os.path.exists(catalog_path):
-                # This is a more complex lookup - for now just return a default
-                pass
-
-            return 9  # Default to Blastoise species
+            for mon in (self.party or []):
+                try:
+                    if int(mon.get("id")) == int(pokemon_id):
+                        return int(mon.get("species") or 0)
+                except Exception:
+                    continue
         except Exception:
-            return 9  # Safe fallback to Blastoise species
+            pass
+        return 0

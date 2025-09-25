@@ -16,6 +16,10 @@ from rogueeditor.editor import Editor
 from rogueeditor.modifier_schema import modifier_catalog, ModifierTarget
 from rogueeditor.save_corruption_prevention import SafeSaveManager
 from rogueeditor.utils import slot_save_path
+from rogueeditor.catalog import (
+    get_items_by_category, get_item_display_name, get_item_emoji, get_item_description,
+    format_item_for_display, get_form_change_items_for_pokemon
+)
 
 
 class EnhancedItemManagerDialog(tk.Toplevel):
@@ -490,6 +494,7 @@ class EnhancedItemManagerDialog(tk.Toplevel):
             self.modifiers_tree.delete(item)
 
         # Add current modifiers
+        from rogueeditor.catalog import format_item_for_display
         for i, modifier in enumerate(self.modifiers):
             type_id = modifier.get("typeId", "Unknown")
             schema = modifier_catalog.get_modifier_schema(type_id)
@@ -499,9 +504,9 @@ class EnhancedItemManagerDialog(tk.Toplevel):
             stack_count = modifier.get("stackCount", 1)
             args = modifier.get("args", [])
 
-            args_str = str(args) if args else "None"
+            display = format_item_for_display(type_id, stacks=stack_count, args=args)
 
-            self.modifiers_tree.insert("", "end", values=(type_id, target, description, stack_count, args_str))
+            self.modifiers_tree.insert("", "end", values=(display, target, description, stack_count, str(args) if args else "None"))
 
     def _remove_selected_modifier(self):
         """Remove selected modifier."""
