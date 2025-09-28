@@ -565,15 +565,6 @@ class RogueManagerGUI(ttk.Frame):
         ttk.Button(up_f, text="↑ Selected Slot", command=self._safe(self._update_slot_selected)).grid(row=0, column=1, padx=2, pady=2, sticky=tk.W)
         ttk.Button(up_f, text="↑ All", command=self._safe(self._upload_all)).grid(row=0, column=2, padx=2, pady=2, sticky=tk.W)
 
-        # Bottom section: Local Files (full width)
-        local_f = ttk.LabelFrame(box1, text="Open Local Files")
-        local_f.pack(fill=tk.X, padx=4, pady=(4, 4))
-        local_btn_frame = ttk.Frame(local_f)
-        local_btn_frame.pack(fill=tk.X, padx=4, pady=4)
-        ttk.Button(local_btn_frame, text="Open Local Dump...", command=self._safe(self._open_local_dump_dialog)).pack(side=tk.LEFT, padx=(0, 10))
-        ttk.Label(local_btn_frame, text="⚠️ Manual edits may corrupt saves. Proceed at your own risk.",
-                 foreground="red", font=('TkDefaultFont', 8)).pack(side=tk.LEFT)
-
         # (Slots summary moved above)
 
         # Team
@@ -600,7 +591,7 @@ class RogueManagerGUI(ttk.Frame):
             text="⚠️ Account-wide changes that persist across runs. Use with caution!",
             foreground="red",
             font=('TkDefaultFont', 8)
-        ).pack(padx=4, pady=2)
+        ).pack(padx=4, pady=2, anchor=tk.W)
         
         # Account-wide actions
         actions_frame = ttk.Frame(box4)
@@ -613,6 +604,15 @@ class RogueManagerGUI(ttk.Frame):
         ttk.Button(actions_frame, text="Pokedex List", 
                   command=self._safe(self._pokedex_list)).pack(side=tk.LEFT, padx=5)
         
+        # Open Local Files moved to bottom below Account-Wide Settings
+        local_f = ttk.LabelFrame(inner, text="Open Local Files")
+        local_f.pack(fill=tk.X, padx=6, pady=6)
+        local_btn_frame = ttk.Frame(local_f)
+        local_btn_frame.pack(fill=tk.X, padx=4, pady=4)
+        ttk.Button(local_btn_frame, text="Open Local Dump...", command=self._safe(self._open_local_dump_dialog)).pack(side=tk.LEFT, padx=(0, 10))
+        ttk.Label(local_btn_frame, text="⚠️ Manual edits may corrupt saves. Proceed at your own risk.",
+                 foreground="red", font=('TkDefaultFont', 8)).pack(side=tk.LEFT)
+
 
     def _build_console(self):
         self.console_frame = ttk.LabelFrame(self.console_col, text="Console")

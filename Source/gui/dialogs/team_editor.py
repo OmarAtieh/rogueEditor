@@ -1021,6 +1021,10 @@ class TeamManagerDialog(tk.Toplevel):
         print(f"[TRACE] About to call super().__init__()")
         super().__init__(master)
         print(f"[TRACE] super().__init__() completed")
+        
+        # Set loading guard immediately to prevent dirty flags during initialization
+        self._loading_data = True
+        
         try:
             s = int(slot)
         except Exception:
@@ -1068,6 +1072,10 @@ class TeamManagerDialog(tk.Toplevel):
         self.party: List[dict] = []
         # Dirty flags (slot)
         self._dirty_local = False
+        
+        # Per-field dirty tracking for individual Pokemon fields
+        self._field_dirty: Dict[int, set] = {}  # party_index -> set of dirty field names
+        self._trainer_field_dirty: set = set()  # set of dirty trainer field names
         
         # Will load data after UI is built
         self._dirty_server = False
@@ -1152,6 +1160,10 @@ class TeamManagerDialog(tk.Toplevel):
             master._modalize(self)
         except Exception:
             pass
+        
+        # Reset loading guard after all initialization is complete
+        self._loading_data = False
+        
         debug_log(f" TeamManagerDialog.__init__ completed successfully")
 
 
@@ -1178,12 +1190,16 @@ class TeamManagerDialog(tk.Toplevel):
             # Load additional catalogs for Forms & Properties
             debug_log("Loading type catalogs...")
             try:
-                from rogueeditor.catalog import load_types_catalog, load_pokeball_catalog
+                from rogueeditor.catalog import load_types_catalog, load_pokeball_catalog, load_weather_catalog
                 type_n2i, type_i2n = load_types_catalog()
                 ball_n2i, ball_i2n = load_pokeball_catalog()
+                weather_n2i, weather_i2n = load_weather_catalog()
+                debug_log(f"Weather catalog loaded: n2i={weather_n2i}, i2n={weather_i2n}")
             except Exception as e:
                 debug_log(f"Error loading additional catalogs: {e}")
                 type_n2i, type_i2n = ({}, {})
+                ball_n2i, ball_i2n = ({}, {})
+                weather_n2i, weather_i2n = ({}, {})
 
             debug_log("Catalogs loaded successfully")
 
@@ -1194,7 +1210,9 @@ class TeamManagerDialog(tk.Toplevel):
                 self.abil_n2i, self.abil_i2n,
                 self.nat_n2i, self.nat_i2n,
                 self.nature_mults_by_id,
-                type_n2i=type_n2i, type_i2n=type_i2n
+                type_n2i=type_n2i, type_i2n=type_i2n,
+                ball_n2i=ball_n2i, ball_i2n=ball_i2n,
+                weather_n2i=weather_n2i, weather_i2n=weather_i2n
             )
         except Exception as e:
             debug_log(f"Error loading catalogs: {e}")
@@ -1218,6 +1236,10 @@ class TeamManagerDialog(tk.Toplevel):
                 self.data = self.api.get_slot(self.slot)
                 self.party = self.data.get("party") or []
                 debug_log(f"Data loaded: {len(self.party)} party members")
+                debug_log(f"Money in loaded data: {self.data.get('money')}")
+                debug_log(f"Weather in loaded data: {self.data.get('weather')}")
+                debug_log(f"Full data keys: {list(self.data.keys()) if isinstance(self.data, dict) else 'Not a dict'}")
+                debug_log(f"Data type: {type(self.data)}")
 
         except Exception as e:
             debug_log(f"Error loading data for slot {self.slot}: {e}")
@@ -1228,6 +1250,16 @@ class TeamManagerDialog(tk.Toplevel):
         # Refresh UI with loaded data (now using safe _refresh_party method)
         debug_log("Refreshing UI with loaded data...")
         try:
+            # Set loading guard to prevent dirty flags during data loading
+            self._loading_data = True
+            
+            # Reset all field dirty flags since we're loading fresh data
+            self._reset_all_field_dirty()
+            self._dirty_local = False
+            self._dirty_server = False
+            self._trainer_dirty_local = False
+            self._trainer_dirty_server = False
+            
             if hasattr(self, 'target_var'):
                 self._refresh_party()
                 debug_log("Party refreshed in UI using safe method")
@@ -1235,9 +1267,12 @@ class TeamManagerDialog(tk.Toplevel):
                 debug_log("UI not ready yet, will refresh later")
         except Exception as e:
             debug_log(f"Error refreshing UI: {e}")
+        finally:
+            # Reset loading guard after data loading is complete
+            self._loading_data = False
         debug_log("_load_data_sync completed")
 
-    def _on_catalogs_loaded(self, move_n2i, move_i2n, abil_n2i, abil_i2n, nat_n2i, nat_i2n, nature_mults_by_id, type_matrix=None, type_colors=None, type_n2i=None, type_i2n=None):
+    def _on_catalogs_loaded(self, move_n2i, move_i2n, abil_n2i, abil_i2n, nat_n2i, nat_i2n, nature_mults_by_id, type_matrix=None, type_colors=None, type_n2i=None, type_i2n=None, ball_n2i=None, ball_i2n=None, weather_n2i=None, weather_i2n=None):
         """Handle successful catalog loading on main thread."""
         try:
             print("_on_catalogs_loaded: Starting to process catalogs...")
@@ -1260,6 +1295,24 @@ class TeamManagerDialog(tk.Toplevel):
             if type_n2i is not None and type_i2n is not None:
                 self._type_n2i, self._type_i2n = type_n2i, type_i2n
                 print("_on_catalogs_loaded: Type catalogs set")
+            if ball_n2i is not None and ball_i2n is not None:
+                self._ball_n2i, self._ball_i2n = ball_n2i, ball_i2n
+                print("_on_catalogs_loaded: Ball catalogs set")
+            if weather_n2i is not None and weather_i2n is not None:
+                self._weather_n2i, self._weather_i2n = weather_n2i, weather_i2n
+                print("_on_catalogs_loaded: Weather catalogs set")
+                print(f"_on_catalogs_loaded: Weather n2i: {self._weather_n2i}")
+                print(f"_on_catalogs_loaded: Weather i2n: {self._weather_i2n}")
+                
+                # Update weather combobox values
+                if hasattr(self, 'cb_weather'):
+                    values = [f"{name} ({iid})" for name, iid in sorted(self._weather_n2i.items(), key=lambda kv: kv[0])]
+                    # Add NONE (0) option at the beginning for clearing weather
+                    values.insert(0, "NONE (0)")
+                    print(f"_on_catalogs_loaded: Weather combobox values: {values}")
+                    self.cb_weather['values'] = values
+                else:
+                    print("_on_catalogs_loaded: cb_weather not available yet")
 
             # Refresh Forms & Properties dropdowns with new catalog data
             print("_on_catalogs_loaded: About to refresh Forms & Properties catalogs")
@@ -1457,6 +1510,16 @@ class TeamManagerDialog(tk.Toplevel):
         # Save/Upload buttons (right)
         buttons_frame = ttk.Frame(header)
         buttons_frame.pack(side=tk.RIGHT)
+        
+        # Unsaved changes warning label
+        self.lbl_unsaved_status = ttk.Label(buttons_frame, text="", foreground="red", font=('TkDefaultFont', 9, 'bold'))
+        self.lbl_unsaved_status.pack(side=tk.LEFT, padx=(0, 10))
+        
+        # Discard button
+        self.btn_discard = ttk.Button(buttons_frame, text="Discard Changes", command=self._discard_changes, state=tk.DISABLED)
+        self.btn_discard.pack(side=tk.LEFT, padx=(0, 6))
+        
+        # Save/Upload buttons
         self.btn_save = ttk.Button(buttons_frame, text="Save to file", command=self._save, state=tk.DISABLED)
         self.btn_upload = ttk.Button(buttons_frame, text="Upload", command=self._upload, state=tk.DISABLED)
         self.btn_save.pack(side=tk.LEFT, padx=(0, 6))
@@ -1527,6 +1590,9 @@ class TeamManagerDialog(tk.Toplevel):
         self._center_relative_to_parent()
         # Mark built
         self._ui_built = True
+        
+        # Initialize button states after UI is built and dirty flags are set
+        self._update_button_states()
 
 
     def _center_relative_to_parent(self):
@@ -1600,7 +1666,7 @@ class TeamManagerDialog(tk.Toplevel):
                 self.data["money"] = 0
             
             # Mark as dirty
-            self._mark_dirty()
+            self._mark_trainer_field_dirty('money')
 
             # Reflect money live in any child ItemManagerDialog windows
             try:
@@ -1628,18 +1694,24 @@ class TeamManagerDialog(tk.Toplevel):
                         break
                 
                 if weather_id is not None:
-                    self.data[self._weather_key()] = weather_id
+                    # Update weather in arena (current battle weather)
+                    if "arena" not in self.data:
+                        self.data["arena"] = {}
+                    if "weather" not in self.data["arena"]:
+                        self.data["arena"]["weather"] = {}
+                    self.data["arena"]["weather"]["weatherType"] = weather_id
+                    self.data["arena"]["weather"]["turnsLeft"] = 0
                 else:
                     # Clear weather if not found
-                    if self._weather_key() in self.data:
-                        del self.data[self._weather_key()]
+                    if "arena" in self.data and "weather" in self.data["arena"]:
+                        del self.data["arena"]["weather"]
             else:
                 # Clear weather if empty
-                if self._weather_key() in self.data:
-                    del self.data[self._weather_key()]
+                if "arena" in self.data and "weather" in self.data["arena"]:
+                    del self.data["arena"]["weather"]
             
             # Mark as dirty
-            self._mark_dirty()
+            self._mark_trainer_field_dirty('weather')
         except Exception as e:
             debug_log(f"Error handling weather change: {e}")
 
@@ -1648,63 +1720,63 @@ class TeamManagerDialog(tk.Toplevel):
         try:
             # Basics tab fields
             if hasattr(self, 'var_name'):
-                self.var_name.trace_add("write", lambda *args: self._on_pokemon_field_change())
+                self.var_name.trace_add("write", lambda *args: self._mark_field_dirty('nickname'))
             if hasattr(self, 'var_hp'):
-                self.var_hp.trace_add("write", lambda *args: self._on_pokemon_field_change())
+                self.var_hp.trace_add("write", lambda *args: self._mark_field_dirty('hp'))
             if hasattr(self, 'var_level'):
-                self.var_level.trace_add("write", lambda *args: self._on_pokemon_field_change())
+                self.var_level.trace_add("write", lambda *args: self._mark_field_dirty('level'))
             if hasattr(self, 'var_exp'):
-                self.var_exp.trace_add("write", lambda *args: self._on_pokemon_field_change())
+                self.var_exp.trace_add("write", lambda *args: self._mark_field_dirty('exp'))
             if hasattr(self, 'var_friend'):
-                self.var_friend.trace_add("write", lambda *args: self._on_pokemon_field_change())
+                self.var_friend.trace_add("write", lambda *args: self._mark_field_dirty('friendship'))
             if hasattr(self, 'var_status'):
-                self.var_status.trace_add("write", lambda *args: self._on_pokemon_field_change())
+                self.var_status.trace_add("write", lambda *args: self._mark_field_dirty('status'))
             if hasattr(self, 'var_ability'):
-                self.var_ability.trace_add("write", lambda *args: self._on_pokemon_field_change())
+                self.var_ability.trace_add("write", lambda *args: self._mark_field_dirty('ability'))
             if hasattr(self, 'var_passive'):
-                self.var_passive.trace_add("write", lambda *args: self._on_pokemon_field_change())
+                self.var_passive.trace_add("write", lambda *args: self._mark_field_dirty('passive'))
             if hasattr(self, 'var_pokerus'):
-                self.var_pokerus.trace_add("write", lambda *args: self._on_pokemon_field_change())
+                self.var_pokerus.trace_add("write", lambda *args: self._mark_field_dirty('pokerus'))
             
             # Stats tab fields
             if hasattr(self, 'var_nature'):
-                self.var_nature.trace_add("write", lambda *args: self._on_pokemon_field_change())
+                self.var_nature.trace_add("write", lambda *args: self._mark_field_dirty('nature'))
             
             # Form & Visuals fields (now in Basics tab)
             if hasattr(self, 'var_tera'):
-                self.var_tera.trace_add("write", lambda *args: self._on_pokemon_field_change())
+                self.var_tera.trace_add("write", lambda *args: self._mark_field_dirty('tera'))
             if hasattr(self, 'var_shiny'):
-                self.var_shiny.trace_add("write", lambda *args: self._on_pokemon_field_change())
+                self.var_shiny.trace_add("write", lambda *args: self._mark_field_dirty('shiny'))
             if hasattr(self, 'var_luck'):
-                self.var_luck.trace_add("write", lambda *args: self._on_pokemon_field_change())
+                self.var_luck.trace_add("write", lambda *args: self._mark_field_dirty('luck'))
             if hasattr(self, 'var_pause_evo'):
-                self.var_pause_evo.trace_add("write", lambda *args: self._on_pokemon_field_change())
+                self.var_pause_evo.trace_add("write", lambda *args: self._mark_field_dirty('pause_evolutions'))
             if hasattr(self, 'var_gender'):
-                self.var_gender.trace_add("write", lambda *args: self._on_pokemon_field_change())
+                self.var_gender.trace_add("write", lambda *args: self._mark_field_dirty('gender'))
             if hasattr(self, 'var_ball'):
-                self.var_ball.trace_add("write", lambda *args: self._on_pokemon_field_change())
+                self.var_ball.trace_add("write", lambda *args: self._mark_field_dirty('pokeball'))
             
-            # IV fields (if they exist)
+            # IV fields (if they exist) - all IVs are tracked as a group
             if hasattr(self, 'iv_vars') and isinstance(self.iv_vars, list):
                 for iv_var in self.iv_vars:
                     if iv_var:
-                        iv_var.trace_add("write", lambda *args: self._on_pokemon_field_change())
+                        iv_var.trace_add("write", lambda *args: self._mark_field_dirty('ivs'))
             
-            # Move fields (if they exist)
+            # Move fields (if they exist) - all moves are tracked as a group
             if hasattr(self, 'move_vars') and isinstance(self.move_vars, list):
                 for move_var in self.move_vars:
                     if move_var:
-                        move_var.trace_add("write", lambda *args: self._on_pokemon_field_change())
+                        move_var.trace_add("write", lambda *args: self._mark_field_dirty('moves'))
             
             if hasattr(self, 'move_ppup_vars') and isinstance(self.move_ppup_vars, list):
                 for ppup_var in self.move_ppup_vars:
                     if ppup_var:
-                        ppup_var.trace_add("write", lambda *args: self._on_pokemon_field_change())
+                        ppup_var.trace_add("write", lambda *args: self._mark_field_dirty('moves'))
             
             if hasattr(self, 'move_ppused_vars') and isinstance(self.move_ppused_vars, list):
                 for ppused_var in self.move_ppused_vars:
                     if ppused_var:
-                        ppused_var.trace_add("write", lambda *args: self._on_pokemon_field_change())
+                        ppused_var.trace_add("write", lambda *args: self._mark_field_dirty('moves'))
                     
         except Exception as e:
             debug_log(f"Error binding fields for auto-update: {e}")
@@ -1724,7 +1796,7 @@ class TeamManagerDialog(tk.Toplevel):
             self._apply_pokemon_changes_to_data(mon)
             
             # Mark as dirty
-            self._mark_dirty()
+            self._mark_trainer_field_dirty('money')
         except Exception as e:
             debug_log(f"Error handling Pokémon field change: {e}")
 
@@ -1869,7 +1941,7 @@ class TeamManagerDialog(tk.Toplevel):
                     if isinstance(nature_id, int):
                         mon['nature'] = nature_id
                         # Update nature hint display
-                        self._update_nature_hint()
+                        self._update_nature_hint_safe()
             
             # Apply IVs if they exist
             if hasattr(self, 'iv_vars'):
@@ -2269,6 +2341,9 @@ class TeamManagerDialog(tk.Toplevel):
 
         # Track if forms section should be visible
         self._forms_section_visible = False
+        
+        # Refresh form properties after building the section
+        self.after_idle(self._refresh_form_properties)
 
     def _refresh_forms_properties_catalogs(self):
         """Refresh the Forms & Properties dropdowns with current catalog data."""
@@ -2816,7 +2891,7 @@ class TeamManagerDialog(tk.Toplevel):
                     print(f"Created backup {backup_id} before party reordering")
 
             # Mark as dirty for save
-            self.needs_save = True
+            self._mark_trainer_field_dirty('party_order')
 
             # Reset tracking variables
             self._pending_party_changes = False
@@ -4499,60 +4574,184 @@ class TeamManagerDialog(tk.Toplevel):
     # _build_form_visuals method removed - functionality moved to Basics tab
 
     def _build_trainer_basics(self, parent: ttk.Frame):
-        debug_log("_build_trainer_basics called - using safe approach")
-        parent.grid_columnconfigure(1, weight=1)
+        debug_log("_build_trainer_basics called - using optimized two-column layout")
+        parent.grid_columnconfigure(0, weight=1)  # Left column
+        parent.grid_columnconfigure(1, weight=1)  # Right column
         # Add bottom spacer to expand vertically like other tabs
         parent.grid_rowconfigure(99, weight=1)
 
-        # Party reordering section (team management)
-        self._build_party_reorder_section(parent)
+        # Left Column - Trainer Resources, Environment, Actions, Game Info
+        left_frame = ttk.Frame(parent)
+        left_frame.grid(row=0, column=0, sticky=tk.NSEW, padx=(0, 6), pady=6)
+        left_frame.grid_columnconfigure(1, weight=1)
 
-        ttk.Label(parent, text="Money:").grid(row=4, column=0, sticky=tk.E, padx=6, pady=6)
+        # Right Column - Party Order
+        right_frame = ttk.Frame(parent)
+        right_frame.grid(row=0, column=1, sticky=tk.NSEW, padx=(6, 0), pady=6)
+        right_frame.grid_columnconfigure(0, weight=1)
+
+        # LEFT COLUMN CONTENT
+
+        # 1. Game Information Section (Display-only) - moved to top
+        info_frame = ttk.LabelFrame(left_frame, text="Game Information")
+        info_frame.grid(row=0, column=0, columnspan=2, sticky=tk.EW, padx=6, pady=6)
+        info_frame.grid_columnconfigure(1, weight=1)
+        
+        # Play Time
+        ttk.Label(info_frame, text="Play Time:").grid(row=0, column=0, sticky=tk.E, padx=6, pady=6)
+        self.lbl_playtime = ttk.Label(info_frame, text="-")
+        self.lbl_playtime.grid(row=0, column=1, sticky=tk.W)
+        
+        # Game Mode
+        ttk.Label(info_frame, text="Game Mode:").grid(row=1, column=0, sticky=tk.E, padx=6, pady=6)
+        self.lbl_gamemode = ttk.Label(info_frame, text="-")
+        self.lbl_gamemode.grid(row=1, column=1, sticky=tk.W)
+
+        # 2. Trainer Resources Section
+        resources_frame = ttk.LabelFrame(left_frame, text="Trainer Resources")
+        resources_frame.grid(row=1, column=0, columnspan=2, sticky=tk.EW, padx=6, pady=6)
+        resources_frame.grid_columnconfigure(1, weight=1)
+        
+        # Money (narrower)
+        ttk.Label(resources_frame, text="Money:").grid(row=0, column=0, sticky=tk.E, padx=6, pady=6)
         self.var_money = tk.StringVar(value="")
-        ent = ttk.Entry(parent, textvariable=self.var_money, width=18)
-        ent.grid(row=4, column=1, sticky=tk.W)
+        ent = ttk.Entry(resources_frame, textvariable=self.var_money, width=12)  # Reduced from 18
+        ent.grid(row=0, column=1, sticky=tk.W)
         # Bind money changes to automatically update data
         self.var_money.trace_add("write", lambda *args: self._on_money_change())
         ent.bind("<KeyRelease>", lambda e: self._on_money_change())
+        
+        # Pokéball Inventory (moved to resources section)
+        self._build_pokeball_inventory_section(resources_frame)
 
-        # Defer weather catalog initialization to avoid blocking UI
-        debug_log("Deferring weather catalog initialization...")
-        self.after_idle(self._init_weather_catalog_safe)
-
-        ttk.Label(parent, text="Weather:").grid(row=5, column=0, sticky=tk.E, padx=6, pady=6)
+        # 3. Environment Section
+        environment_frame = ttk.LabelFrame(left_frame, text="Environment")
+        environment_frame.grid(row=2, column=0, columnspan=2, sticky=tk.EW, padx=6, pady=6)
+        environment_frame.grid_columnconfigure(1, weight=1)
+        
+        # Weather (narrower)
+        ttk.Label(environment_frame, text="Weather:").grid(row=0, column=0, sticky=tk.E, padx=6, pady=6)
         self.var_weather = tk.StringVar(value="")
         self.cb_weather = ttk.Combobox(
-            parent,
+            environment_frame,
             textvariable=self.var_weather,
             values=[],  # Will be populated safely later
-            width=24,
+            width=16,  # Reduced from 24
             state="readonly",
         )
-        self.cb_weather.grid(row=5, column=1, sticky=tk.W)
+        self.cb_weather.grid(row=0, column=1, sticky=tk.W)
         # Bind weather changes to automatically update data
         self.var_weather.trace_add("write", lambda *args: self._on_weather_change())
         self.cb_weather.bind("<<ComboboxSelected>>", lambda e: self._on_weather_change())
-        ttk.Button(parent, text="Full Team Heal (Local)", command=self._full_team_heal).grid(row=5, column=3, sticky=tk.W, padx=6)
-        # Quick open items/modifiers manager
-        ttk.Button(parent, text="Open Modifiers / Items…", command=self._open_item_mgr_trainer).grid(row=6, column=1, sticky=tk.W, pady=(8, 0))
-        # Display-only Play Time and Game Mode (combined on same row)
-        ttk.Label(parent, text="Play Time:").grid(row=7, column=0, sticky=tk.E, padx=6)
-        self.lbl_playtime = ttk.Label(parent, text="-")
-        self.lbl_playtime.grid(row=7, column=1, sticky=tk.W)
-        # Keep Game Mode on the same visual row as its label by using an inner frame
-        gm_row = ttk.Frame(parent)
-        gm_row.grid(row=7, column=2, columnspan=2, sticky=tk.W, padx=6)
-        ttk.Label(gm_row, text="Game Mode:").pack(side=tk.LEFT)
-        self.lbl_gamemode = ttk.Label(gm_row, text="-")
-        self.lbl_gamemode.pack(side=tk.LEFT, padx=(4, 0))
+
+        # RIGHT COLUMN CONTENT
+
+        # Actions Section (moved to right column)
+        actions_frame = ttk.LabelFrame(right_frame, text="Actions")
+        actions_frame.grid(row=0, column=0, sticky=tk.EW, padx=6, pady=6)
+        
+        # Full Team Heal button
+        ttk.Button(actions_frame, text="Full Team Heal", command=self._full_team_heal).grid(row=0, column=0, sticky=tk.W, padx=6, pady=6)
+        
+        # Open Modifiers/Items button
+        ttk.Button(actions_frame, text="Open Modifiers…", command=self._open_item_mgr_trainer).grid(row=0, column=1, sticky=tk.W, padx=6, pady=6)
+
+        # Party Order Section (moved below actions)
+        self._build_party_reorder_section(right_frame)
 
         # Spacer to expand vertically like other tabs
-        ttk.Label(parent, text="").grid(row=99, column=0, sticky=tk.EW)
+        ttk.Label(parent, text="").grid(row=99, column=0, columnspan=2, sticky=tk.EW)
         
         # Defer trainer data loading to avoid blocking UI
         self.after_idle(self._load_trainer_snapshot_safe)
         
-        debug_log("_build_trainer_basics completed safely")
+        debug_log("_build_trainer_basics completed with optimized two-column layout")
+
+    def _build_pokeball_inventory_section(self, parent: ttk.Frame):
+        """Build Pokéball inventory section within the resources frame."""
+        debug_log("Building Pokéball inventory section")
+        
+        # Pokéball Inventory subsection (narrower layout)
+        pokeball_frame = ttk.LabelFrame(parent, text="Pokéball Inventory")
+        pokeball_frame.grid(row=1, column=0, columnspan=2, sticky=tk.EW, padx=6, pady=6)
+        pokeball_frame.grid_columnconfigure(5, weight=1)
+        
+        # Pokéball types and their variables (narrower entries)
+        self.pokeball_types = [
+            ("Poké Ball", "pokeball"),      # ID 0
+            ("Great Ball", "greatball"),    # ID 1
+            ("Ultra Ball", "ultraball"),    # ID 2
+            ("Rogue Ball", "rogueball"),    # ID 3
+            ("Master Ball", "masterball")   # ID 4
+        ]
+        
+        self.pokeball_vars = {}
+        for i, (name, key) in enumerate(self.pokeball_types):
+            row_idx = i // 2  # Changed from 3 to 2 for 3 rows (5 items in 3 rows: 2, 2, 1)
+            col_idx = (i % 2) * 2
+            
+            ttk.Label(pokeball_frame, text=f"{name}:").grid(row=row_idx, column=col_idx, sticky=tk.E, padx=2, pady=2)
+            var = tk.StringVar(value="0")
+            self.pokeball_vars[key] = var
+            # Bind to variable changes
+            var.trace_add("write", lambda *args: self._on_pokeball_change())
+            entry = ttk.Entry(pokeball_frame, textvariable=var, width=6)  # Reduced from 8
+            entry.grid(row=row_idx, column=col_idx + 1, sticky=tk.W, padx=2, pady=2)
+            entry.bind("<KeyRelease>", lambda e: self._on_pokeball_change())
+
+        # Load Pokéball data
+        self._load_pokeball_data()
+
+    def _load_pokeball_data(self):
+        """Load Pokéball inventory data from save file."""
+        try:
+            if not hasattr(self, 'pokeball_vars'):
+                return
+            
+            # Get Pokéball inventory from trainer data
+            pokeball_inventory = self.data.get('pokeballInventory', {})
+            debug_log(f"Loading Pokéball data: {pokeball_inventory}")
+            
+            for key, var in self.pokeball_vars.items():
+                count = pokeball_inventory.get(key, 0)
+                var.set(str(count))
+                debug_log(f"Set {key} to {count}")
+                
+        except Exception as e:
+            debug_log(f"Error loading Pokéball data: {e}")
+
+    def _save_pokeball_data(self):
+        """Save Pokéball inventory data to save file."""
+        try:
+            if not hasattr(self, 'pokeball_vars'):
+                return
+            
+            # Update Pokéball inventory in data
+            pokeball_inventory = {}
+            for key, var in self.pokeball_vars.items():
+                try:
+                    count = int(var.get() or 0)
+                    pokeball_inventory[key] = count
+                except ValueError:
+                    pokeball_inventory[key] = 0
+            
+            self.data['pokeballInventory'] = pokeball_inventory
+            debug_log(f"Saved Pokéball data: {pokeball_inventory}")
+            
+        except Exception as e:
+            debug_log(f"Error saving Pokéball data: {e}")
+
+    def _on_pokeball_change(self):
+        """Handle Pokéball inventory changes."""
+        try:
+            # Save Pokéball data
+            self._save_pokeball_data()
+            
+            # Mark trainer field as dirty
+            self._mark_trainer_field_dirty('pokeball_inventory')
+            
+        except Exception as e:
+            debug_log(f"Error handling Pokéball change: {e}")
 
     def _init_weather_catalog_safe(self):
         """Safely initialize weather catalog with caching to avoid blocking UI."""
@@ -6321,6 +6520,13 @@ class TeamManagerDialog(tk.Toplevel):
                     self._set_party_selection(pinned_idx, render=False, bump_gen=False)
                 except Exception:
                     pass
+                # Refresh Forms & Properties after party selection
+                try:
+                    self._refresh_form_properties()
+                    debug_log("Forms & Properties refreshed after party selection")
+                except Exception as e:
+                    debug_log(f"Error refreshing Forms & Properties after party selection: {e}")
+                
                 self._handling_selection = False
                 _te_log_timing(debug_log, "_on_party_selected", (perf_counter()-t0)*1000,
                                extra=f"mon={int(mon.get('id',0)) if 'mon' in locals() and mon else -1}")
@@ -7802,26 +8008,46 @@ class TeamManagerDialog(tk.Toplevel):
                     try:
                         name = self._type_i2n.get(int(t_id)) if self._type_i2n else None
                         if isinstance(name, str) and name:
-                            self.var_tera.set(f"{name} ({int(t_id)})")
-                            debug_log(f"Refreshed Tera type to: {name} ({int(t_id)})")
+                            tera_val = f"{name} ({int(t_id)})"
                         else:
-                            self.var_tera.set(str(int(t_id)))
-                            debug_log(f"Refreshed Tera type to ID: {int(t_id)}")
+                            tera_val = str(int(t_id))
                     except Exception:
-                        self.var_tera.set(str(int(t_id)))
+                        tera_val = str(int(t_id))
                 else:
-                    self.var_tera.set("")
-                    debug_log("Cleared Tera type (no valid teraType found)")
+                    tera_val = ""
+                
+                if not self._is_field_dirty('tera'):
+                    if self.var_tera.get() != tera_val:
+                        self.var_tera.set(tera_val)
+                        debug_log(f"Refreshed Tera type to: {tera_val}")
+                    else:
+                        debug_log(f"Tera type already set to: {tera_val}")
+                else:
+                    debug_log("Tera field is dirty, skipping update")
 
             # Shiny & Luck
             if hasattr(self, 'var_shiny'):
-                self.var_shiny.set(bool(mon.get('shiny') or False))
-                debug_log(f"Refreshed shiny to: {bool(mon.get('shiny') or False)}")
+                shiny_val = bool(mon.get('shiny') or False)
+                if not self._is_field_dirty('shiny'):
+                    if self.var_shiny.get() != shiny_val:
+                        self.var_shiny.set(shiny_val)
+                        debug_log(f"Refreshed shiny to: {shiny_val}")
+                    else:
+                        debug_log(f"Shiny already set to: {shiny_val}")
+                else:
+                    debug_log("Shiny field is dirty, skipping update")
+                    
             if hasattr(self, 'var_luck'):
                 try:
                     luck_val = str(int(mon.get('luck') or 0))
-                    self.var_luck.set(luck_val)
-                    debug_log(f"Refreshed luck to: {luck_val}")
+                    if not self._is_field_dirty('luck'):
+                        if self.var_luck.get() != luck_val:
+                            self.var_luck.set(luck_val)
+                            debug_log(f"Refreshed luck to: {luck_val}")
+                        else:
+                            debug_log(f"Luck already set to: {luck_val}")
+                    else:
+                        debug_log("Luck field is dirty, skipping update")
                 except Exception:
                     self.var_luck.set('0')
                     debug_log("Refreshed luck to: 0 (fallback)")
@@ -7829,20 +8055,32 @@ class TeamManagerDialog(tk.Toplevel):
             # Pause Evolutions
             if hasattr(self, 'var_pause_evo'):
                 pause_val = bool(mon.get('pauseEvolutions') or False)
-                self.var_pause_evo.set(pause_val)
-                debug_log(f"Refreshed pause evolutions to: {pause_val}")
+                if not self._is_field_dirty('pause_evolutions'):
+                    if self.var_pause_evo.get() != pause_val:
+                        self.var_pause_evo.set(pause_val)
+                        debug_log(f"Refreshed pause evolutions to: {pause_val}")
+                    else:
+                        debug_log(f"Pause evolutions already set to: {pause_val}")
+                else:
+                    debug_log("Pause evolutions field is dirty, skipping update")
 
             # Gender
             if hasattr(self, 'var_gender'):
                 g = mon.get('gender')
                 if g in (0, 1, -1):
                     gmap = {0: 'male', 1: 'female', -1: 'unknown'}
-                    gender_text = f"{gmap.get(g, 'unknown')} ({g})"
-                    self.var_gender.set(gender_text)
-                    debug_log(f"Refreshed gender to: {gender_text}")
+                    gender_val = f"{gmap.get(g, 'unknown')} ({g})"
                 else:
-                    self.var_gender.set("")
-                    debug_log("Cleared gender (invalid value)")
+                    gender_val = ""
+                
+                if not self._is_field_dirty('gender'):
+                    if self.var_gender.get() != gender_val:
+                        self.var_gender.set(gender_val)
+                        debug_log(f"Refreshed gender to: {gender_val}")
+                    else:
+                        debug_log(f"Gender already set to: {gender_val}")
+                else:
+                    debug_log("Gender field is dirty, skipping update")
 
             # Poké Ball
             if hasattr(self, 'var_ball'):
@@ -7855,16 +8093,20 @@ class TeamManagerDialog(tk.Toplevel):
                     except Exception:
                         name = None
                     if isinstance(name, str) and name:
-                        ball_text = f"{name} ({int(b)})"
-                        self.var_ball.set(ball_text)
-                        debug_log(f"Refreshed Poké Ball to: {ball_text}")
+                        ball_val = f"{name} ({int(b)})"
                     else:
-                        ball_text = str(int(b))
-                        self.var_ball.set(ball_text)
-                        debug_log(f"Refreshed Poké Ball to ID: {ball_text}")
+                        ball_val = str(int(b))
                 else:
-                    self.var_ball.set("")
-                    debug_log("Cleared Poké Ball (no valid pokeball found)")
+                    ball_val = ""
+                
+                if not self._is_field_dirty('pokeball'):
+                    if self.var_ball.get() != ball_val:
+                        self.var_ball.set(ball_val)
+                        debug_log(f"Refreshed Poké Ball to: {ball_val}")
+                    else:
+                        debug_log(f"Poké Ball already set to: {ball_val}")
+                else:
+                    debug_log("Poké Ball field is dirty, skipping update")
 
         except Exception as e:
             debug_log(f"Error refreshing form properties: {e}")
@@ -9501,6 +9743,33 @@ class TeamManagerDialog(tk.Toplevel):
                 best_effectiveness = combined_effectiveness
                 
         return float(best_effectiveness)
+
+    def _update_nature_hint_safe(self):
+        """Safely update nature hint display."""
+        try:
+            if hasattr(self, 'nature_hint') and self.nature_hint.winfo_exists():
+                nature_text = self.var_nature.get()
+                if nature_text and hasattr(self, 'nat_n2i'):
+                    nature_id = self._parse_id_from_combo(nature_text, self.nat_n2i)
+                    if isinstance(nature_id, int) and hasattr(self, 'nature_mults_by_id'):
+                        mults = self.nature_mults_by_id.get(nature_id, [1.0, 1.0, 1.0, 1.0, 1.0, 1.0])
+                        # Create nature hint text showing stat modifications
+                        stat_names = ['HP', 'ATK', 'DEF', 'SPA', 'SPD', 'SPE']
+                        hints = []
+                        for i, mult in enumerate(mults):
+                            if mult > 1.0:
+                                hints.append(f"+{stat_names[i]}")
+                            elif mult < 1.0:
+                                hints.append(f"-{stat_names[i]}")
+                        hint_text = f"({', '.join(hints)})" if hints else "(Neutral)"
+                        self.nature_hint.configure(text=hint_text)
+                    else:
+                        self.nature_hint.configure(text="")
+                else:
+                    self.nature_hint.configure(text="")
+        except Exception as e:
+            debug_log(f"Error updating nature hint: {e}")
+
     def _update_stats_display(self, base_stats: List[int], level: int, ivs: List[int], nature_mults: List[float], mon: dict):
         """Update stats display efficiently."""
         try:
@@ -9844,9 +10113,12 @@ class TeamManagerDialog(tk.Toplevel):
 
     def _mark_dirty(self):
         """Mark data as dirty and update button states."""
-        # User edited in-memory data: mark local dirty only.
-        # Upload should only be enabled after a successful save-to-file.
-        self._dirty_local = True
+        # Only set legacy flags if field dirty system is not being used
+        # The field dirty system should be the primary method
+        if not hasattr(self, '_field_dirty') or not hasattr(self, '_trainer_field_dirty'):
+            # Fallback to legacy system if field dirty system not available
+            self._dirty_local = True
+        
         self._update_button_states()
 
         # Invalidate party member caches when data changes
@@ -9860,21 +10132,97 @@ class TeamManagerDialog(tk.Toplevel):
         except Exception as e:
             debug_log(f"Error invalidating caches in _mark_dirty: {e}")
 
+    def _mark_field_dirty(self, field_name: str, party_index: int = None):
+        """Mark a specific field as dirty for a Pokemon."""
+        try:
+            # Skip if we're currently loading data to prevent conflicts
+            if getattr(self, '_loading_data', False):
+                return
+                
+            if party_index is None:
+                party_index = getattr(self, '_current_pokemon_index', 0)
+            
+            if party_index not in self._field_dirty:
+                self._field_dirty[party_index] = set()
+            
+            self._field_dirty[party_index].add(field_name)
+            debug_log(f"Marked field '{field_name}' as dirty for Pokemon {party_index}")
+            
+            # Update overall dirty state
+            self._update_button_states()
+        except Exception as e:
+            debug_log(f"Error marking field dirty: {e}")
+
+    def _mark_trainer_field_dirty(self, field_name: str):
+        """Mark a specific trainer field as dirty."""
+        try:
+            # Skip if we're currently loading data to prevent conflicts
+            if getattr(self, '_loading_data', False):
+                return
+                
+            self._trainer_field_dirty.add(field_name)
+            debug_log(f"Marked trainer field '{field_name}' as dirty")
+            
+            # Update overall dirty state
+            self._update_button_states()
+        except Exception as e:
+            debug_log(f"Error marking trainer field dirty: {e}")
+
+    def _is_field_dirty(self, field_name: str, party_index: int = None) -> bool:
+        """Check if a specific field is dirty for a Pokemon."""
+        try:
+            if party_index is None:
+                party_index = getattr(self, '_current_pokemon_index', 0)
+            
+            return field_name in self._field_dirty.get(party_index, set())
+        except Exception:
+            return False
+
+    def _is_trainer_field_dirty(self, field_name: str) -> bool:
+        """Check if a specific trainer field is dirty."""
+        try:
+            return field_name in self._trainer_field_dirty
+        except Exception:
+            return False
+
+    def _reset_all_field_dirty(self):
+        """Reset all field dirty flags."""
+        try:
+            self._field_dirty.clear()
+            self._trainer_field_dirty.clear()
+            debug_log("All field dirty flags reset")
+        except Exception as e:
+            debug_log(f"Error resetting field dirty flags: {e}")
+
     def _has_unsaved_changes(self) -> bool:
         """Check if there are unsaved changes anywhere in this window (and children)."""
         try:
-            if getattr(self, '_dirty_local', False) or getattr(self, '_dirty_server', False):
-                return True
-            # Consider trainer-specific flags, if used
-            if getattr(self, '_trainer_dirty_local', False) or getattr(self, '_trainer_dirty_server', False):
-                return True
-            # Consider child dialogs (e.g., Items/Modifiers Manager)
-            for child in self.winfo_children():
-                if getattr(child, '_dirty_local', False) or getattr(child, '_dirty_server', False):
-                    return True
-        except Exception:
-            pass
-        return False
+            # Check if any Pokemon fields are dirty
+            any_pokemon_dirty = any(len(fields) > 0 for fields in self._field_dirty.values())
+            
+            # Check if any trainer fields are dirty
+            any_trainer_dirty = len(self._trainer_field_dirty) > 0
+            
+            # Primary check: use field dirty tracking system
+            has_changes = any_pokemon_dirty or any_trainer_dirty
+            
+            # Fallback: check legacy dirty flags only if field dirty system shows no changes
+            # This ensures backward compatibility while prioritizing the new system
+            if not has_changes:
+                legacy_dirty = getattr(self, '_dirty_local', False) or getattr(self, '_dirty_server', False)
+                trainer_legacy_dirty = getattr(self, '_trainer_dirty_local', False) or getattr(self, '_trainer_dirty_server', False)
+                has_changes = legacy_dirty or trainer_legacy_dirty
+                
+                if has_changes:
+                    debug_log(f"Legacy dirty flags detected: local={legacy_dirty}, trainer={trainer_legacy_dirty}")
+            
+            if has_changes:
+                debug_log(f"Unsaved changes detected: pokemon={any_pokemon_dirty}, trainer={any_trainer_dirty}")
+            
+            return has_changes
+        except Exception as e:
+            debug_log(f"Error checking unsaved changes: {e}")
+            return False
 
     def _confirm_discard_changes(self, action_description: str = "continue") -> bool:
         """
@@ -9923,6 +10271,9 @@ class TeamManagerDialog(tk.Toplevel):
                 # Handle success path
                 if success:
                     self._dirty_local = False
+                    self._trainer_dirty_local = False
+                    # Reset all field dirty flags since changes are now saved
+                    self._reset_all_field_dirty()
                     # Ensure server dirty flag is set since we have local changes to upload
                     if not self._dirty_server:
                         self._dirty_server = True
@@ -9933,6 +10284,9 @@ class TeamManagerDialog(tk.Toplevel):
                         toast(self, "Saved to file", f"Wrote {os.path.basename(p)}", kind="info")
                     except Exception:
                         pass
+                    
+                    # Update button states after successful save
+                    self._update_button_states()
 
                 # Warn if not successful
                 if not success:
@@ -9943,6 +10297,9 @@ class TeamManagerDialog(tk.Toplevel):
                 # Emergency fallback to basic save
                 dump_json(p, self.data)
                 self._dirty_local = False
+                self._trainer_dirty_local = False
+                # Reset all field dirty flags since changes are now saved
+                self._reset_all_field_dirty()
                 # Ensure server dirty flag is set since we have local changes to upload
                 if not self._dirty_server:
                     self._dirty_server = True
@@ -10004,7 +10361,7 @@ class TeamManagerDialog(tk.Toplevel):
                 m = 0
             self.data['money'] = m
             # Editing trainer money changes in-memory data only
-            self._dirty_local = True
+            # Note: Dirty tracking is handled by field dirty system
         except Exception:
             messagebox.showwarning("Invalid", "Money must be an integer >= 0")
         # Weather
@@ -10020,10 +10377,14 @@ class TeamManagerDialog(tk.Toplevel):
                 key = text.strip().lower().replace(" ", "_")
                 wid = self._weather_n2i.get(key)
             if isinstance(wid, int):
-                wkey = self._weather_key()
-                if wkey:
-                    self.data[wkey] = wid
-                    self._dirty_local = True
+                # Update weather in arena (current battle weather)
+                if "arena" not in self.data:
+                    self.data["arena"] = {}
+                if "weather" not in self.data["arena"]:
+                    self.data["arena"]["weather"] = {}
+                self.data["arena"]["weather"]["weatherType"] = wid
+                self.data["arena"]["weather"]["turnsLeft"] = 0
+                # Note: Dirty tracking is handled by field dirty system
         except Exception:
             pass
         # Let central state logic drive buttons
@@ -10033,6 +10394,9 @@ class TeamManagerDialog(tk.Toplevel):
         """Safe version of trainer snapshot loading that avoids blocking operations."""
         debug_log("_load_trainer_snapshot_safe called")
         try:
+            # Set loading guard to prevent dirty flags during data loading
+            self._loading_data = True
+            
             # Show loading animation for trainer data
             self._show_loading_indicator("Loading trainer data...")
 
@@ -10040,50 +10404,151 @@ class TeamManagerDialog(tk.Toplevel):
             val = None
             try:
                 val = self.data.get('money') if isinstance(self.data, dict) else None
+                debug_log(f"Money from data: {val}")
             except Exception:
                 val = None
             if hasattr(self, 'var_money'):
-                self.var_money.set(str(val if val is not None else ""))
+                # Always show the actual money value, including 0
+                money_val = str(val if val is not None else 0)
+                debug_log(f"Money value to set: {money_val}, current UI value: {self.var_money.get()}")
+                if not self._is_trainer_field_dirty('money'):
+                    if self.var_money.get() != money_val:
+                        self.var_money.set(money_val)
+                        debug_log(f"Set money to: {money_val}")
+                    else:
+                        debug_log(f"Money already set to: {money_val}")
+                else:
+                    debug_log("Money field is dirty, skipping update")
 
             # Weather (defer heavy operations with progress updates)
             self.after_idle(self._load_weather_data_safe)
+
+            # Pokéball inventory (defer to avoid blocking UI)
+            self.after_idle(self._load_pokeball_data_safe)
 
             # Display-only play time, game mode (defer)
             self.after_idle(self._load_playtime_gamemode_safe)
 
             # Hide loading indicator after a short delay to show completion
             self.after(500, self._hide_loading_indicator)
+            
+            # Reset loading guard after a delay
+            self.after(100, lambda: setattr(self, '_loading_data', False))
 
             debug_log("_load_trainer_snapshot_safe completed basic data")
         except Exception as e:
             debug_log(f"Error in safe trainer snapshot loading: {e}")
             self._hide_loading_indicator()
+            # Ensure loading guard is reset even on error
+            self._loading_data = False
 
     def _load_weather_data_safe(self):
         """Safely load weather data without blocking UI."""
         try:
             if not hasattr(self, 'var_weather'):
+                debug_log("Weather UI not available yet, skipping weather loading")
                 return
 
+            # Check if weather catalog is available
+            if not hasattr(self, '_weather_i2n') or not self._weather_i2n:
+                debug_log("Weather catalog not available yet, deferring weather loading")
+                self.after(100, self._load_weather_data_safe)  # Retry in 100ms
+                return
+
+            debug_log("=== WEATHER LOADING DEBUG ===")
+            debug_log(f"Raw weather data from self.data: {self.data.get('weather')}")
+            
             # Update loading indicator with progress
             self._update_loading_status("Loading weather data...")
             if hasattr(self, '_loading_label'):
                 self._loading_label.configure(text="Loading weather data...")
 
-            # Ensure weather catalog is initialized
-            self._init_weather_catalog_safe()
-
-            wkey = self._weather_key()
-            cur = self.data.get(wkey) if (wkey and isinstance(self.data, dict)) else None
+            # Extract weather type from nested weather object
+            cur = None
+            # First try to get weather from arena (current battle weather)
+            arena = self.data.get("arena") if isinstance(self.data, dict) else None
+            if isinstance(arena, dict):
+                weather_obj = arena.get("weather")
+                if isinstance(weather_obj, dict):
+                    cur = weather_obj.get("weatherType")
+                    debug_log(f"Weather type from arena: {cur}")
+            
+            # Fallback to root-level weather if arena weather not found
+            if cur is None:
+                weather_obj = self.data.get("weather") if isinstance(self.data, dict) else None
+                debug_log(f"Weather object from data: {weather_obj}")
+                
+                if isinstance(weather_obj, dict):
+                    cur = weather_obj.get("weatherType")
+                    debug_log(f"Weather type extracted: {cur}")
+                else:
+                    debug_log(f"Weather object is not a dict: {type(weather_obj)}")
+            
+            debug_log(f"Weather catalog available: {hasattr(self, '_weather_i2n')}")
+            if hasattr(self, '_weather_i2n'):
+                debug_log(f"Weather catalog content: {self._weather_i2n}")
+            
+            debug_log(f"Current UI weather value: {self.var_weather.get()}")
+            debug_log(f"Weather field dirty: {self._is_trainer_field_dirty('weather')}")
+            
             if isinstance(cur, int) and hasattr(self, '_weather_i2n') and self._weather_i2n:
                 name = self._weather_i2n.get(int(cur), str(cur))
-                self.var_weather.set(f"{name} ({cur})")
+                weather_val = f"{name} ({cur})"
+                debug_log(f"Weather loaded: {weather_val}")
+            elif isinstance(cur, int) and cur == 0:
+                # Handle explicit 0 value as NONE
+                weather_val = "NONE (0)"
+                debug_log(f"Weather loaded as NONE: {weather_val}")
             else:
-                self.var_weather.set("")
+                # Default to "NONE (0)" when no weather data is present
+                weather_val = "NONE (0)"
+                debug_log(f"Weather defaulted to: {weather_val} (cur={cur}, catalog_available={hasattr(self, '_weather_i2n')})")
+            
+            if not self._is_trainer_field_dirty('weather'):
+                if self.var_weather.get() != weather_val:
+                    debug_log(f"Setting weather UI to: {weather_val}")
+                    self.var_weather.set(weather_val)
+                else:
+                    debug_log("Weather UI value already matches, skipping update")
+            else:
+                debug_log("Weather field is dirty, skipping update")
 
+            debug_log("=== END WEATHER LOADING DEBUG ===")
             debug_log("Weather data loaded successfully")
         except Exception as e:
             debug_log(f"Error loading weather data safely: {e}")
+
+    def _load_pokeball_data_safe(self):
+        """Safely load Pokéball inventory data without blocking UI."""
+        try:
+            if not hasattr(self, 'pokeball_vars'):
+                debug_log("Pokéball UI not available yet, skipping Pokéball loading")
+                return
+
+            debug_log("=== POKEBALL LOADING DEBUG ===")
+            debug_log(f"Raw Pokéball data from self.data: {self.data.get('pokeballInventory')}")
+            
+            # Get Pokéball inventory from trainer data
+            pokeball_inventory = self.data.get('pokeballInventory', {})
+            debug_log(f"Pokéball inventory: {pokeball_inventory}")
+            debug_log(f"Pokéball field dirty: {self._is_trainer_field_dirty('pokeball_inventory')}")
+            
+            if not self._is_trainer_field_dirty('pokeball_inventory'):
+                for key, var in self.pokeball_vars.items():
+                    count = pokeball_inventory.get(key, 0)
+                    current_value = var.get()
+                    if current_value != str(count):
+                        var.set(str(count))
+                        debug_log(f"Set {key} to {count}")
+                    else:
+                        debug_log(f"{key} already set to {count}")
+            else:
+                debug_log("Pokéball field is dirty, skipping update")
+
+            debug_log("=== END POKEBALL LOADING DEBUG ===")
+            debug_log("Pokéball data loaded successfully")
+        except Exception as e:
+            debug_log(f"Error loading Pokéball data safely: {e}")
 
     def _load_playtime_gamemode_safe(self):
         """Safely load play time and game mode without blocking UI."""
@@ -11662,9 +12127,26 @@ class TeamManagerDialog(tk.Toplevel):
     def _update_button_states(self):
         """Update button states based on current conditions."""
         try:
-            # Save button: enabled when there are local changes to save
+            # Check if there are any unsaved changes
+            has_unsaved = self._has_unsaved_changes()
+            
+            # Unsaved changes warning label
+            if hasattr(self, 'lbl_unsaved_status'):
+                if has_unsaved:
+                    self.lbl_unsaved_status.configure(text="⚠️ You have unsaved changes")
+                else:
+                    self.lbl_unsaved_status.configure(text="")
+            
+            # Discard button: enabled when there are unsaved changes
+            if hasattr(self, 'btn_discard'):
+                if has_unsaved:
+                    self.btn_discard.configure(state=tk.NORMAL)
+                else:
+                    self.btn_discard.configure(state=tk.DISABLED)
+            
+            # Save button: enabled when there are unsaved changes
             if hasattr(self, 'btn_save'):
-                if self._dirty_local:
+                if has_unsaved:
                     self.btn_save.configure(state=tk.NORMAL)
                 else:
                     self.btn_save.configure(state=tk.DISABLED)
@@ -11678,7 +12160,45 @@ class TeamManagerDialog(tk.Toplevel):
 
         except Exception as e:
             # Fail silently to avoid disrupting UI
-            pass
+            debug_log(f"Error updating button states: {e}")
+
+    def _discard_changes(self):
+        """Discard all unsaved changes and reload from file."""
+        try:
+            if not self._has_unsaved_changes():
+                debug_log("No unsaved changes to discard")
+                return
+            
+            # Confirm with user
+            if not self._confirm_discard_changes("discard all changes"):
+                debug_log("User cancelled discard operation")
+                return
+            
+            debug_log("Discarding all unsaved changes...")
+            
+            # Reload data from file
+            self._load_data_sync()
+            
+            # Reset all dirty flags
+            self._reset_all_field_dirty()
+            self._dirty_local = False
+            self._dirty_server = False
+            self._trainer_dirty_local = False
+            self._trainer_dirty_server = False
+            
+            # Refresh UI
+            self._refresh_party()
+            if hasattr(self, '_current_pokemon_index'):
+                self._on_party_selected()
+            
+            # Update button states
+            self._update_button_states()
+            
+            debug_log("All changes discarded successfully")
+            
+        except Exception as e:
+            debug_log(f"Error discarding changes: {e}")
+            self.feedback.show_error_toast(f"Failed to discard changes: {e}")
 
     def _copy_error_to_clipboard(self, error_context, exception):
         """Copy full error details to clipboard for debugging."""

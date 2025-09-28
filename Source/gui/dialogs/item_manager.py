@@ -470,51 +470,8 @@ class ItemManagerDialog(tk.Toplevel):
         
 
         # Trainer properties panel (only visible for Trainer target)
-        row += 1
-        self.trainer_frame = ttk.LabelFrame(right, text="Trainer Properties")
-        self.trainer_frame.grid(row=row, column=0, columnspan=4, sticky=tk.EW, padx=2, pady=(8, 4))
-        self.trainer_frame.grid_columnconfigure(1, weight=1)
-        ttk.Label(self.trainer_frame, text="Money:").grid(row=0, column=0, sticky=tk.E, padx=4, pady=2)
-        self.money_var = tk.StringVar(value="")
-        self.money_entry = ttk.Entry(self.trainer_frame, textvariable=self.money_var, width=18)
-        self.money_entry.grid(row=0, column=1, sticky=tk.W, padx=4, pady=2)
-        # Bind money field changes to automatically update data
-        self.money_var.trace_add("write", lambda *args: self._on_money_change())
-        self.money_entry.bind("<KeyRelease>", lambda e: self._on_money_change())
-
-        # Pokéball management section
-        row += 1
-        self.pokeball_frame = ttk.LabelFrame(right, text="Pokéball Inventory")
-        self.pokeball_frame.grid(row=row, column=0, columnspan=4, sticky=tk.EW, padx=2, pady=(8, 4))
-        self.pokeball_frame.grid_columnconfigure(1, weight=1)
-        self.pokeball_frame.grid_columnconfigure(3, weight=1)
-        self.pokeball_frame.grid_columnconfigure(5, weight=1)
-        
-        # Pokéball types and their variables
-        self.pokeball_types = [
-            ("Poké Ball", "pokeball"),      # ID 0
-            ("Great Ball", "greatball"),    # ID 1
-            ("Ultra Ball", "ultraball"),    # ID 2
-            ("Rogue Ball", "rogueball"),    # ID 3
-            ("Master Ball", "masterball")   # ID 4
-        ]
-        
-        self.pokeball_vars = {}
-        for i, (name, key) in enumerate(self.pokeball_types):
-            row_idx = i // 3
-            col_idx = (i % 3) * 2
-            
-            ttk.Label(self.pokeball_frame, text=f"{name}:").grid(row=row_idx, column=col_idx, sticky=tk.E, padx=4, pady=2)
-            var = tk.StringVar(value="0")
-            self.pokeball_vars[key] = var
-            # Bind to variable changes as well as key releases
-            var.trace_add("write", lambda *args: self._on_pokeball_change())
-            entry = ttk.Entry(self.pokeball_frame, textvariable=var, width=8)
-            entry.grid(row=row_idx, column=col_idx + 1, sticky=tk.W, padx=4, pady=2)
-            entry.bind("<KeyRelease>", lambda e: self._on_pokeball_change())
-
-        # Load Pokéball data
-        self._load_pokeball_data()
+        # Note: Money and Pokéball inventory removed from ItemManagerDialog to avoid conflicts with TeamManagerDialog
+        # Both are now handled exclusively in the trainer section of the team manager
 
         # Button layout - Add on bottom left, Save/Upload on bottom right
         # Position buttons at the very bottom for stable layout
@@ -871,18 +828,9 @@ class ItemManagerDialog(tk.Toplevel):
             pass
         self._refresh_mods()
         self._update_button_states()
-        # Populate trainer properties (money)
-        try:
-            m = self.data.get("money")
-            self.money_var.set(str(int(m)))
-        except Exception:
-            try:
-                self.money_var.set(str(self.data.get("money") or ""))
-            except Exception:
-                pass
+        # Money population removed - now handled exclusively in TeamManagerDialog trainer section
         
-        # Reload Pokéball data when refreshing
-        self._load_pokeball_data()
+        # Pokéball handling removed - now handled exclusively in TeamManagerDialog trainer section
 
     def _preselect_party(self):
         try:
@@ -1204,10 +1152,8 @@ class ItemManagerDialog(tk.Toplevel):
                 _select_id(sid)
         except Exception:
             pass
-        # Trainer properties panel visibility
-        show(self.trainer_frame, tgt == "Trainer")
-        # Pokéball inventory visibility (only for trainer target)
-        show(self.pokeball_frame, tgt == "Trainer")
+        # Trainer properties panel visibility (removed - now handled in TeamManagerDialog)
+        # Pokéball inventory visibility (removed - now handled in TeamManagerDialog)
 
     def _update_button_states(self):
         # Save/Upload gating
@@ -1262,110 +1208,7 @@ class ItemManagerDialog(tk.Toplevel):
             pass
 
 
-    def _load_pokeball_data(self):
-        """Load Pokéball data from the save file."""
-        try:
-            # Load Pokéball catalog for ID mapping
-            from rogueeditor.catalog import load_pokeball_catalog
-            ball_n2i, ball_i2n = load_pokeball_catalog()
-            
-            # Get pokeballCounts from save file (accept int or str keys)
-            pokeball_counts = self.data.get("pokeballCounts", {})
-            # Normalize a copy for safe int access
-            try:
-                _normalized = {}
-                for k, v in (pokeball_counts or {}).items():
-                    try:
-                        kk = int(k)
-                    except Exception:
-                        continue
-                    try:
-                        _normalized[kk] = int(v)
-                    except Exception:
-                        _normalized[kk] = 0
-                pokeball_counts = _normalized
-            except Exception:
-                pokeball_counts = pokeball_counts or {}
-            
-            # Map numeric IDs to our UI keys (only available types)
-            id_to_key = {
-                "0": "pokeball",      # POKEBALL
-                "1": "greatball",     # GREAT_BALL  
-                "2": "ultraball",     # ULTRA_BALL
-                "3": "rogueball",     # ROGUE_BALL
-                "4": "masterball"     # MASTER_BALL
-            }
-            
-            # Load counts from save file
-            for name, key in self.pokeball_types:
-                # Find the numeric ID for this Pokéball type
-                ball_id = None
-                for num_id, ball_key in id_to_key.items():
-                    if ball_key == key:
-                        ball_id = num_id
-                        break
-                
-                if ball_id is not None:
-                    # ball_id may be str in id_to_key; coerce to int for normalized map
-                    try:
-                        bid_int = int(ball_id)
-                    except Exception:
-                        bid_int = ball_id
-                    count = pokeball_counts.get(bid_int, 0)
-                    self.pokeball_vars[key].set(str(count))
-                else:
-                    self.pokeball_vars[key].set("0")
-                    
-        except Exception as e:
-            print(f"Error loading Pokéball data: {e}")
-            # Set defaults on error
-            for name, key in self.pokeball_types:
-                self.pokeball_vars[key].set("0")
-
-    def _on_money_change(self):
-        """Handle money field changes and update data automatically."""
-        try:
-            # Update money in data immediately
-            money_str = (self.money_var.get() or "").strip()
-            if money_str:
-                try:
-                    money = int(money_str)
-                    if money < 0:
-                        money = 0
-                    self.data["money"] = money
-                except ValueError:
-                    # Invalid number, don't update data
-                    pass
-            else:
-                self.data["money"] = 0
-            
-            # Mark as dirty and update buttons
-            self._dirty_local = True
-            self._dirty_server = True
-            self._update_button_states()
-        except Exception as e:
-            print(f"Error handling money change: {e}")
-
-    def _on_pokeball_change(self):
-        """Handle Pokéball field changes and update data automatically."""
-        try:
-            # Update Pokéball data immediately
-            self._save_pokeball_data()
-
-            # Mark as local-dirty and update buttons
-            try:
-                self._dirty_local = True
-                self._dirty_server = True
-            except Exception:
-                pass
-            # Reflect money/pokéballs in parent Team Manager (optional)
-            try:
-                if hasattr(self.master, '_update_button_states'):
-                    self.master._update_button_states()
-            except Exception:
-                pass
-        except Exception as e:
-            print(f"Error handling Pokéball change: {e}")
+    # Pokéball handling removed - now handled exclusively in TeamManagerDialog trainer section
 
     def _create_tooltip_method(self, widget, text):
         """Create a tooltip for a widget."""
