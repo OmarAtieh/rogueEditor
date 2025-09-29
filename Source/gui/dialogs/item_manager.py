@@ -63,6 +63,13 @@ def _extract_id_from_formatted_string(formatted_string: str) -> str:
 class ItemManagerDialog(tk.Toplevel):
     def __init__(self, master: "App", api: PokerogueAPI, editor: Editor, slot: int, preselect_mon_id: int | None = None, data_ref: dict | None = None):
         super().__init__(master)
+        # Make dialog modal relative to master
+        try:
+            self.transient(master)
+            self.grab_set()
+            self.focus_set()
+        except Exception:
+            pass
         try:
             s = int(slot)
         except Exception:

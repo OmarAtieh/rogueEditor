@@ -2192,10 +2192,22 @@ class TeamManagerDialog(tk.Toplevel):
         statf = ttk.LabelFrame(row2, text="Status")
         statf.grid(row=0, column=0, sticky=tk.NSEW, padx=(0,4))
         ttk.Label(statf, text="Primary:").grid(row=0, column=0, sticky=tk.E, padx=4, pady=2)
+        # Human-friendly status list
         self.var_status = tk.StringVar(value="")
-        self.cb_status = ttk.Combobox(statf, textvariable=self.var_status, values=["none", "psn", "tox", "brn", "par", "slp", "frz"], width=10, state="readonly")
+        self._status_code_to_label = {
+            "none": "None",
+            "psn": "Poisoned",
+            "tox": "Badly Poisoned",
+            "brn": "Burned",
+            "par": "Paralyzed",
+            "slp": "Asleep",
+            "frz": "Frozen",
+        }
+        self._status_label_to_code = {v: k for k, v in self._status_code_to_label.items()}
+        status_values = list(self._status_code_to_label.values())
+        self.cb_status = ttk.Combobox(statf, textvariable=self.var_status, values=status_values, width=14, state="readonly")
         self.cb_status.grid(row=0, column=1, sticky=tk.W)
-        ttk.Button(statf, text="Clear", command=lambda: self.cb_status.set("none")).grid(row=0, column=2, padx=4)
+        ttk.Button(statf, text="Clear", command=lambda: self.cb_status.set("None")).grid(row=0, column=2, padx=4)
         # Status-specific single field (label changes by status)
         self.status_detail_label = ttk.Label(statf, text="")
         self.status_detail_label.grid(row=1, column=0, sticky=tk.E, padx=4)
@@ -2401,7 +2413,9 @@ class TeamManagerDialog(tk.Toplevel):
             debug_log(f"Error refreshing forms properties catalogs: {e}")
 
     def _update_status_fields_visibility(self):
-        st = (self.var_status.get() or 'none').strip().lower()
+        # Map human label back to code for logic
+        sel_label = (self.var_status.get() or 'None').strip()
+        st = self._status_label_to_code.get(sel_label, 'none')
         def show(widget, visible):
             try:
                 if visible:
@@ -2423,7 +2437,8 @@ class TeamManagerDialog(tk.Toplevel):
             show(self.status_detail_entry, False)
 
     def _update_status_summary(self):
-        st = (self.var_status.get() or 'none').strip().lower()
+        sel_label = (self.var_status.get() or 'None').strip()
+        st = self._status_label_to_code.get(sel_label, 'none')
         if st == 'none' or not st:
             try:
                 self.status_summary.configure(text='Status: None', foreground='green')
@@ -2433,7 +2448,7 @@ class TeamManagerDialog(tk.Toplevel):
         label_map = {
             'psn': 'Poisoned', 'tox': 'Badly Poisoned', 'brn': 'Burned', 'par': 'Paralyzed', 'slp': 'Asleep', 'frz': 'Frozen'
         }
-        parts = ['Status:', label_map.get(st, st.upper())]
+        parts = ['Status:', self._status_code_to_label.get(st, st.upper())]
         try:
             if st in ('slp','tox'):
                 parts.append(f"({(self.status_detail_var.get() or '0').strip()} turns)")
@@ -3010,6 +3025,8 @@ class TeamManagerDialog(tk.Toplevel):
         self._move_acc_labels: List[tk.Label] = []
         self._move_effect_labels: List[tk.Label] = []
         self._move_cat_images: List[object] = [None, None, None, None]
+        # Lightweight cache for move entries to avoid repeated catalog lookups
+        self._move_entry_cache: Dict[int, dict] = {}
         for i in range(4):
             r = i + 1
             # Index
@@ -3080,7 +3097,12 @@ class TeamManagerDialog(tk.Toplevel):
             else:
                 chip.configure(text="", bg="#DDDDDD")
             # Category icon
-            entry = get_move_entry(move_id) or {}
+            # Catalog lookup with small cache
+            if move_id in self._move_entry_cache:
+                entry = self._move_entry_cache.get(move_id) or {}
+            else:
+                entry = get_move_entry(move_id) or {}
+                self._move_entry_cache[move_id] = entry
             cat = str(entry.get("move_category") or "").strip().lower()
             icon_path = None
             if cat == "physical":
@@ -3154,6 +3176,18 @@ class TeamManagerDialog(tk.Toplevel):
                 self._move_effect_labels[row_index].configure(text=effect_txt)
             except Exception:
                 pass
+            # Power column (show only positive numeric power)
+            try:
+                power = entry.get("power")
+                power_txt = "—"
+                if isinstance(power, (int, float)) and power > 0:
+                    power_txt = str(int(power))
+                self._move_power_labels[row_index].configure(text=power_txt)
+            except Exception:
+                try:
+                    self._move_power_labels[row_index].configure(text="—")
+                except Exception:
+                    pass
         except Exception:
             pass
 
@@ -7448,7 +7482,8 @@ class TeamManagerDialog(tk.Toplevel):
                     st_sel = 'fnt'
 
             if hasattr(self, 'var_status'):
-                self.var_status.set(st_sel)
+                # Convert code to label for UI
+                self.var_status.set(self._status_code_to_label.get(st_sel, 'None'))
                 self._update_status_fields_visibility()
                 self._update_status_summary()
 
@@ -7712,7 +7747,8 @@ class TeamManagerDialog(tk.Toplevel):
         else:
             mon.pop("passive", None)
         # Status
-        st = (self.var_status.get() or "none").strip().lower()
+        sel_label = (self.var_status.get() or 'None').strip()
+        st = self._status_label_to_code.get(sel_label, 'none')
         # If existing status is a dict, update counters there; else, fall back
         s_obj = mon.get('status')
         if isinstance(s_obj, dict):
@@ -10180,9 +10216,8 @@ class TeamManagerDialog(tk.Toplevel):
                 power_txt = "—"
                 if isinstance(mid, int) and mid > 0:
                     info = get_move_entry(mid) or {}
-                    cat = str(info.get("category") or "").lower()
                     power = info.get("power")
-                    if cat in ("physical", "special") and isinstance(power, (int, float)) and power > 0:
+                    if isinstance(power, (int, float)) and power > 0:
                         power_txt = str(int(power))
                 if hasattr(self, '_move_power_labels') and i < len(self._move_power_labels):
                     self._move_power_labels[i].configure(text=power_txt)
