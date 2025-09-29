@@ -1675,10 +1675,18 @@ def format_item_for_display(
       - Appends stacks (xN) and argument list when provided
       - Optionally appends a catalog label for cohesion with save data
     """
+    # Safe base fields
     try:
         emoji = get_item_emoji(item_id) or "📦"
     except Exception:
         emoji = "📦"
+
+    known = False
+    try:
+        info = get_item_info(item_id)
+        known = bool(info)
+    except Exception:
+        info = None
 
     try:
         display_name = get_item_display_name(item_id)
@@ -1690,9 +1698,15 @@ def format_item_for_display(
     except Exception:
         description = "Item"
 
-    parts: list[str] = [f"{emoji} {display_name} ({item_id})"]
+    # Header: for known items, omit raw enum token; for unknown, include token for debugging
+    if known:
+        header = f"{emoji} {display_name}"
+    else:
+        header = f"{emoji} {display_name} ({item_id})"
 
-    if description:
+    parts: list[str] = [header]
+
+    if description and description != "Item":
         parts.append(f"- {description}")
 
     # Suffix with stacks and args to mirror other explicit items

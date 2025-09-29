@@ -24,7 +24,10 @@
         "TOXIC_ORB",
         "FLAME_ORB",
         "BATON",
-        "MULTI_LENS"
+        "MULTI_LENS",
+        "REVIVER_SEED",
+        "MINI_BLACK_HOLE",
+        "WHITE_HERB"
       ]
     },
     "accuracy": {
@@ -40,7 +43,10 @@
       "description": "Items that affect experience gain",
       "items": [
         "LUCKY_EGG",
-        "GOLDEN_EGG"
+        "GOLDEN_EGG",
+        "EXP_BALANCE",
+        "OVAL_CHARM",
+        "GOLDEN_EXP_CHARM"
       ]
     },
     "berries": {
@@ -110,7 +116,10 @@
         "BERRY_POUCH",
         "HEALING_CHARM",
         "CANDY_JAR",
-        "DIRE_HIT"
+        "DIRE_HIT",
+        "SACRED_ASH",
+        "MEMORY_MUSHROOM",
+        "DNA_SPLICERS"
       ]
     },
     "form_change": {
@@ -758,6 +767,76 @@
       "subcategory": "held_item",
       "tags": ["held", "special"],
       "ui_order": 24
+    },
+    "WHITE_HERB": {
+      "id": "WHITE_HERB",
+      "display_name": "White Herb",
+      "emoji": "🌿",
+      "description": "Held Item",
+      "category": "common",
+      "subcategory": "held_item",
+      "tags": ["held", "status"],
+      "ui_order": 25
+    },
+    "SACRED_ASH": {
+      "id": "SACRED_ASH",
+      "display_name": "Sacred Ash",
+      "emoji": "✨",
+      "description": "Revival Item",
+      "category": "trainer",
+      "subcategory": "revival",
+      "tags": ["revival", "team"],
+      "ui_order": 1
+    },
+    "MEMORY_MUSHROOM": {
+      "id": "MEMORY_MUSHROOM",
+      "display_name": "Memory Mushroom",
+      "emoji": "🍄",
+      "description": "Move Memory",
+      "category": "trainer",
+      "subcategory": "utility",
+      "tags": ["move", "memory"],
+      "ui_order": 2
+    },
+    "EXP_BALANCE": {
+      "id": "EXP_BALANCE",
+      "display_name": "Exp Balance",
+      "emoji": "⚖️",
+      "description": "Experience Balance",
+      "category": "experience",
+      "subcategory": "balance",
+      "tags": ["experience", "balance"],
+      "ui_order": 3
+    },
+    "OVAL_CHARM": {
+      "id": "OVAL_CHARM",
+      "display_name": "Oval Charm",
+      "emoji": "🔮",
+      "description": "Experience Charm",
+      "category": "experience",
+      "subcategory": "charm",
+      "tags": ["experience", "charm"],
+      "ui_order": 4
+    },
+    "GOLDEN_EXP_CHARM": {
+      "id": "GOLDEN_EXP_CHARM",
+      "display_name": "Golden Exp Charm",
+      "emoji": "🏆",
+      "description": "Experience Charm",
+      "category": "experience",
+      "subcategory": "charm",
+      "tags": ["experience", "charm", "golden"],
+      "ui_order": 5
+    },
+    "DNA_SPLICERS": {
+      "id": "DNA_SPLICERS",
+      "display_name": "DNA Splicers",
+      "emoji": "🧬",
+      "description": "Fusion Item",
+      "category": "trainer",
+      "subcategory": "utility",
+      "tags": ["fusion", "dna"],
+      "ui_order": 3
     },
     "RARE_FORM_CHANGE_ITEM": {
       "id": "RARE_FORM_CHANGE_ITEM",

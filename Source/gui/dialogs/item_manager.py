@@ -76,7 +76,7 @@ class ItemManagerDialog(tk.Toplevel):
             s = 1
         s = 1 if s < 1 else (5 if s > 5 else s)
         self.title(f"Rogue Manager GUI - Modifiers & Items Manager (Slot {s})")
-        self.geometry("900x520")
+        self.geometry("900x580")  # Increased height by ~60px (about a row of text)
         self.api = api
         self.editor = editor
         self.slot = s
@@ -208,17 +208,17 @@ class ItemManagerDialog(tk.Toplevel):
         # Left: target selector, party list, and current modifiers
         left = ttk.LabelFrame(top, text="Target")
         left.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=4, pady=4)
-        ttk.Label(left, text="Apply to:").pack(anchor=tk.W, padx=4, pady=(2, 0))
         self.target_var = tk.StringVar(value="Pokemon")
         target_row = ttk.Frame(left)
         target_row.pack(fill=tk.X, padx=4, pady=2)
+        ttk.Label(target_row, text="Apply to:").pack(side=tk.LEFT)
         ttk.Radiobutton(
             target_row,
             text="Pokemon",
             variable=self.target_var,
             value="Pokemon",
             command=self._on_target_change,
-        ).pack(side=tk.LEFT)
+        ).pack(side=tk.LEFT, padx=(6, 0))
         ttk.Radiobutton(
             target_row,
             text="Trainer",
@@ -227,15 +227,19 @@ class ItemManagerDialog(tk.Toplevel):
             command=self._on_target_change,
         ).pack(side=tk.LEFT, padx=8)
         
-        # Cache invalidation button
+        # Party header row with refresh button on the right
+        party_header = ttk.Frame(left)
+        party_header.pack(fill=tk.X, padx=4, pady=(4, 0))
+        ttk.Label(party_header, text="Party:").pack(side=tk.LEFT)
+        # Cache invalidation button next to party
         self.btn_refresh_cache = ttk.Button(
-            target_row,
-            text="🔄 Refresh Lists",
+            party_header,
+            text="🔄 Refresh",
             command=self._invalidate_item_cache,
-            width=16
+            width=12
         )
-        self.btn_refresh_cache.pack(side=tk.RIGHT, padx=(8, 0))
-        
+        self.btn_refresh_cache.pack(side=tk.RIGHT)
+
         # Add tooltip for the refresh button
         try:
             from tkinter import messagebox
@@ -244,16 +248,27 @@ class ItemManagerDialog(tk.Toplevel):
             self.btn_refresh_cache.bind("<Button-3>", lambda e: show_refresh_tooltip())  # Right-click for tooltip
         except Exception:
             pass
-        
-        ttk.Label(left, text="Party:").pack(anchor=tk.W, padx=4)
-        self.party_list = tk.Listbox(left, height=10, exportselection=False)
-        self.party_list.pack(fill=tk.BOTH, expand=True, padx=4, pady=4)
+
+        # Party list never exceeds 6 entries; keep height tight
+        self.party_list = tk.Listbox(left, height=6, exportselection=False)
+        self.party_list.pack(fill=tk.X, padx=4, pady=4)
         self.party_list.bind("<<ListboxSelect>>", lambda e: (self._refresh_mods(), self._update_button_states()))
-        self.mod_list = tk.Listbox(left, height=10, exportselection=False)
-        self.mod_list.pack(fill=tk.BOTH, expand=True, padx=4, pady=4)
+        # Inventory/current modifiers label
+        ttk.Label(left, text="Inventory").pack(anchor=tk.W, padx=4)
+        # Scrollable inventory list that scales with window height
+        inv_frame = ttk.Frame(left)
+        inv_frame.pack(fill=tk.BOTH, expand=True, padx=4, pady=4)
+        inv_frame.rowconfigure(0, weight=1)
+        inv_frame.columnconfigure(0, weight=1)
+        self.mod_list = tk.Listbox(inv_frame, exportselection=False)
+        self.mod_list.grid(row=0, column=0, sticky=tk.NSEW)
+        inv_scroll = ttk.Scrollbar(inv_frame, orient=tk.VERTICAL, command=self.mod_list.yview)
+        inv_scroll.grid(row=0, column=1, sticky=tk.NS)
+        self.mod_list.configure(yscrollcommand=inv_scroll.set)
         self.mod_list.bind("<Double-Button-1>", lambda e: self._show_selected_detail())
+        # Bottom action buttons pinned to bottom
         btns = ttk.Frame(left)
-        btns.pack(fill=tk.X)
+        btns.pack(fill=tk.X, side=tk.BOTTOM)
         ttk.Button(btns, text="Edit Stacks...", command=self._edit_selected_stacks).pack(
             side=tk.LEFT, padx=4, pady=4
         )
@@ -271,6 +286,13 @@ class ItemManagerDialog(tk.Toplevel):
         right.grid_rowconfigure(100, weight=1)   # Allow row 100 to expand (buttons row)
         
         row = 0
+        # Add "Inventory" title above the item selection area (use grid to avoid mixing managers)
+        try:
+            inventory_title = ttk.Label(right, text="Inventory", font=("TkDefaultFont", 10, "bold"))
+            inventory_title.grid(row=row, column=0, columnspan=4, sticky=tk.W, padx=4, pady=(4, 2))
+            row += 1
+        except Exception:
+            pass
         try:
             ttk.Label(right, text=f"Target Slot: {self.slot}", foreground='gray').grid(row=row, column=0, columnspan=4, sticky=tk.W)
             row += 1
@@ -817,13 +839,17 @@ class ItemManagerDialog(tk.Toplevel):
                 else:
                     display_name = base_name
 
+            # Build: index. Name (Form) Lv X (ID)
             try:
-                label = f"{i}. {int(did):04d} {display_name}"
+                dex_str = f"{int(did):04d}"
             except Exception:
-                label = f"{i}. {did} {display_name}"
-            mid = mon.get("id")
+                dex_str = str(did)
+
             lvl = mon.get("level") or mon.get("lvl") or "?"
-            self.party_list.insert(tk.END, f"{label} • id {mid} • Lv {lvl}")
+            mid = mon.get("id")
+            # Prefer display_name already including form; append level next to name and move (ID) to end
+            label = f"{i}. {display_name} Lv {lvl} ({mid})"
+            self.party_list.insert(tk.END, label)
         # Observed modifiers
         self._reload_observed()
         # Restore selection
@@ -2194,7 +2220,7 @@ class ItemManagerDialog(tk.Toplevel):
                     vitamin_name = vitamin_names.get(stat_id, f"Vitamin {stat_id}")
                     stat_label = stat_labels.get(stat_id, f"Stat+ {stat_id}")
                     # Use consistent pill emoji for all vitamins
-                    return f"[{index_str}] 💊 {vitamin_name} ({stat_label})({stat_id}) x{stack_count}"
+                    return f"[{index_str}] 💊 {vitamin_name} ({stat_label}) x{stack_count}"
                 return f"[{index_str}] 💊 Stat Vitamin x{stack_count}"
 
             elif type_id == "ATTACK_TYPE_BOOSTER":
@@ -2202,8 +2228,8 @@ class ItemManagerDialog(tk.Toplevel):
                     type_id_arg = args[1]
                     # Use the existing _format_type_name function for consistent formatting
                     type_name = _format_type_name(type_i2n.get(type_id_arg, f"TYPE_{type_id_arg}"))
-                    return f"[{index_str}] âš”ï¸ {type_name} Type Booster x{stack_count}"
-                return f"[{index_str}] âš”ï¸ Type Booster x{stack_count}"
+                    return f"[{index_str}] ⚔ {type_name} Type Booster x{stack_count}"
+                return f"[{index_str}] ⚔ Type Booster x{stack_count}"
 
             elif type_id == "TEMP_STAT_STAGE_BOOSTER":
                 if type_pregen_args:
@@ -2284,10 +2310,8 @@ class ItemManagerDialog(tk.Toplevel):
                         except Exception:
                             pass
 
-                    if pokemon_name:
-                        return f"[{index_str}] 🔄 {pokemon_name} Form Change (Form {form_id}) x{stack_count}"
-                    else:
-                        return f"[{index_str}] 🔄 {form_name} Form Change x{stack_count}"
+                    # Remove redundant Pokemon name/dex number from the label
+                    return f"[{index_str}] 🔄 {form_name} Form Change x{stack_count}"
                 return f"[{index_str}] 🔄 Form Change Item x{stack_count}"
 
             elif type_id == "GENERIC_FORM_CHANGE_ITEM":
@@ -2425,9 +2449,13 @@ class ItemManagerDialog(tk.Toplevel):
                 return f"[{index_str}] 🏃 Baton (Switch Effect) x{stack_count}"
 
             else:
-                # Fallback to informative format
-                args_display = str(args) if args else "None"
-                return f"[{index_str}] {type_id} (args: {args_display}) x{stack_count}"
+                # Fallback to unified display using shared formatter (handles unknowns too)
+                try:
+                    unified = format_item_for_display(type_id, stacks=stack_count, args=args)
+                except Exception:
+                    args_display = str(args) if args else "None"
+                    unified = f"{type_id} (args: {args_display}) x{stack_count}"
+                return f"[{index_str}] {unified}"
 
         except Exception:
             # Fallback to safe format on any error
