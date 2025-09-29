@@ -106,6 +106,49 @@ def install_excepthook(logger: logging.Logger | None = None) -> None:
         lg.error("Uncaught exception:")
         for line in traceback.format_exception(exc_type, exc, tb):
             lg.error(line.rstrip())
+        # Attempt to show a single, copy-friendly dialog to the user.
+        try:
+            # Build a concise, copyable message with exception and recent log tail
+            import os
+            log_path = os.path.join("debug", "logs", "app.log")
+            tail_lines = []
+            try:
+                with open(log_path, "r", encoding="utf-8", errors="ignore") as f:
+                    # Read last ~60 lines without loading entire file
+                    from collections import deque
+                    tail_lines = list(deque(f, maxlen=60))
+            except Exception:
+                tail_lines = []
+
+            exc_summary = f"{exc_type.__name__}: {exc}"
+            tail_text = "".join(tail_lines).rstrip()
+            message = (
+                "An unexpected error occurred and the application could not continue.\n\n"
+                f"Error: {exc_summary}\n\n"
+                "Recent log tail (debug/logs/app.log):\n"
+                f"{tail_text if tail_text else '(no recent log lines)'}\n\n"
+                "You can copy this text and share it when reporting the issue."
+            )
+
+            # Show a Tk messagebox even if no root exists yet
+            try:
+                import tkinter as _tk  # type: ignore
+                from tkinter import messagebox as _mb  # type: ignore
+                root = _tk.Tk()
+                root.withdraw()
+                _mb.showerror("RogueEditor - Unexpected Error", message)
+                try:
+                    root.destroy()
+                except Exception:
+                    pass
+            except Exception:
+                # Fallback to console if Tk not available yet
+                print("\n==== RogueEditor Error ====")
+                print(message)
+                print("===========================\n")
+        except Exception:
+            # Never let the hook crash; continue to default hook
+            pass
         # Chain to default hook for console visibility
         sys.__excepthook__(exc_type, exc, tb)
 

@@ -1253,12 +1253,19 @@ class TeamManagerDialog(tk.Toplevel):
             # Set loading guard to prevent dirty flags during data loading
             self._loading_data = True
             
-            # Reset all field dirty flags since we're loading fresh data
-            self._reset_all_field_dirty()
-            self._dirty_local = False
-            self._dirty_server = False
-            self._trainer_dirty_local = False
-            self._trainer_dirty_server = False
+            # Only reset dirty flags on initial load, not on subsequent data refreshes
+            # This prevents overwriting user changes when switching tabs or refreshing
+            if not hasattr(self, '_initial_load_complete'):
+                # Reset all field dirty flags since we're loading fresh data for the first time
+                self._reset_all_field_dirty()
+                self._dirty_local = False
+                self._dirty_server = False
+                self._trainer_dirty_local = False
+                self._trainer_dirty_server = False
+                self._initial_load_complete = True
+                debug_log("Initial load - reset all dirty flags")
+            else:
+                debug_log("Subsequent load - preserving dirty flags")
             
             if hasattr(self, 'target_var'):
                 self._refresh_party()
@@ -1651,6 +1658,9 @@ class TeamManagerDialog(tk.Toplevel):
     def _on_money_change(self):
         """Handle money field changes and update data automatically."""
         try:
+            # Ignore programmatic updates during data loading or programmatic sets
+            if getattr(self, '_loading_data', False) or getattr(self, '_programmatic_money', False):
+                return
             # Update money in data immediately
             money_str = (self.var_money.get() or "").strip()
             if money_str:
@@ -1683,6 +1693,9 @@ class TeamManagerDialog(tk.Toplevel):
     def _on_weather_change(self):
         """Handle weather field changes and update data automatically."""
         try:
+            # Ignore programmatic updates during data loading or programmatic sets
+            if getattr(self, '_loading_data', False) or getattr(self, '_programmatic_weather', False):
+                return
             # Update weather in data immediately
             weather_text = (self.var_weather.get() or "").strip()
             if weather_text and hasattr(self, '_weather_n2i'):
@@ -1720,63 +1733,63 @@ class TeamManagerDialog(tk.Toplevel):
         try:
             # Basics tab fields
             if hasattr(self, 'var_name'):
-                self.var_name.trace_add("write", lambda *args: self._mark_field_dirty('nickname'))
+                self.var_name.trace_add("write", lambda *args: (self._mark_field_dirty('nickname'), self._on_pokemon_field_change()))
             if hasattr(self, 'var_hp'):
-                self.var_hp.trace_add("write", lambda *args: self._mark_field_dirty('hp'))
+                self.var_hp.trace_add("write", lambda *args: (self._mark_field_dirty('hp'), self._on_pokemon_field_change()))
             if hasattr(self, 'var_level'):
-                self.var_level.trace_add("write", lambda *args: self._mark_field_dirty('level'))
+                self.var_level.trace_add("write", lambda *args: (self._mark_field_dirty('level'), self._on_pokemon_field_change()))
             if hasattr(self, 'var_exp'):
-                self.var_exp.trace_add("write", lambda *args: self._mark_field_dirty('exp'))
+                self.var_exp.trace_add("write", lambda *args: (self._mark_field_dirty('exp'), self._on_pokemon_field_change()))
             if hasattr(self, 'var_friend'):
-                self.var_friend.trace_add("write", lambda *args: self._mark_field_dirty('friendship'))
+                self.var_friend.trace_add("write", lambda *args: (self._mark_field_dirty('friendship'), self._on_pokemon_field_change()))
             if hasattr(self, 'var_status'):
-                self.var_status.trace_add("write", lambda *args: self._mark_field_dirty('status'))
+                self.var_status.trace_add("write", lambda *args: (self._mark_field_dirty('status'), self._on_pokemon_field_change()))
             if hasattr(self, 'var_ability'):
-                self.var_ability.trace_add("write", lambda *args: self._mark_field_dirty('ability'))
+                self.var_ability.trace_add("write", lambda *args: (self._mark_field_dirty('ability'), self._on_pokemon_field_change()))
             if hasattr(self, 'var_passive'):
-                self.var_passive.trace_add("write", lambda *args: self._mark_field_dirty('passive'))
+                self.var_passive.trace_add("write", lambda *args: (self._mark_field_dirty('passive'), self._on_pokemon_field_change()))
             if hasattr(self, 'var_pokerus'):
-                self.var_pokerus.trace_add("write", lambda *args: self._mark_field_dirty('pokerus'))
+                self.var_pokerus.trace_add("write", lambda *args: (self._mark_field_dirty('pokerus'), self._on_pokemon_field_change()))
             
             # Stats tab fields
             if hasattr(self, 'var_nature'):
-                self.var_nature.trace_add("write", lambda *args: self._mark_field_dirty('nature'))
+                self.var_nature.trace_add("write", lambda *args: (self._mark_field_dirty('nature'), self._on_pokemon_field_change()))
             
             # Form & Visuals fields (now in Basics tab)
             if hasattr(self, 'var_tera'):
-                self.var_tera.trace_add("write", lambda *args: self._mark_field_dirty('tera'))
+                self.var_tera.trace_add("write", lambda *args: (self._mark_field_dirty('tera'), self._on_pokemon_field_change()))
             if hasattr(self, 'var_shiny'):
-                self.var_shiny.trace_add("write", lambda *args: self._mark_field_dirty('shiny'))
+                self.var_shiny.trace_add("write", lambda *args: (self._mark_field_dirty('shiny'), self._on_pokemon_field_change()))
             if hasattr(self, 'var_luck'):
-                self.var_luck.trace_add("write", lambda *args: self._mark_field_dirty('luck'))
+                self.var_luck.trace_add("write", lambda *args: (self._mark_field_dirty('luck'), self._on_pokemon_field_change()))
             if hasattr(self, 'var_pause_evo'):
-                self.var_pause_evo.trace_add("write", lambda *args: self._mark_field_dirty('pause_evolutions'))
+                self.var_pause_evo.trace_add("write", lambda *args: (self._mark_field_dirty('pause_evolutions'), self._on_pokemon_field_change()))
             if hasattr(self, 'var_gender'):
-                self.var_gender.trace_add("write", lambda *args: self._mark_field_dirty('gender'))
+                self.var_gender.trace_add("write", lambda *args: (self._mark_field_dirty('gender'), self._on_pokemon_field_change()))
             if hasattr(self, 'var_ball'):
-                self.var_ball.trace_add("write", lambda *args: self._mark_field_dirty('pokeball'))
+                self.var_ball.trace_add("write", lambda *args: (self._mark_field_dirty('pokeball'), self._on_pokemon_field_change()))
             
             # IV fields (if they exist) - all IVs are tracked as a group
             if hasattr(self, 'iv_vars') and isinstance(self.iv_vars, list):
                 for iv_var in self.iv_vars:
                     if iv_var:
-                        iv_var.trace_add("write", lambda *args: self._mark_field_dirty('ivs'))
+                        iv_var.trace_add("write", lambda *args: (self._mark_field_dirty('ivs'), self._on_pokemon_field_change()))
             
             # Move fields (if they exist) - all moves are tracked as a group
             if hasattr(self, 'move_vars') and isinstance(self.move_vars, list):
                 for move_var in self.move_vars:
                     if move_var:
-                        move_var.trace_add("write", lambda *args: self._mark_field_dirty('moves'))
+                        move_var.trace_add("write", lambda *args: (self._mark_field_dirty('moves'), self._on_pokemon_field_change()))
             
             if hasattr(self, 'move_ppup_vars') and isinstance(self.move_ppup_vars, list):
                 for ppup_var in self.move_ppup_vars:
                     if ppup_var:
-                        ppup_var.trace_add("write", lambda *args: self._mark_field_dirty('moves'))
+                        ppup_var.trace_add("write", lambda *args: (self._mark_field_dirty('moves'), self._on_pokemon_field_change()))
             
             if hasattr(self, 'move_ppused_vars') and isinstance(self.move_ppused_vars, list):
                 for ppused_var in self.move_ppused_vars:
                     if ppused_var:
-                        ppused_var.trace_add("write", lambda *args: self._mark_field_dirty('moves'))
+                        ppused_var.trace_add("write", lambda *args: (self._mark_field_dirty('moves'), self._on_pokemon_field_change()))
                     
         except Exception as e:
             debug_log(f"Error binding fields for auto-update: {e}")
@@ -1795,8 +1808,8 @@ class TeamManagerDialog(tk.Toplevel):
             # Apply changes to the current Pokémon data
             self._apply_pokemon_changes_to_data(mon)
             
-            # Mark as dirty
-            self._mark_trainer_field_dirty('money')
+            # Update overall button states (dirty flags are set by specific field traces)
+            self._update_button_states()
         except Exception as e:
             debug_log(f"Error handling Pokémon field change: {e}")
 
@@ -4708,14 +4721,18 @@ class TeamManagerDialog(tk.Toplevel):
             if not hasattr(self, 'pokeball_vars'):
                 return
             
-            # Get Pokéball inventory from trainer data
-            pokeball_inventory = self.data.get('pokeballInventory', {})
-            debug_log(f"Loading Pokéball data: {pokeball_inventory}")
-            
-            for key, var in self.pokeball_vars.items():
-                count = pokeball_inventory.get(key, 0)
-                var.set(str(count))
-                debug_log(f"Set {key} to {count}")
+            inv = self._get_pokeball_inventory()
+            debug_log(f"Loading Pokéball data (resolved): {inv}")
+            # Avoid dirty triggers during programmatic fill
+            try:
+                self._programmatic_pokeballs = True
+                for key, var in self.pokeball_vars.items():
+                    count = inv.get(key, 0)
+                    if var.get() != str(count):
+                        var.set(str(count))
+                        debug_log(f"Set {key} to {count}")
+            finally:
+                self._programmatic_pokeballs = False
                 
         except Exception as e:
             debug_log(f"Error loading Pokéball data: {e}")
@@ -4734,9 +4751,9 @@ class TeamManagerDialog(tk.Toplevel):
                     pokeball_inventory[key] = count
                 except ValueError:
                     pokeball_inventory[key] = 0
-            
-            self.data['pokeballInventory'] = pokeball_inventory
-            debug_log(f"Saved Pokéball data: {pokeball_inventory}")
+            # Persist to compatible structures
+            self._set_pokeball_inventory(pokeball_inventory)
+            debug_log(f"Saved Pokéball data (resolved): {pokeball_inventory}")
             
         except Exception as e:
             debug_log(f"Error saving Pokéball data: {e}")
@@ -4744,11 +4761,73 @@ class TeamManagerDialog(tk.Toplevel):
     def _on_pokeball_change(self):
         """Handle Pokéball inventory changes."""
         try:
+            if getattr(self, '_loading_data', False) or getattr(self, '_programmatic_pokeballs', False):
+                return
             # Save Pokéball data
             self._save_pokeball_data()
             
             # Mark trainer field as dirty
             self._mark_trainer_field_dirty('pokeball_inventory')
+            # Reflect button state
+            self._update_button_states()
+        except Exception as e:
+            debug_log(f"Error handling Pokéball change: {e}")
+    def _get_pokeball_inventory(self) -> dict:
+        """Resolve pokéball inventory from id-keyed format 'pokeballCounts' to UI keys."""
+        inv = {}
+        try:
+            id_map = self.data.get('pokeballCounts', {}) if isinstance(self.data, dict) else {}
+            if isinstance(id_map, dict) and id_map:
+                # Build a stable local ID->key map according to UI keys
+                id_to_key = {
+                    0: 'pokeball',
+                    1: 'greatball',
+                    2: 'ultraball',
+                    3: 'rogueball',
+                    4: 'masterball',
+                }
+                for id_str, count in id_map.items():
+                    try:
+                        ball_id = int(id_str)
+                        key = id_to_key.get(ball_id)
+                        if key is not None:
+                            inv[key] = int(count)
+                    except Exception:
+                        pass
+        except Exception:
+            pass
+        return inv
+
+    def _set_pokeball_inventory(self, inv: dict):
+        """Persist pokéball inventory only to id-keyed 'pokeballCounts'."""
+        try:
+            # Local key->ID mapping to match _get_pokeball_inventory
+            key_to_id = {
+                'pokeball': 0,
+                'greatball': 1,
+                'ultraball': 2,
+                'rogueball': 3,
+                'masterball': 4,
+            }
+            counts = {}
+            for key, count in inv.items():
+                try:
+                    canon = key.strip().lower().replace(" ", "")
+                    ball_id = key_to_id.get(canon)
+                    if ball_id is not None:
+                        counts[str(ball_id)] = int(count)
+                except Exception:
+                    pass
+            # Always write the id-keyed structure; do not create name-keyed structure
+            self.data['pokeballCounts'] = counts
+            # Remove name-keyed structure if present to avoid confusion
+            if isinstance(self.data, dict) and 'pokeballInventory' in self.data:
+                try:
+                    del self.data['pokeballInventory']
+                except Exception:
+                    pass
+        except Exception:
+            pass
             
         except Exception as e:
             debug_log(f"Error handling Pokéball change: {e}")
@@ -10248,6 +10327,7 @@ class TeamManagerDialog(tk.Toplevel):
 
     # --- Persistence ---
     def _save(self):
+        debug_log("_save method called")
         # Ensure UI changes are committed to in-memory data before saving
         try:
             mon = self._current_mon()
@@ -10257,12 +10337,17 @@ class TeamManagerDialog(tk.Toplevel):
             if hasattr(self, 'var_money') or hasattr(self, 'var_weather'):
                 # _apply_trainer_changes only adjusts in-memory and dirty flags
                 self._apply_trainer_changes()
-        except Exception:
-            pass
+                debug_log("Applied trainer changes")
+        except Exception as e:
+            debug_log(f"Error applying changes: {e}")
 
         # Save slot if changed using safe save system
         p = slot_save_path(self.api.username, self.slot)
-        if self._dirty_local or not os.path.exists(p):
+        # Check if there are any unsaved changes using the field dirty tracking system
+        has_unsaved_changes = self._has_unsaved_changes()
+        debug_log(f"Has unsaved changes: {has_unsaved_changes}")
+        debug_log(f"File exists: {os.path.exists(p)}")
+        if has_unsaved_changes or not os.path.exists(p):
             try:
                 # Use safe save system with corruption prevention
                 from rogueeditor.utils import safe_dump_json
@@ -10270,6 +10355,7 @@ class TeamManagerDialog(tk.Toplevel):
 
                 # Handle success path
                 if success:
+                    debug_log("Save successful - resetting flags and updating buttons")
                     self._dirty_local = False
                     self._trainer_dirty_local = False
                     # Reset all field dirty flags since changes are now saved
@@ -10277,6 +10363,7 @@ class TeamManagerDialog(tk.Toplevel):
                     # Ensure server dirty flag is set since we have local changes to upload
                     if not self._dirty_server:
                         self._dirty_server = True
+                    debug_log(f"Server dirty flag set to: {self._dirty_server}")
                     messagebox.showinfo("Saved", f"Safely wrote {p}\nBackup created for safety.")
                     try:
                         # Optional toast (non-blocking) if available
@@ -10287,6 +10374,7 @@ class TeamManagerDialog(tk.Toplevel):
                     
                     # Update button states after successful save
                     self._update_button_states()
+                    debug_log("Button states updated after save")
 
                 # Warn if not successful
                 if not success:
@@ -10332,14 +10420,14 @@ class TeamManagerDialog(tk.Toplevel):
                     pass
                 payload = self.data
                 self.api.update_slot(self.slot, payload)
-                # Refresh snapshot and clear server dirty flag
+                # Refresh snapshot and clear server dirty flag; disable upload until next change
                 try:
                     self.data = self.api.get_slot(self.slot)
                     self.party = self.data.get("party") or []
-                    self._dirty_server = False
-                    self._refresh_party()
                 except Exception:
                     pass
+                self._dirty_server = False
+                self._update_button_states()
             # Update button states based on current dirty flags
             self._update_button_states()
             messagebox.showinfo("Uploaded", "Server updated successfully")
@@ -10396,6 +10484,9 @@ class TeamManagerDialog(tk.Toplevel):
         try:
             # Set loading guard to prevent dirty flags during data loading
             self._loading_data = True
+            # Mark programmatic set guards for trainer fields
+            self._programmatic_money = True
+            self._programmatic_weather = True
             
             # Show loading animation for trainer data
             self._show_loading_indicator("Loading trainer data...")
@@ -10413,7 +10504,11 @@ class TeamManagerDialog(tk.Toplevel):
                 debug_log(f"Money value to set: {money_val}, current UI value: {self.var_money.get()}")
                 if not self._is_trainer_field_dirty('money'):
                     if self.var_money.get() != money_val:
-                        self.var_money.set(money_val)
+                        try:
+                            self._programmatic_money = True
+                            self.var_money.set(money_val)
+                        finally:
+                            self._programmatic_money = False
                         debug_log(f"Set money to: {money_val}")
                     else:
                         debug_log(f"Money already set to: {money_val}")
@@ -10432,8 +10527,12 @@ class TeamManagerDialog(tk.Toplevel):
             # Hide loading indicator after a short delay to show completion
             self.after(500, self._hide_loading_indicator)
             
-            # Reset loading guard after a delay
-            self.after(100, lambda: setattr(self, '_loading_data', False))
+            # Reset loading guard after a delay and clear programmatic guards
+            def _end_loading():
+                setattr(self, '_loading_data', False)
+                self._programmatic_money = False
+                self._programmatic_weather = False
+            self.after(100, _end_loading)
 
             debug_log("_load_trainer_snapshot_safe completed basic data")
         except Exception as e:
@@ -10526,22 +10625,26 @@ class TeamManagerDialog(tk.Toplevel):
                 return
 
             debug_log("=== POKEBALL LOADING DEBUG ===")
-            debug_log(f"Raw Pokéball data from self.data: {self.data.get('pokeballInventory')}")
+            debug_log(f"Raw pokeballCounts from self.data: {self.data.get('pokeballCounts')}")
             
-            # Get Pokéball inventory from trainer data
-            pokeball_inventory = self.data.get('pokeballInventory', {})
-            debug_log(f"Pokéball inventory: {pokeball_inventory}")
+            # Resolve inventory from id-keyed structure
+            inv = self._get_pokeball_inventory()
+            debug_log(f"Resolved Pokéball inventory: {inv}")
             debug_log(f"Pokéball field dirty: {self._is_trainer_field_dirty('pokeball_inventory')}")
             
             if not self._is_trainer_field_dirty('pokeball_inventory'):
-                for key, var in self.pokeball_vars.items():
-                    count = pokeball_inventory.get(key, 0)
-                    current_value = var.get()
-                    if current_value != str(count):
-                        var.set(str(count))
-                        debug_log(f"Set {key} to {count}")
-                    else:
-                        debug_log(f"{key} already set to {count}")
+                try:
+                    self._programmatic_pokeballs = True
+                    for key, var in self.pokeball_vars.items():
+                        count = inv.get(key, 0)
+                        current_value = var.get()
+                        if current_value != str(count):
+                            var.set(str(count))
+                            debug_log(f"Set {key} to {count}")
+                        else:
+                            debug_log(f"{key} already set to {count}")
+                finally:
+                    self._programmatic_pokeballs = False
             else:
                 debug_log("Pokéball field is dirty, skipping update")
 
@@ -12185,6 +12288,10 @@ class TeamManagerDialog(tk.Toplevel):
             self._dirty_server = False
             self._trainer_dirty_local = False
             self._trainer_dirty_server = False
+            
+            # Reset initial load flag so next load will reset dirty flags
+            if hasattr(self, '_initial_load_complete'):
+                delattr(self, '_initial_load_complete')
             
             # Refresh UI
             self._refresh_party()
