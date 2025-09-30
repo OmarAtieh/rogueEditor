@@ -1476,8 +1476,8 @@ class TeamManagerDialog(tk.Toplevel):
         ttk.Radiobutton(trow, text="Trainer", variable=self.target_var, value="Trainer", command=self._on_target_changed).pack(side=tk.LEFT)
         ttk.Radiobutton(trow, text="Party", variable=self.target_var, value="Party", command=self._on_target_changed).pack(side=tk.LEFT, padx=8)
         ttk.Label(left, text="Party:").pack(anchor=tk.W, pady=(6, 0))
-        # Cap party list display to 6 rows; widen to fit new label format
-        self.party_list = tk.Listbox(left, height=6, width=34, exportselection=False, selectmode=tk.SINGLE)
+        # Cap party list display to 6 rows; slightly narrowed to free space for tabs
+        self.party_list = tk.Listbox(left, height=6, width=28, exportselection=False, selectmode=tk.SINGLE)
         # Horizontal scrollbar for long labels
         try:
             self.party_hscroll = ttk.Scrollbar(left, orient="horizontal", command=self.party_list.xview)
@@ -1506,10 +1506,16 @@ class TeamManagerDialog(tk.Toplevel):
         # Actions under party selector (vertical stack)
         party_actions = ttk.LabelFrame(left, text="Actions")
         party_actions.pack(fill=tk.X, pady=(4, 6))
+        # Prioritize Modifiers & Held Items at the top (most-used)
+        ttk.Button(party_actions, text="Modifiers & Held Items…", command=self._open_item_mgr_contextual).pack(anchor=tk.W, padx=4, pady=2)
         ttk.Button(party_actions, text="Full Restore (Selected)", command=self._full_restore_current).pack(anchor=tk.W, padx=4, pady=2)
         ttk.Button(party_actions, text="Full Restore All", command=self._full_team_heal).pack(anchor=tk.W, padx=4, pady=2)
-        ttk.Button(party_actions, text="Modifiers & Held Items…", command=self._open_item_mgr_contextual).pack(anchor=tk.W, padx=4, pady=2)
         ttk.Button(party_actions, text="Party Manager (Soon)", command=self._open_party_manager_coming_soon).pack(anchor=tk.W, padx=4, pady=(2,2))
+        # Additional utilities
+        ttk.Button(party_actions, text="Open Local Save File", command=self._open_local_save_file).pack(anchor=tk.W, padx=4, pady=2)
+        ttk.Button(party_actions, text="Invalidate Cache (Selected)", command=self._invalidate_selected_caches).pack(anchor=tk.W, padx=4, pady=2)
+        ttk.Button(party_actions, text="Reload Selected", command=self._reload_selected).pack(anchor=tk.W, padx=4, pady=2)
+        ttk.Button(party_actions, text="Show Unsaved Changes", command=self._show_unsaved_changes).pack(anchor=tk.W, padx=4, pady=2)
 
         # Right
         right = ttk.Frame(root)
@@ -1668,7 +1674,7 @@ class TeamManagerDialog(tk.Toplevel):
         """Handle money field changes and update data automatically."""
         try:
             # Ignore programmatic updates during data loading or programmatic sets
-            if getattr(self, '_loading_data', False) or getattr(self, '_programmatic_money', False):
+            if getattr(self, '_loading_data', False) or getattr(self, '_programmatic_money', False) or getattr(self, '_suspend_trainer_traces', False):
                 return
             # Update money in data immediately
             money_str = (self.var_money.get() or "").strip()
@@ -1703,7 +1709,7 @@ class TeamManagerDialog(tk.Toplevel):
         """Handle weather field changes and update data automatically."""
         try:
             # Ignore programmatic updates during data loading or programmatic sets
-            if getattr(self, '_loading_data', False) or getattr(self, '_programmatic_weather', False):
+            if getattr(self, '_loading_data', False) or getattr(self, '_programmatic_weather', False) or getattr(self, '_suspend_trainer_traces', False):
                 return
             # Update weather in data immediately
             weather_text = (self.var_weather.get() or "").strip()
@@ -4527,8 +4533,20 @@ class TeamManagerDialog(tk.Toplevel):
                 _set(mon, ("currentHp","hp"), maxhp)
             self._clear_status(mon)
             self._full_pp_restore_for_mon(mon)
+            # Mark dirty for relevant pokemon fields
+            try:
+                idx = int(self.party_list.curselection()[0]) if hasattr(self, 'party_list') and self.party_list.curselection() else getattr(self, '_current_pokemon_index', 0)
+            except Exception:
+                idx = getattr(self, '_current_pokemon_index', 0)
+            for field in ("hp", "status", "moves"):
+                try:
+                    self._mark_field_dirty(field, party_index=idx)
+                except Exception:
+                    pass
+            # Also mark overall dirty and refresh UI state
             self._mark_dirty()
             self._recalc_stats_safe()
+            self._update_button_states()
             messagebox.showinfo("Full Restore", "Applied full restore to current Pokémon (local only). Upload to sync to server.")
         except Exception as e:
             messagebox.showwarning("Full Restore", f"Failed: {e}")
@@ -4538,10 +4556,13 @@ class TeamManagerDialog(tk.Toplevel):
     def _open_item_mgr_contextual(self):
         """Open modifier/item manager with current target context (Trainer or selected Pokémon)."""
         try:
-            # Prefer selected Pokémon if basics/moves/stats tabs; else trainer
+            # Decide target from left-side Target radio if available; fallback to current tab
             use_trainer = False
             try:
-                use_trainer = (self._current_tab_name() == 'Trainer')
+                if hasattr(self, 'target_var'):
+                    use_trainer = (self.target_var.get() == 'Trainer')
+                else:
+                    use_trainer = (self._current_tab_name() == 'Trainer')
             except Exception:
                 use_trainer = False
             if use_trainer:
@@ -4574,16 +4595,98 @@ class TeamManagerDialog(tk.Toplevel):
         except Exception:
             pass
 
+    def _open_local_save_file(self):
+        """Open the current slot save file in the OS default editor."""
+        try:
+            import os
+            slot_path = os.path.join(os.path.dirname(__file__), "..", "..", "saves", self.api.username, f"slot {self.slot}.json")
+            slot_path = os.path.normpath(slot_path)
+            if os.path.exists(slot_path):
+                os.startfile(slot_path)
+        except Exception as e:
+            debug_log(f"Error opening local save file: {e}")
+
+    def _invalidate_selected_caches(self):
+        """Invalidate caches for selected Pokémon or trainer based on Target radio."""
+        try:
+            is_trainer = hasattr(self, 'target_var') and self.target_var.get() == 'Trainer'
+            if is_trainer:
+                self._invalidate_trainer_cache()
+            else:
+                self._invalidate_party_member_caches()
+            debug_log("Selected caches invalidated")
+        except Exception as e:
+            debug_log(f"Error invalidating selected caches: {e}")
+
+    def _reload_selected(self):
+        """Reload selected Pokémon or trainer from file and rewarm caches."""
+        try:
+            is_trainer = hasattr(self, 'target_var') and self.target_var.get() == 'Trainer'
+            if is_trainer:
+                self._invalidate_trainer_cache()
+                self.after_idle(self._load_trainer_snapshot_safe)
+            else:
+                self._invalidate_party_member_caches()
+                # Re-read slot data and refresh selection
+                self._load_data_sync()
+            debug_log("Reloaded selected target")
+        except Exception as e:
+            debug_log(f"Error reloading selected: {e}")
+
+    def _show_unsaved_changes(self):
+        """Show a list of unsaved changes vs file values for current target."""
+        try:
+            top = tk.Toplevel(self)
+            top.title("Unsaved Changes")
+            top.transient(self)
+            top.grab_set()
+            top.geometry("560x400")
+            frm = ttk.Frame(top)
+            frm.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
+            txt = tk.Text(frm, wrap='word')
+            txt.pack(fill=tk.BOTH, expand=True)
+            txt.insert('end', "Unsaved changes (dirty fields):\n\n")
+            # Pokemon fields
+            try:
+                idx = getattr(self, '_current_pokemon_index', 0)
+                dirty = self._field_dirty.get(idx, set()) if hasattr(self, '_field_dirty') else set()
+            except Exception:
+                dirty = set()
+            if dirty:
+                txt.insert('end', f"Pokemon index {idx}:\n")
+                for k in sorted(dirty):
+                    txt.insert('end', f" - {k}\n")
+            # Trainer fields
+            try:
+                tdirty = getattr(self, '_trainer_field_dirty', set())
+            except Exception:
+                tdirty = set()
+            if tdirty:
+                txt.insert('end', "\nTrainer:\n")
+                for k in sorted(tdirty):
+                    txt.insert('end', f" - {k}\n")
+            ttk.Button(frm, text="Close", command=top.destroy).pack(anchor=tk.E, pady=(8,0))
+        except Exception as e:
+            debug_log(f"Error showing unsaved changes: {e}")
+
     def _full_team_heal(self):
         try:
-            for mon in (self.party or []):
+            for idx, mon in enumerate(self.party or []):
                 maxhp = self._max_hp_for_mon(mon)
                 if maxhp > 0:
                     _set(mon, ("currentHp","hp"), maxhp)
                 self._clear_status(mon)
                 self._full_pp_restore_for_mon(mon)
+                # Mark relevant fields dirty per Pokemon
+                for field in ("hp", "status", "moves"):
+                    try:
+                        self._mark_field_dirty(field, party_index=idx)
+                    except Exception:
+                        pass
+            # Mark overall dirty and update buttons
             self._mark_dirty()
             self._recompute_team_summary()
+            self._update_button_states()
             messagebox.showinfo("Full Team Heal", "Applied Pokécenter heal to entire team (local only). Upload to sync to server.")
         except Exception as e:
             messagebox.showwarning("Full Team Heal", f"Failed: {e}")
@@ -4730,9 +4833,9 @@ class TeamManagerDialog(tk.Toplevel):
         self.var_money = tk.StringVar(value="")
         ent = ttk.Entry(resources_frame, textvariable=self.var_money, width=12)  # Reduced from 18
         ent.grid(row=0, column=1, sticky=tk.W)
-        # Bind money changes to automatically update data
-        self.var_money.trace_add("write", lambda *args: self._on_money_change())
-        ent.bind("<KeyRelease>", lambda e: self._on_money_change())
+        # Bind money changes to automatically update data (guarded by suspend flag)
+        self.var_money.trace_add("write", lambda *args: (None if getattr(self, '_suspend_trainer_traces', False) else self._on_money_change()))
+        ent.bind("<KeyRelease>", lambda e: (None if getattr(self, '_suspend_trainer_traces', False) else self._on_money_change()))
 
         # Pokéball Inventory (moved to resources section)
         self._build_pokeball_inventory_section(resources_frame)
@@ -4753,9 +4856,9 @@ class TeamManagerDialog(tk.Toplevel):
             state="readonly",
         )
         self.cb_weather.grid(row=0, column=1, sticky=tk.W)
-        # Bind weather changes to automatically update data
-        self.var_weather.trace_add("write", lambda *args: self._on_weather_change())
-        self.cb_weather.bind("<<ComboboxSelected>>", lambda e: self._on_weather_change())
+        # Bind weather changes to automatically update data (guarded by suspend flag)
+        self.var_weather.trace_add("write", lambda *args: (None if getattr(self, '_suspend_trainer_traces', False) else self._on_weather_change()))
+        self.cb_weather.bind("<<ComboboxSelected>>", lambda e: (None if getattr(self, '_suspend_trainer_traces', False) else self._on_weather_change()))
 
         # RIGHT COLUMN CONTENT
         # Party Order Section
@@ -6670,20 +6773,9 @@ class TeamManagerDialog(tk.Toplevel):
             except Exception as e:
                 debug_log(f"Error applying secondary data: {e}")
 
-            # Update Server Stats widget from save data (mon['stats']) when available
+            # Update Server Stats widget via unified helper (prefers save/cached data)
             try:
-                stats = mon.get('stats') if isinstance(mon, dict) else None
-                if isinstance(stats, (list, tuple)) and len(stats) >= 6:
-                    self._set_stat_value('hp', stats[0])
-                    self._set_stat_value('atk', stats[1])
-                    self._set_stat_value('def', stats[2])
-                    self._set_stat_value('spa', stats[3])
-                    self._set_stat_value('spd', stats[4])
-                    self._set_stat_value('spe', stats[5])
-                else:
-                    # Clear when not available
-                    for k in ('hp','atk','def','spa','spd','spe'):
-                        self._set_stat_value(k, '-')
+                self._update_server_stats_from_sources(mon, cached_data)
             except Exception as e:
                 debug_log(f"Error updating Server Stats widget: {e}")
 
@@ -6825,6 +6917,26 @@ class TeamManagerDialog(tk.Toplevel):
             self.var_friend.set(cached_data.get("friendship", ""))
             self.var_hp.set(cached_data.get("hp", ""))
             self.var_name.set(cached_data.get("nickname", ""))
+
+            # Server Stats widget: show stats from save/cached (do not calculate)
+            try:
+                self._update_server_stats_from_sources(mon, cached_data)
+            except Exception:
+                for k in ('hp','atk','def','spa','spd','spe'):
+                    self._set_stat_value(k, '-')
+
+            # If basics skeleton is present, rebuild and then re-apply server stats from file
+            try:
+                if hasattr(self, '_basics_skeleton'):
+                    if self._basics_skeleton.winfo_exists():
+                        self._basics_skeleton.destroy()
+                    delattr(self, '_basics_skeleton')
+                    self._build_basics(self.tab_poke_basics)
+                    debug_log("Basics tab rebuilt")
+                    # After rebuilding basics, labels are recreated; update server stats now
+                    self._update_server_stats_from_sources(mon, cached_data)
+            except Exception:
+                pass
 
             # Species and types (with form enrichment)
             try:
@@ -11694,6 +11806,28 @@ class TeamManagerDialog(tk.Toplevel):
         except Exception as e:
             debug_log(f"Error getting cached party member data: {e}")
             return None
+
+    def _update_server_stats_from_sources(self, mon: dict, cached_data: dict) -> None:
+        """Prefer stats from save file; fallback to cached_data['stats']; clear if missing."""
+        try:
+            stats = None
+            if isinstance(mon, dict):
+                stats = mon.get('stats')
+            if not (isinstance(stats, (list, tuple)) and len(stats) >= 6):
+                stats = cached_data.get('stats') if isinstance(cached_data, dict) else None
+            if isinstance(stats, (list, tuple)) and len(stats) >= 6:
+                self._set_stat_value('hp', stats[0])
+                self._set_stat_value('atk', stats[1])
+                self._set_stat_value('def', stats[2])
+                self._set_stat_value('spa', stats[3])
+                self._set_stat_value('spd', stats[4])
+                self._set_stat_value('spe', stats[5])
+            else:
+                for k in ('hp','atk','def','spa','spd','spe'):
+                    self._set_stat_value(k, '-')
+        except Exception:
+            for k in ('hp','atk','def','spa','spd','spe'):
+                self._set_stat_value(k, '-')
 
     def _invalidate_party_member_caches(self, party_index: Optional[int] = None):
         """Invalidate party member caches when data changes."""
