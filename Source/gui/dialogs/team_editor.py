@@ -1476,7 +1476,8 @@ class TeamManagerDialog(tk.Toplevel):
         ttk.Radiobutton(trow, text="Trainer", variable=self.target_var, value="Trainer", command=self._on_target_changed).pack(side=tk.LEFT)
         ttk.Radiobutton(trow, text="Party", variable=self.target_var, value="Party", command=self._on_target_changed).pack(side=tk.LEFT, padx=8)
         ttk.Label(left, text="Party:").pack(anchor=tk.W, pady=(6, 0))
-        self.party_list = tk.Listbox(left, height=12, exportselection=False, selectmode=tk.SINGLE)
+        # Cap party list display to 6 rows; widen to fit new label format
+        self.party_list = tk.Listbox(left, height=6, width=34, exportselection=False, selectmode=tk.SINGLE)
         # Horizontal scrollbar for long labels
         try:
             self.party_hscroll = ttk.Scrollbar(left, orient="horizontal", command=self.party_list.xview)
@@ -1501,6 +1502,14 @@ class TeamManagerDialog(tk.Toplevel):
             pass
         # Keyboard or programmatic selection fallback
         self.party_list.bind("<<ListboxSelect>>", lambda e: self._on_party_list_select_event())
+
+        # Actions under party selector (vertical stack)
+        party_actions = ttk.LabelFrame(left, text="Actions")
+        party_actions.pack(fill=tk.X, pady=(4, 6))
+        ttk.Button(party_actions, text="Full Restore (Selected)", command=self._full_restore_current).pack(anchor=tk.W, padx=4, pady=2)
+        ttk.Button(party_actions, text="Full Restore All", command=self._full_team_heal).pack(anchor=tk.W, padx=4, pady=2)
+        ttk.Button(party_actions, text="Modifiers & Held Items…", command=self._open_item_mgr_contextual).pack(anchor=tk.W, padx=4, pady=2)
+        ttk.Button(party_actions, text="Party Manager (Soon)", command=self._open_party_manager_coming_soon).pack(anchor=tk.W, padx=4, pady=(2,2))
 
         # Right
         right = ttk.Frame(root)
@@ -2130,10 +2139,7 @@ class TeamManagerDialog(tk.Toplevel):
         _spacer_chars = max(0, _max_label + 6)
         self._hdr_spacer = tk.Label(hdr, text="", width=_spacer_chars)
         self._hdr_spacer.pack(side=tk.LEFT)
-        # Server stats (header row, after types)
-        ttk.Label(hdr, text="Server Stats:").pack(side=tk.LEFT, padx=(12, 4))
-        self.server_stats_var = tk.StringVar(value="-")
-        ttk.Label(hdr, textvariable=self.server_stats_var).pack(side=tk.LEFT)
+        # Remove compact server stats in header; replaced by dedicated widget below
         # Basics box (compact square): Nickname, Current HP, Level, EXP, Growth Rate, Friendship, EXP note
         basics_box = ttk.LabelFrame(frm, text="Basics")
         basics_box.grid(row=1, column=0, columnspan=3, sticky=tk.EW, padx=4, pady=(4, 6))
@@ -2168,15 +2174,36 @@ class TeamManagerDialog(tk.Toplevel):
         self.exp_note = ttk.Label(basics_box, text="Note: Levels beyond 100 use last EXP step (supports 200+)", foreground="gray")
         self.exp_note.grid(row=3, column=0, columnspan=4, sticky=tk.W, padx=4, pady=(2,0))
 
-        # Actions box next to basics: Held items and Full Restore
-        actions_box = ttk.LabelFrame(frm, text="Actions")
-        actions_box.grid(row=1, column=3, sticky=tk.NW, padx=(0,4), pady=(4,6))
-        ttk.Button(actions_box, text="Manage Held Items…", command=self._open_item_mgr).grid(row=0, column=0, padx=6, pady=(6,4), sticky=tk.EW)
-        ttk.Button(actions_box, text="Full Restore", command=self._full_restore_current).grid(row=1, column=0, padx=6, pady=(0,6), sticky=tk.EW)
-        try:
-            actions_box.grid_columnconfigure(0, weight=1)
-        except Exception:
-            pass
+        # Replace basics actions with compact Server Stats panel (2 columns x 3 rows)
+        stats_box = ttk.LabelFrame(frm, text="Server Stats")
+        stats_box.grid(row=1, column=3, sticky=tk.NW, padx=(0,4), pady=(4,6))
+        for c in range(2):
+            try:
+                stats_box.grid_columnconfigure(c*2+1, weight=1)
+            except Exception:
+                pass
+        self._basic_stats_labels = {}
+        def _mk_stat(row: int, col: int, key: str, label_text: str):
+            ttk.Label(stats_box, text=f"{label_text}:").grid(row=row, column=col*2, sticky=tk.E, padx=4, pady=2)
+            # Wider label to comfortably display 1–6 digit values
+            val = ttk.Label(stats_box, text="-", width=8, anchor=tk.W)
+            val.grid(row=row, column=col*2+1, sticky=tk.W, padx=4, pady=2)
+            self._basic_stats_labels[key] = val
+
+        def _set_stat_value(key: str, value: int | str):
+            try:
+                if key in self._basic_stats_labels:
+                    self._basic_stats_labels[key].configure(text=str(value))
+            except Exception:
+                pass
+
+        self._set_stat_value = _set_stat_value
+        _mk_stat(0, 0, "hp", "HP")
+        _mk_stat(0, 1, "atk", "Attack")
+        _mk_stat(1, 0, "def", "Defense")
+        _mk_stat(1, 1, "spa", "Sp. Atk")
+        _mk_stat(2, 0, "spd", "Sp. Def")
+        _mk_stat(2, 1, "spe", "Speed")
 
         # Continue with remaining fields below
         r = 2
@@ -4508,6 +4535,45 @@ class TeamManagerDialog(tk.Toplevel):
 
     # Full PP Restore handled as part of Full Restore and Full Team Heal; no separate action.
 
+    def _open_item_mgr_contextual(self):
+        """Open modifier/item manager with current target context (Trainer or selected Pokémon)."""
+        try:
+            # Prefer selected Pokémon if basics/moves/stats tabs; else trainer
+            use_trainer = False
+            try:
+                use_trainer = (self._current_tab_name() == 'Trainer')
+            except Exception:
+                use_trainer = False
+            if use_trainer:
+                return self._open_item_mgr_trainer()
+            mon = self._current_mon()
+            preselect_id = mon.get('id') if isinstance(mon, dict) else None
+            return self._open_item_mgr(preselect_id=preselect_id)
+        except Exception:
+            try:
+                self._open_item_mgr_trainer()
+            except Exception:
+                pass
+
+    def _open_party_manager_coming_soon(self):
+        try:
+            top = tk.Toplevel(self)
+            top.title("Party Manager (Coming Soon)")
+            top.transient(self)
+            top.grab_set()
+            top.geometry("520x360")
+            frm = ttk.Frame(top)
+            frm.pack(fill=tk.BOTH, expand=True, padx=12, pady=12)
+            ttk.Label(frm, text="Party Manager", font=("TkDefaultFont", 12, "bold")).pack(anchor=tk.W)
+            desc = (
+                "Save/load snapshots and templates, replace/add members, and scale levels using EXP tables.\n"
+                "Includes diff preview, backups on replace, validation, and a creation wizard."
+            )
+            ttk.Label(frm, text=desc, wraplength=480, justify=tk.LEFT).pack(anchor=tk.W, pady=(8,12))
+            ttk.Button(frm, text="Close", command=top.destroy).pack(anchor=tk.E)
+        except Exception:
+            pass
+
     def _full_team_heal(self):
         try:
             for mon in (self.party or []):
@@ -4667,7 +4733,7 @@ class TeamManagerDialog(tk.Toplevel):
         # Bind money changes to automatically update data
         self.var_money.trace_add("write", lambda *args: self._on_money_change())
         ent.bind("<KeyRelease>", lambda e: self._on_money_change())
-        
+
         # Pokéball Inventory (moved to resources section)
         self._build_pokeball_inventory_section(resources_frame)
 
@@ -4692,18 +4758,7 @@ class TeamManagerDialog(tk.Toplevel):
         self.cb_weather.bind("<<ComboboxSelected>>", lambda e: self._on_weather_change())
 
         # RIGHT COLUMN CONTENT
-
-        # Actions Section (moved to right column)
-        actions_frame = ttk.LabelFrame(right_frame, text="Actions")
-        actions_frame.grid(row=0, column=0, sticky=tk.EW, padx=6, pady=6)
-        
-        # Full Team Heal button
-        ttk.Button(actions_frame, text="Full Team Heal", command=self._full_team_heal).grid(row=0, column=0, sticky=tk.W, padx=6, pady=6)
-        
-        # Open Modifiers/Items button
-        ttk.Button(actions_frame, text="Open Modifiers…", command=self._open_item_mgr_trainer).grid(row=0, column=1, sticky=tk.W, padx=6, pady=6)
-
-        # Party Order Section (moved below actions)
+        # Party Order Section
         self._build_party_reorder_section(right_frame)
 
         # Spacer to expand vertically like other tabs
@@ -5794,10 +5849,11 @@ class TeamManagerDialog(tk.Toplevel):
                     except Exception as e:
                         debug_log(f"Error getting Pokemon display name: {e}")
 
-                    # Build label: Name#0000 Level X
+                    # Build label to match Item/Modifier Manager: "N. Name Lv X (ID)"
                     lvl = _get(mon, ("level", "lvl")) or "?"
-                    base_name = name
-                    label = f"{base_name}#{int(did):04d} Level {lvl}"
+                    mon_id = mon.get("id")
+                    display = name  # already form-aware if available
+                    label = f"{i}. {display} Lv {lvl} ({mon_id})"
                     self.party_list.insert(tk.END, label)
 
                 except Exception as e:
@@ -6613,6 +6669,23 @@ class TeamManagerDialog(tk.Toplevel):
                 ))
             except Exception as e:
                 debug_log(f"Error applying secondary data: {e}")
+
+            # Update Server Stats widget from save data (mon['stats']) when available
+            try:
+                stats = mon.get('stats') if isinstance(mon, dict) else None
+                if isinstance(stats, (list, tuple)) and len(stats) >= 6:
+                    self._set_stat_value('hp', stats[0])
+                    self._set_stat_value('atk', stats[1])
+                    self._set_stat_value('def', stats[2])
+                    self._set_stat_value('spa', stats[3])
+                    self._set_stat_value('spd', stats[4])
+                    self._set_stat_value('spe', stats[5])
+                else:
+                    # Clear when not available
+                    for k in ('hp','atk','def','spa','spd','spe'):
+                        self._set_stat_value(k, '-')
+            except Exception as e:
+                debug_log(f"Error updating Server Stats widget: {e}")
 
             debug_log(f"Party selection completed for Pokemon {species_id}")
 
@@ -10336,7 +10409,7 @@ class TeamManagerDialog(tk.Toplevel):
             return has_changes
         except Exception as e:
             debug_log(f"Error checking unsaved changes: {e}")
-            return False
+        return False
 
     def _confirm_discard_changes(self, action_description: str = "continue") -> bool:
         """
@@ -10591,7 +10664,7 @@ class TeamManagerDialog(tk.Toplevel):
 
             debug_log("=== WEATHER LOADING DEBUG ===")
             debug_log(f"Raw weather data from self.data: {self.data.get('weather')}")
-            
+
             # Update loading indicator with progress
             self._update_loading_status("Loading weather data...")
             if hasattr(self, '_loading_label'):
